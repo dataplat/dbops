@@ -1,0 +1,12 @@
+{
+    "Oracle": [
+       { 
+           "Name": "Oracle.ManagedDataAccess",
+           "Version": "12.2.1100",
+           "Path": [
+               "lib\\net40\\Oracle.ManagedDataAccess.dll"
+           ]
+       }
+    ],
+    "SQLServer": []
+}

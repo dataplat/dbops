@@ -1,0 +1,41 @@
+  # See http://www.appveyor.com/docs/appveyor-yml for many more options
+
+build: false
+version: 0.1.{build}
+
+# Set build info
+environment: 
+  environment: development
+  version: 0.1.$(appveyor_build_number)
+  
+  matrix:
+    # - scenario: MSSQL
+    #   main_instance: localhost\SQL2017
+    #   services:
+    #     - mssql2017
+    - scenario: ALL
+      # main_instance: localhost\SQL2017
+
+#Configure services
+services:
+  - mssql2017
+  
+# Set alternative clone folder
+clone_folder: c:\github\dbops
+
+before_test:
+  # run preparation scripts
+  - ps: .\Tests\appveyor.prep.ps1
+ 
+test_script:
+   # Test with native PS version
+  - ps: .\Tests\appveyor.pester.ps1
+
+  # Collecting results
+  - ps: .\Tests\appveyor.pester.ps1 -Finalize
+
+after_test:
+  - ps: .\Tests\appveyor.post.ps1
+
+#on_finish:
+#  - ps: 

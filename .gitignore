@@ -1,0 +1,8 @@
+# ignore the settings folder and files for VSCode
+.vscode/*
+
+# VIM backup files
+*~
+
+# Local constant file
+tests/constants.local.ps1

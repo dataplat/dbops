@@ -1,0 +1,14 @@
+﻿{
+    "ApplicationName":  null,
+    "SqlInstance":  null,
+    "Database":  null,
+    "DeploymentMethod":  null,
+    "ConnectionTimeout":  null,
+    "Encrypt":  null,
+    "Credential":  null,
+    "Username":  null,
+    "Password":  null,
+    "SchemaVersionTable":  null,
+    "Silent":  null,
+    "Variables":  null
+}
