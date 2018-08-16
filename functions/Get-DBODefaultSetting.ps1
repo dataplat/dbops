@@ -38,12 +38,12 @@ function Get-DBODefaultSetting {
         [switch]$Value
     )
     switch ($Value) {
-        $true { 
+        $true {
             if ($Name.count -gt 1) {
                 Write-PSFMessage -Level Warning -Message "Provide a single item when requesting a value"
                 return
             }
-            Get-PSFConfigValue -FullName "dbops.$Name" 
+            Get-PSFConfigValue -FullName "dbops.$Name"
         }
         $false {
             foreach ($n in $Name) {

@@ -1,35 +1,35 @@
 Function Get-DBOPackage {
     <#
-	.SYNOPSIS
-	Shows information about the existin DBOps package
-	
-	.DESCRIPTION
-	Reads DBOps package header and configuration files and returns an object with corresponding properties.
-	
-	.PARAMETER Path
-	Path to the DBOps package
+    .SYNOPSIS
+    Shows information about the existin DBOps package
+    
+    .DESCRIPTION
+    Reads DBOps package header and configuration files and returns an object with corresponding properties.
+    
+    .PARAMETER Path
+    Path to the DBOps package
 
-	Aliases: Name, FileName, Package
-	
-	.PARAMETER InputObject
-	Pipeline implementation of Path. Can also accept a DBOpsPackage object.
+    Aliases: Name, FileName, Package
+    
+    .PARAMETER InputObject
+    Pipeline implementation of Path. Can also accept a DBOpsPackage object.
 
-	.PARAMETER Unpacked
-	Mostly intended for internal use. Gets package information from extracted package.
+    .PARAMETER Unpacked
+    Mostly intended for internal use. Gets package information from extracted package.
 
-	.PARAMETER Confirm
+    .PARAMETER Confirm
         Prompts to confirm certain actions
 
     .PARAMETER WhatIf
         Shows what would happen if the command would execute, but does not actually perform the command
 
-	.EXAMPLE
-	# Returns information about the package myPackage.zip, only including infomartion about builds 1.1 and 1.2
-	Get-DBOPackage -Path c:\temp\myPackage.zip -Build 1.1, 1.2
-	
-	.NOTES
-	
-	#>
+    .EXAMPLE
+    # Returns information about the package myPackage.zip, only including infomartion about builds 1.1 and 1.2
+    Get-DBOPackage -Path c:\temp\myPackage.zip -Build 1.1, 1.2
+    
+    .NOTES
+    
+    #>
     [CmdletBinding(DefaultParameterSetName = 'Default')]
     Param(
         [Parameter(Mandatory = $false, ParameterSetName = 'Default', Position = 1)]

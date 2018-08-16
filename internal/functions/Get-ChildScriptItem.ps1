@@ -1,8 +1,8 @@
 ﻿function Get-ChildScriptItem {
-	[CmdletBinding()]
-	Param (
-		[object[]]$Path
-	)
+    [CmdletBinding()]
+    Param (
+        [object[]]$Path
+    )
     Function Get-ChildItemDepth ([System.IO.FileSystemInfo]$Item, [int]$Depth = 0, [bool]$IsAbsolute) {
         Write-Debug "Getting child items from $Item with current depth $Depth"
         foreach ($childItem in (Get-ChildItem $Item)) {

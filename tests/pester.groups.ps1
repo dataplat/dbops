@@ -4,12 +4,12 @@ $TestsRunGroups = @{
     # run on scenario MSSQL
     "MSSQL" = @(
         'Install-DBOPackage',
-		'Add-DBOBuild',
-		'Get-DBOConfig',
-		'New-DBOPackage',
-		'Remove-DBOBuild',
-		'Get-DBOPackage',
-		'Update-DBOConfig'
+        'Add-DBOBuild',
+        'Get-DBOConfig',
+        'New-DBOPackage',
+        'Remove-DBOBuild',
+        'Get-DBOPackage',
+        'Update-DBOConfig'
     )
     # do not run everywhere
     "disabled" = @()

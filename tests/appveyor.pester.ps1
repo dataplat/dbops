@@ -159,33 +159,33 @@ function Send-CodecovReport($CodecovReport) {
 }
 
 if (-not $Finalize) {
-	# Welcome message
-	Write-Host -ForegroundColor DarkGreen "Running dbops build $((Get-Module dbops).Version.ToString()) on PS $($PSVersionTable.PsVersion.ToString())"
-	# Invoke pester.groups.ps1 to know which tests to run
-	. "$ModuleBase\tests\pester.groups.ps1"
+    # Welcome message
+    Write-Host -ForegroundColor DarkGreen "Running dbops build $((Get-Module dbops).Version.ToString()) on PS $($PSVersionTable.PsVersion.ToString())"
+    # Invoke pester.groups.ps1 to know which tests to run
+    . "$ModuleBase\tests\pester.groups.ps1"
 
-	# retrieve all .Tests.
-	$AllTestsFiles = Get-ChildItem -File -Path "$ModuleBase\tests\*.Tests.ps1"
-	# exclude "disabled"
-	$AllTests = $AllTestsFiles | Where-Object { ($_.Name -replace '^([^.]+)(.+)?.Tests.ps1', '$1') -notin $TestsRunGroups['disabled'] }
+    # retrieve all .Tests.
+    $AllTestsFiles = Get-ChildItem -File -Path "$ModuleBase\tests\*.Tests.ps1"
+    # exclude "disabled"
+    $AllTests = $AllTestsFiles | Where-Object { ($_.Name -replace '^([^.]+)(.+)?.Tests.ps1', '$1') -notin $TestsRunGroups['disabled'] }
 
-	# do we have a scenario ?
-	if ($env:SCENARIO) {
-		# if so, do we have a group with tests to run ?
-		if ($env:SCENARIO -in $TestsRunGroups.Keys) {
-			$AllScenarioTests = $AllTests | Where-Object { ($_.Name -replace '\.Tests\.ps1$', '') -in $TestsRunGroups[$env:SCENARIO] }
-		}
-		else {
-			$AllScenarioTests = $AllTests
-		}
-	}
-	else {
-		$AllScenarioTests = $AllTests
-	}
+    # do we have a scenario ?
+    if ($env:SCENARIO) {
+        # if so, do we have a group with tests to run ?
+        if ($env:SCENARIO -in $TestsRunGroups.Keys) {
+            $AllScenarioTests = $AllTests | Where-Object { ($_.Name -replace '\.Tests\.ps1$', '') -in $TestsRunGroups[$env:SCENARIO] }
+        }
+        else {
+            $AllScenarioTests = $AllTests
+        }
+    }
+    else {
+        $AllScenarioTests = $AllTests
+    }
 
-	if ($AllTests.Count -eq 0 -and $AllScenarioTests.Count -eq 0) {
-		throw "something went wrong, nothing to test"
-	}
+    if ($AllTests.Count -eq 0 -and $AllScenarioTests.Count -eq 0) {
+        throw "something went wrong, nothing to test"
+    }
 }
 
 #Run a test with the current version of PowerShell

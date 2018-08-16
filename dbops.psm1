@@ -2,16 +2,16 @@
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $moduleCatalog = Get-Content "$PSScriptRoot\internal\json\dbops.json" -Raw | ConvertFrom-Json
 foreach ($bin in $moduleCatalog.Libraries) {
-	Unblock-File -Path "$PSScriptRoot\$bin" -ErrorAction SilentlyContinue
-	Add-Type -Path "$PSScriptRoot\$bin"
+    Unblock-File -Path "$PSScriptRoot\$bin" -ErrorAction SilentlyContinue
+    Add-Type -Path "$PSScriptRoot\$bin"
 }
 
 foreach ($function in $moduleCatalog.Functions) {
-	. "$PSScriptRoot\$function"
+    . "$PSScriptRoot\$function"
 }
 
 foreach ($function in $moduleCatalog.Internal) {
-	. "$PSScriptRoot\$function"
+    . "$PSScriptRoot\$function"
 }
 
 # defining validations
@@ -20,7 +20,7 @@ Register-PSFConfigValidation -Name "transaction" -ScriptBlock {
     Param (
         $Value
     )
-	
+    
     $Result = New-Object PSOBject -Property @{
         Success = $True
         Value   = $null
@@ -39,7 +39,7 @@ Register-PSFConfigValidation -Name "transaction" -ScriptBlock {
         $Result.Message = "Failed to convert value to string"
         $Result.Success = $False
     }
-	
+    
     return $Result
 }
 
@@ -47,7 +47,7 @@ Register-PSFConfigValidation -Name "securestring" -ScriptBlock {
     Param (
         $Value
     )
-	
+    
     $Result = New-Object PSOBject -Property @{
         Success = $True
         Value   = $null
@@ -67,7 +67,7 @@ Register-PSFConfigValidation -Name "hashtable" -ScriptBlock {
     Param (
         $Value
     )
-	
+    
     $Result = New-Object PSOBject -Property @{
         Success = $True
         Value   = $null
@@ -95,7 +95,7 @@ Set-PSFConfig -FullName dbops.ApplicationName -Value "dbops" -Initialize -Descri
 Set-PSFConfig -FullName dbops.SqlInstance -Value "localhost" -Initialize -Description "Server to connect to"
 Set-PSFConfig -FullName dbops.Database -Value $null -Initialize -Description "Name of the database for deployment"
 Set-PSFConfig -FullName dbops.DeploymentMethod -Value 'NoTransaction' -Initialize -Validation transaction `
-	-Description "Transactional behavior during deployment. Allowed values: SingleTransaction, TransactionPerScript, NoTransaction (default)"
+    -Description "Transactional behavior during deployment. Allowed values: SingleTransaction, TransactionPerScript, NoTransaction (default)"
 Set-PSFConfig -FullName dbops.Username -Value $null -Initialize -Description "Connection username"
 Set-PSFConfig -FullName dbops.Password -Value $null -Initialize -Validation securestring `
     -Description "Connection password. Only available to the same OS user, as it will be encrypted"

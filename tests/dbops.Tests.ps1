@@ -18,29 +18,11 @@ else {
 $ModuleName = 'dbops'
 $ModulePath = (Get-Item $here).Parent.FullName
 
-Describe "$ModuleName Aliases" -tag Build , Aliases {
-    ## Get the Aliases that should be set from the psm1 file
-
-    $psm1 = Get-Content $here\..\$ModuleName.psm1 -Verbose
-    $Matches = [regex]::Matches($psm1, "AliasName`"\s=\s`"(\w*-\w*)`"")
-    $Aliases = $Matches.ForEach{$_.Groups[1].Value}
-
-    foreach ($Alias in $Aliases) {
-        Context "Testing $Alias Alias" {
-            $Definition = (Get-Alias $Alias).Definition
-            It "$Alias Alias should exist" {
-                Get-Alias $Alias| Should Not BeNullOrEmpty
-            }
-            It "$Alias Aliased Command $Definition Should Exist" {
-                Get-Command $Definition -ErrorAction SilentlyContinue | Should Not BeNullOrEmpty
-            }
-        }
-    }
-}
-
 Describe "$ModuleName indentation" -Tag 'Compliance' {
     $AllFiles = Get-ChildItem -Path $ModulePath -File -Recurse  -Filter '*.ps*1'
-
+    It "should test $($AllFiles.Count) files" {
+        $AllFiles.Count | Should BeGreaterThan 0
+    }
     foreach ($f in $AllFiles) {
         $LeadingTabs = Select-String -Path $f -Pattern '^[\t]+'
         if ($LeadingTabs.Count -gt 0) {
@@ -59,7 +41,7 @@ Describe "$ModuleName indentation" -Tag 'Compliance' {
 
 Describe "$ModuleName ScriptAnalyzerErrors" -Tag 'Compliance' {
     $ScriptAnalyzerErrors = @()
-    $ScriptAnalyzerErrors += Invoke-ScriptAnalyzer -Path "$ModulePath\functions" -Severity Error
+    $ScriptAnalyzerErrors += Invoke-ScriptAnalyzer -Path "$ModulePath\functions" -Severity Warning
     $ScriptAnalyzerErrors += Invoke-ScriptAnalyzer -Path "$ModulePath\internal\functions" -Severity Error
     $ScriptAnalyzerErrors += Invoke-ScriptAnalyzer -Path "$ModulePath\$ModuleName.psm1" -Severity Error
     if ($ScriptAnalyzerErrors.Count -gt 0) {
