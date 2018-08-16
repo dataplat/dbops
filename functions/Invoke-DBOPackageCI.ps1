@@ -112,11 +112,16 @@ function Invoke-DBOPackageCI {
         $pkgVersion = [Version]::new($pkgVersion.Major, $pkgVersion.Minor, $pkgVersion.Build + 1)
         Write-Message -Message "Building version $pkgVersion" -Level Verbose
 
+        
         if ($pkg) {
-            Add-DBOBuild -Package $pkg -ScriptPath $ScriptPath -Type $Type -Build $pkgVersion.ToString(3)
+            if ($PSCmdlet.ShouldProcess($pkg, "Adding new build to existing package")) {
+                Add-DBOBuild -Package $pkg -ScriptPath $ScriptPath -Type $Type -Build $pkgVersion.ToString(3)
+            }
         }
         else {
-            New-DBOPackage -Name $Path -ScriptPath $ScriptPath -Build $pkgVersion.ToString(3)
+            if ($PSCmdlet.ShouldProcess($Path, "Creating new package")) {
+                New-DBOPackage -Name $Path -ScriptPath $ScriptPath -Build $pkgVersion.ToString(3)
+            }
         }
     }
     end {

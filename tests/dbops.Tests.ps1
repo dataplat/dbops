@@ -51,4 +51,9 @@ Describe "$ModuleName ScriptAnalyzerErrors" -Tag 'Compliance' {
             }
         }
     }
+    else {
+        It "should successfully pass all the tests" {
+            $ScriptAnalyzerErrors.Count | Should Be 0
+        }
+    }
 }
