@@ -1,6 +1,6 @@
 | master | development |
 |---|---|
-| [![Build status](https://ci.appveyor.com/api/projects/status/m0ml0392r631tp60/branch/master?svg=true)](https://ci.appveyor.com/project/nvarscar/powerup/branch/master) | [![Build status](https://ci.appveyor.com/api/projects/status/m0ml0392r631tp60/branch/development?svg=true)](https://ci.appveyor.com/project/nvarscar/powerup/branch/development) |
+| [![Build status](https://ci.appveyor.com/api/projects/status/lwjima2g6q0m2i9j/branch/master?svg=true)](https://ci.appveyor.com/project/nvarscar/dbops/branch/master) | [![Build status](https://ci.appveyor.com/api/projects/status/lwjima2g6q0m2i9j/branch/development?svg=true)](https://ci.appveyor.com/project/nvarscar/dbops/branch/development) |
 
 # DBOps
 
