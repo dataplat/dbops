@@ -44,11 +44,8 @@ param (
 Set-Location $ModuleBase
 #removes previously imported module, if any
 Remove-Module dbops -ErrorAction Ignore
-Remove-Module ZipHelper -ErrorAction Ignore
 #imports the module making sure DLL is loaded ok
 Import-Module "$ModuleBase\dbops.psd1"
-#Import ZipHelper
-Import-Module "$PSScriptRoot\etc\modules\ZipHelper" -Force
 
 
 function Get-CoverageIndications($Path, $ModuleBase) {
