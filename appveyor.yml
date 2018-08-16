@@ -4,7 +4,7 @@ build: false
 version: 0.1.{build}
 
 # Set build info
-environment: 
+environment:
   environment: development
   version: 0.1.$(appveyor_build_number)
   
@@ -38,4 +38,4 @@ after_test:
   - ps: .\Tests\appveyor.post.ps1
 
 #on_finish:
-#  - ps: 
+#  - ps:

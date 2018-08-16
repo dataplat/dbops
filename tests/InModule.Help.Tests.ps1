@@ -1,18 +1,18 @@
 Param (
-	[switch]$Batch
+    [switch]$Batch
 )
 
 $commandName = $MyInvocation.MyCommand.Name.Replace(".Tests.ps1", "")
 $here = if ($PSScriptRoot) { $PSScriptRoot } else {	(Get-Item . ).FullName }
 
 if (!$Batch) {
-	# Is not a part of the global batch => import module
-	#Explicitly import the module for testing
-	Import-Module "$here\..\dbops.psd1" -Force
+    # Is not a part of the global batch => import module
+    #Explicitly import the module for testing
+    Import-Module "$here\..\dbops.psd1" -Force
 }
 else {
-	# Is a part of a batch, output some eye-catching happiness
-	Write-Host "Running $commandName tests" -ForegroundColor Cyan
+    # Is a part of a batch, output some eye-catching happiness
+    Write-Host "Running $commandName tests" -ForegroundColor Cyan
 }
 if ($SkipHelpTest) { return }
 $includedNames = (Get-ChildItem "$here\..\functions" | Where-Object Name -like "*.ps1" ).BaseName

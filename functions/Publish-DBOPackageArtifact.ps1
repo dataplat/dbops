@@ -1,10 +1,10 @@
 Function Publish-DBOPackageArtifact {
     <#
-	.SYNOPSIS
-	Publishes DBOps package to the specific artifact repository.
-	
-	.DESCRIPTION
-    Publishes a DBOps package file to an artifact repository located in a specific folder 
+    .SYNOPSIS
+    Publishes DBOps package to the specific artifact repository.
+    
+    .DESCRIPTION
+    Publishes a DBOps package file to an artifact repository located in a specific folder
 
     Repository is structured as a top-level repository folder with subfolders inside:
 
@@ -19,18 +19,18 @@ Function Publish-DBOPackageArtifact {
           - PackageName.zip
         ...
     
-    Newly submitted package will replace the package in the Current folder, as well as will 
+    Newly submitted package will replace the package in the Current folder, as well as will
     create a proper subfolder in the Versions folder and copy the file there as well.
-	
-	.PARAMETER Path
-	Name of the DBOps package
+    
+    .PARAMETER Path
+    Name of the DBOps package
 
     Aliases: Name, FileName, Package
     
     .PARAMETER Repository
-	Path to the artifact repository - a folder or a network share
+    Path to the artifact repository - a folder or a network share
 
-	Aliases: RepositoryPath
+    Aliases: RepositoryPath
 
     .PARAMETER VersionOnly
     Will copy the file only to the proper Versions subfolder, skipping replacing the file in the Current folder
@@ -41,24 +41,24 @@ Function Publish-DBOPackageArtifact {
     .PARAMETER InputObject
     Pipeline implementation of Path. Can also contain a DBOpsPackage object.
     
-	.PARAMETER Confirm
+    .PARAMETER Confirm
     Prompts to confirm certain actions
 
     .PARAMETER WhatIf
     Shows what would happen if the command would execute, but does not actually perform the command
 
-	.EXAMPLE
-	# Saves the package myPackage.zip in the repository \\data\repo
-	Publish-DBOPackageArtifact -Name myPackage.zip -Repository \\data\repo
+    .EXAMPLE
+    # Saves the package myPackage.zip in the repository \\data\repo
+    Publish-DBOPackageArtifact -Name myPackage.zip -Repository \\data\repo
     
     .EXAMPLE
-    # Saves the package myPackage.zip in the repository \\data\repo without updating the most current 
+    # Saves the package myPackage.zip in the repository \\data\repo without updating the most current
     # version in the repository. Will overwrite the existing version when exists
     Get-DBOPackage myPackage.zip | Publish-DBOPackageArtifact -Repository \\data\repo -VersionOnly -Force
     
-	.NOTES
-	
-	#>
+    .NOTES
+    
+    #>
     [CmdletBinding(SupportsShouldProcess = $true, DefaultParameterSetName = 'Default')]
     Param(
         [Parameter(Mandatory = $true, Position = 1)]

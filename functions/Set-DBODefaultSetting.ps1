@@ -30,7 +30,13 @@ function Set-DBODefaultSetting {
             AllUsers will require administrative access to the computer (elevated session).
 
             Default: CurrentUser.
-            
+
+        .PARAMETER Confirm
+            Prompts to confirm certain actions
+
+        .PARAMETER WhatIf
+            Shows what would happen if the command would execute, but does not actually perform the command
+
         .EXAMPLE
             Set-DBODefaultSetting -Name ConnectionTimeout -Value 5 -Temporary
         
@@ -41,7 +47,7 @@ function Set-DBODefaultSetting {
         
             Change the default SchemaVersionTable setting to null, disabling the deployment logging by default
     #>
-    [CmdletBinding(DefaultParameterSetName = "FullName")]
+    [CmdletBinding(DefaultParameterSetName = "FullName", SupportsShouldProcess = $true)]
     param (
         [string]$Name,
         [AllowNull()]
@@ -64,20 +70,25 @@ function Set-DBODefaultSetting {
         if ($append) {
             $newValue += (Get-DBODefaultSetting -Name $Name -Value)
         }
-               
-        Set-PSFConfig -Module dbops -Name $Name -Value $newValue -EnableException
+        if ($PSCmdlet.ShouldProcess($Name, 'Setting new value in the local session')) {
+            Set-PSFConfig -Module dbops -Name $Name -Value $newValue -EnableException
+        }
 
         $newScope = switch ($Scope) {
             'CurrentUser' { 'UserDefault' }
             'AllUsers' { 'SystemDefault' }
         }
-        try {
-            if (!$Temporary) { Register-PSFConfig -FullName dbops.$name -EnableException -WarningAction SilentlyContinue -Scope $newScope  }
+        if (!$Temporary) {
+            if ($PSCmdlet.ShouldProcess($Name, "Registering the value in the $newScope scope")) {
+                try {
+                    Register-PSFConfig -FullName dbops.$name -EnableException -WarningAction SilentlyContinue -Scope $newScope
+                }
+                catch {
+                    Set-PSFConfig -Module dbops -Name $name -Value ($Value -join ", ") -EnableException
+                    Register-PSFConfig -FullName dbops.$name -Scope $newScope -EnableException
+                }
+            }
         }
-        catch {
-            Set-PSFConfig -Module dbops -Name $name -Value ($Value -join ", ") -EnableException
-            if (!$Temporary) { Register-PSFConfig -FullName dbops.$name -Scope $newScope -EnableException   }
-        }
-        Get-DBODefaultSetting -Name $Name 
+        Get-DBODefaultSetting -Name $Name
     }
 }

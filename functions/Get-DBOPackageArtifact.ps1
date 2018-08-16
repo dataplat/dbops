@@ -1,10 +1,10 @@
 Function Get-DBOPackageArtifact {
     <#
-	.SYNOPSIS
-	Returns a path to a DBOps package  file stored in the specific artifact repository.
-	
-	.DESCRIPTION
-    Returns a path from an artifact repository created by Publish-DBOPackageArtifact. 
+    .SYNOPSIS
+    Returns a path to a DBOps package  file stored in the specific artifact repository.
+    
+    .DESCRIPTION
+    Returns a path from an artifact repository created by Publish-DBOPackageArtifact.
 
     Repository is structured as a simple folder with subfolders inside:
 
@@ -19,37 +19,37 @@ Function Get-DBOPackageArtifact {
           - PackageName.zip
         ...
       
-	
-	.PARAMETER Name
-	Name of the DBOps package
+    
+    .PARAMETER Name
+    Name of the DBOps package
 
     Aliases: FileName, Package
     
     .PARAMETER Repository
-	Path to the artifact repository - a folder or a network share
+    Path to the artifact repository - a folder or a network share
 
-	Aliases: RepositoryPath
+    Aliases: RepositoryPath
 
     .PARAMETER Version
     If specified, searches for a specific version of the package inside the repository
     
-	.PARAMETER Confirm
+    .PARAMETER Confirm
         Prompts to confirm certain actions
 
     .PARAMETER WhatIf
         Shows what would happen if the command would execute, but does not actually perform the command
 
-	.EXAMPLE
-	# Returns path to the latest version of the package myPackage.zip from the repository \\data\repo
-	Get-DBOPackageArtifact -Name myPackage.zip -Repository \\data\repo
+    .EXAMPLE
+    # Returns path to the latest version of the package myPackage.zip from the repository \\data\repo
+    Get-DBOPackageArtifact -Name myPackage.zip -Repository \\data\repo
     
     .EXAMPLE
-	# Returns path to the specific version of the package myPackage.zip from the repository \\data\repo
+    # Returns path to the specific version of the package myPackage.zip from the repository \\data\repo
     Get-DBOPackageArtifact -Name myPackage -Repository \\data\repo -Version 2.2.1
     
-	.NOTES
-	
-	#>
+    .NOTES
+    
+    #>
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory = $true)]

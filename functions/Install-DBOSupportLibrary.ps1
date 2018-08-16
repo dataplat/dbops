@@ -1,25 +1,25 @@
 Function Install-DBOSupportLibrary {
     <#
-	.SYNOPSIS
-	Installs external dependencies for a defined RDBMS
-	
-	.DESCRIPTION
-	This command will download nuget packages from NuGet website in order to support deployments for certain RDBMS.
-	
-	.PARAMETER Type
+    .SYNOPSIS
+    Installs external dependencies for a defined RDBMS
+    
+    .DESCRIPTION
+    This command will download nuget packages from NuGet website in order to support deployments for certain RDBMS.
+    
+    .PARAMETER Type
     RDBMS Type: Oracle, SQLServer
     
-	.PARAMETER Force
+    .PARAMETER Force
     Enforce installation
     
-	.PARAMETER Scope
-	Choose whether to install for CurrentUser or for AllUsers
-	
+    .PARAMETER Scope
+    Choose whether to install for CurrentUser or for AllUsers
+    
     .EXAMPLE
     #Installs all dependencies for Oracle
-	Install-DBOSupportLibrary Oracle
-	.NOTES
-	
+    Install-DBOSupportLibrary Oracle
+    .NOTES
+    
     #>
     Param (
         [Parameter(Mandatory = $true,

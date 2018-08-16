@@ -1,8 +1,8 @@
 # DBOps
-![dbops](https://nvarscar.github.io/powerup/img/dbops.jpg) 
+![dbops](https://nvarscar.github.io/powerup/img/dbops.jpg)
 DBOps is a Powershell module that provides Continuous Integration/Continuous Deployment capabilities for SQL database deployments. In addition to easy-to-use deployment functions, it provides tracking functionality, ensuring that each script is deployed only once and in due order. It will also grant you with ability to organize scripts into builds and deploy them in a repeatable manner on top of any previously deployed version.
 
-The deployment functionality of the module is provided by [DbUp](https://github.com/DbUp/DbUp) .Net library, which has proven its flexibility and reliability during deployments. 
+The deployment functionality of the module is provided by [DbUp](https://github.com/DbUp/DbUp) .Net library, which has proven its flexibility and reliability during deployments.
 
 Currently supported RDBMS:
 * SQL Server
