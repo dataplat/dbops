@@ -23,7 +23,8 @@
         "functions\\Set-DBODefaultSetting.ps1",
         "functions\\Invoke-DBOPackageCI.ps1",
         "functions\\Get-DBOPackageArtifact.ps1",
-        "functions\\Publish-DBOPackageArtifact.ps1"
+        "functions\\Publish-DBOPackageArtifact.ps1",
+        "functions\\Copy-DBOPackageArtifact.ps1"
     ],
     "Internal": [
         "internal\\functions\\Get-ChildScriptItem.ps1",
