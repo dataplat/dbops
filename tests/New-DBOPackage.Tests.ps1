@@ -215,7 +215,7 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
             'content\abracadabra\3.sql' | Should BeIn $results.Path
         }
         It "should accept relative paths" {
-            $results = New-DBOPackage -ScriptPath ".\*" -Build 'abracadabra' -Name $packageName -Force
+            $results = New-DBOPackage -ScriptPath ".\success\*" -Build 'abracadabra' -Name $packageName -Force
             $results | Should Not Be $null
             $results.Name | Should Be (Split-Path $packageName -Leaf)
             $results.FullName | Should Be (Get-Item $packageName).FullName
@@ -223,13 +223,9 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
             $results.Version | Should Be 'abracadabra'
             Test-Path $packageName | Should Be $true
             $results = Get-ArchiveItem $packageName
-            'content\abracadabra\Cleanup.sql' | Should BeIn $results.Path
-            'content\abracadabra\success\1.sql' | Should BeIn $results.Path
-            'content\abracadabra\success\2.sql' | Should BeIn $results.Path
-            'content\abracadabra\success\3.sql' | Should BeIn $results.Path
-            'content\abracadabra\transactional-failure\1.sql' | Should BeIn $results.Path
-            'content\abracadabra\transactional-failure\2.sql' | Should BeIn $results.Path
-            'content\abracadabra\verification\select.sql' | Should BeIn $results.Path
+            'content\abracadabra\1.sql' | Should BeIn $results.Path
+            'content\abracadabra\2.sql' | Should BeIn $results.Path
+            'content\abracadabra\3.sql' | Should BeIn $results.Path
         }
     }
     Context "runs negative tests" {
