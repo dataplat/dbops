@@ -79,7 +79,8 @@
         'Set-DBODefaultSetting',
         'Invoke-DBOPackageCI',
         'Get-DBOPackageArtifact',
-        'Publish-DBOPackageArtifact'
+        'Publish-DBOPackageArtifact',
+        'Copy-DBOPackageArtifact'
     )
     
     # Cmdlets to export from this module
