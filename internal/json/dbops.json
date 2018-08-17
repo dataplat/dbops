@@ -1,4 +1,4 @@
-﻿{
+{
     "Libraries": [
         "bin\\dbup-core.dll",
         "bin\\dbup-sqlserver.dll",
