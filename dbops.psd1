@@ -1,10 +1,10 @@
-@{
+﻿@{
     
     # Script module or binary module file associated with this manifest
     RootModule             = 'dbops.psm1'
     
     # Version number of this module.
-    ModuleVersion          = '0.3.1'
+    ModuleVersion          = '0.3.2'
     
     # ID used to uniquely identify this module
     GUID                   = '16dff216-533a-4fa3-9b2e-4408dbe15e63'
