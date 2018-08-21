@@ -58,8 +58,10 @@ Function Copy-DBOPackageArtifact {
         $src = Get-DBOPackageArtifact -Repository $Repository -Name $Name -Version $Version
     }
     process {
-        if ($PSCmdlet.ShouldProcess($src, "Copying file to the destination $Destination")) {
-            Copy-Item -Path $src -Destination $Destination -Passthru:$Passthru -ErrorAction Stop
+        if ($src) {
+            if ($PSCmdlet.ShouldProcess($src, "Copying file to the destination $Destination")) {
+                Copy-Item -Path $src -Destination $Destination -Passthru:$Passthru
+            }
         }
     }
     end {

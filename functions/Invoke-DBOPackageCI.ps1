@@ -95,7 +95,7 @@ function Invoke-DBOPackageCI {
             Write-Message -Message "Assuming a new version $pkgVersion for the build" -Level Verbose
         }
         catch {
-            Stop-Function -ErrorRecord $_ -EnableException $true -Message $_.Exception.Message
+            Stop-PSFFunction -ErrorRecord $_ -EnableException $true -Message $_.Exception.Message
         }
 
         if ($Version) {
