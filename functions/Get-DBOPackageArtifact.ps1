@@ -67,26 +67,34 @@ Function Get-DBOPackageArtifact {
         $pkgName = $Name -replace '\.zip$', ''
         $pkgName = Split-Path $pkgName -Leaf
         if ((Test-Path $repo\Current) -and (Test-Path $repo\Versions)) {
-            Write-Message -Level Verbose -Message "Valid folder structure found in $repo"
+            Write-Message -Level Debug -Message "Valid folder structure found in $repo"
             $repoFolder = $repo
         }
         else {
-            Write-Message -Level Verbose -Message "Assuming $repo is a top-level repo folder"
-            $repoFolder = Get-Item (Join-Path $repo $pkgName) -ErrorAction Stop
+            Write-Message -Level Debug -Message "Assuming $repo is a top-level repo folder"
+            try {
+                $repoFolder = Get-Item (Join-Path $repo $pkgName) -ErrorAction Stop
+            }
+            catch {
+                Stop-PSFFunction -Message "File not found: incorrect structure of the repository, or empty repository" -ErrorRecord $_ -Category ObjectNotFound
+                return
+            }
         }
         try {
             $currentVersionFolder = Get-Item (Join-Path $repoFolder 'Current') -ErrorAction Stop
             $versionFolder = Get-Item (Join-Path $repoFolder 'Versions') -ErrorAction Stop
         }
         catch {
-            Stop-Function -Message "Incorrect structure of the repository, or empty repository" -ErrorRecord $_ -EnableException $true
+            Stop-PSFFunction -Message "File not found: incorrect structure of the repository, or empty repository" -ErrorRecord $_ -Category ObjectNotFound
+            return
         }
         if ($Version) {
             try {
                 $packageFolder = Get-Item (Join-Path $versionFolder $Version.ToString()) -ErrorAction Stop
             }
             catch {
-                Stop-Function -Message "Version $Version not found or incorrect structure of the repository" -ErrorRecord $_ -EnableException $true
+                Stop-PSFFunction -Message "Version $Version not found or incorrect structure of the repository" -ErrorRecord $_ -Category ObjectNotFound
+                return
             }
         }
         else {
@@ -99,7 +107,8 @@ Function Get-DBOPackageArtifact {
             Get-Item (Join-Path $packageFolder $zipPkgName) -ErrorAction Stop
         }
         catch {
-            Stop-Function -Message "File $zipPkgName was not found in $packageFolder. Incorrect structure of the repository." -ErrorRecord $_ -EnableException $true
+            Stop-PSFFunction -Message "File $zipPkgName was not found in $packageFolder. Incorrect structure of the repository." -ErrorRecord $_ -Category ObjectNotFound
+            return
         }
     }
     end {

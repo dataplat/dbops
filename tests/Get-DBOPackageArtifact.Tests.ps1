@@ -62,8 +62,13 @@ Describe "Get-DBOPackageArtifact tests" -Tag $commandName, UnitTests {
         It "should throw when folder not found" {
             { Get-DBOPackageArtifact -Repository .\nonexistingpath -Name TempDeployment } | Should Throw
         }
-        It "should throw when folder has improper structure" {
-            { Get-DBOPackageArtifact -Repository $scriptFolder -Name TempDeployment } | Should Throw
+        It "should return warning when folder has improper structure" {
+            $null = Get-DBOPackageArtifact -Repository $scriptFolder -Name TempDeployment -WarningVariable warVar 3>$null
+            $warVar | Should BeLike '*incorrect structure of the repository*'
+        }
+        It "should return warning when version not found" {
+            $null = Get-DBOPackageArtifact -Repository $workFolder -Name TempDeployment -Version 13.37 -WarningVariable warVar 3>$null
+            $warVar | Should BeLike '*Version 13.37 not found*'
         }
     }
 }

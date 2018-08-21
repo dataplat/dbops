@@ -62,8 +62,13 @@ Describe "Copy-DBOPackageArtifact tests" -Tag $commandName, UnitTests {
         It "should throw when folder not found" {
             { Copy-DBOPackageArtifact -Repository .\nonexistingpath -Name TempDeployment -Destination $workFolder } | Should Throw
         }
-        It "should throw when folder has improper structure" {
-            { Copy-DBOPackageArtifact -Repository $scriptFolder -Name TempDeployment -Destination $workFolder } | Should Throw
+        It "should return warning when folder has improper structure" {
+            $null = Copy-DBOPackageArtifact -Repository $scriptFolder -Name TempDeployment -Destination $workFolder -WarningVariable warVar 3>$null
+            $warVar | Should BeLike '*incorrect structure of the repository*'
+        }
+        It "should return warning when version not found" {
+            $null = Copy-DBOPackageArtifact -Repository $workFolder -Name TempDeployment -Version 13.37 -Destination $workFolder -WarningVariable warVar 3>$null
+            $warVar | Should BeLike '*Version 13.37 not found*'
         }
     }
 }
