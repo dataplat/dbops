@@ -1,7 +1,8 @@
 class DBOpsLog : DbUp.Engine.Output.IUpgradeLog {
     #Hidden properties
-    hidden [string]$logToFile
-    hidden [bool]$silent
+    hidden [string]$LogToFile
+    hidden [bool]$Silent
+    hidden [object]$CallStack
     
     #Constructors
     DBOpsLog ([bool]$silent, [string]$outFile, [bool]$append) {
@@ -16,29 +17,66 @@ class DBOpsLog : DbUp.Engine.Output.IUpgradeLog {
                 $txt | Out-File $this.logToFile -Force
             }
         }
+        $this.CallStack = (Get-PSCallStack)[1]
     }
     
     #Methods
     [void] WriteInformation([string]$format, [object[]]$params) {
-        if (!$this.silent) {
-            Write-Host ($format -f $params)
+        $level = switch ($this.silent) {
+            $true { 'Debug' }
+            default { 'Host '}
         }
+        $splatParam = @{
+            Tag          = 'Deployment', 'dbup'
+            FunctionName = $this.callStack.Command
+            ModuleName   = $this.callstack.InvocationInfo.MyCommand.ModuleName
+            File         = $this.callStack.Position.File
+            Line         = $this.callStack.Position.StartLineNumber
+            Level        = $level
+            Message      = $format -f $params
+            
+        }
+        Write-PSFMessage @splatParam
         if ($this.logToFile) {
             $this.WriteToFile($format, $params)
         }
     }
     [void] WriteError([string]$format, [object[]]$params) {
-        if (!$this.silent) {
-            Write-Error ($format -f $params)
+        $level = switch ($this.silent) {
+            $true { 'Debug' }
+            default { 'Critical '}
         }
+        $splatParam = @{
+            Tag          = 'Deployment', 'dbup'
+            FunctionName = $this.callStack.Command
+            ModuleName   = $this.callstack.InvocationInfo.MyCommand.ModuleName
+            File         = $this.callStack.Position.File
+            Line         = $this.callStack.Position.StartLineNumber
+            Level        = $level
+            Message      = $format -f $params
+            
+        }
+        Write-PSFMessage @splatParam
         if ($this.logToFile) {
             $this.WriteToFile($format, $params)
         }
     }
     [void] WriteWarning([string]$format, [object[]]$params) {
-        if (!$this.silent) {
-            Write-Warning ($format -f $params)
+        $level = switch ($this.silent) {
+            $true { 'Debug' }
+            default { 'Warning '}
         }
+        $splatParam = @{
+            Tag          = 'Deployment', 'dbup'
+            FunctionName = $this.callStack.Command
+            ModuleName   = $this.callstack.InvocationInfo.MyCommand.ModuleName
+            File         = $this.callStack.Position.File
+            Line         = $this.callStack.Position.StartLineNumber
+            Level        = $level
+            Message      = $format -f $params
+            
+        }
+        Write-PSFMessage @splatParam
         if ($this.logToFile) {
             $this.WriteToFile($format, $params)
         }
