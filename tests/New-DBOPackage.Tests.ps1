@@ -221,6 +221,11 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
             $results.FullName | Should Be (Get-Item $packageName).FullName
             $results.ModuleVersion | Should Be (Get-Module dbops).Version
             $results.Version | Should Be 'abracadabra'
+            $results.Builds[0].Scripts.SourcePath | Should Be @(
+                '.\success\1.sql',
+                '.\success\2.sql',
+                '.\success\3.sql'
+            )
             Test-Path $packageName | Should Be $true
             $results = Get-ArchiveItem $packageName
             'content\abracadabra\1.sql' | Should BeIn $results.Path
