@@ -83,12 +83,12 @@ function Add-DBOBuild {
     }
     process {
         foreach ($scriptItem in $ScriptPath) {
-            Write-Verbose "Processing path item $scriptItem"
+            Write-PSFMessage -Level Verbose -Message "Processing path item $scriptItem"
             $scriptCollection += Get-ChildScriptItem $scriptItem
         }
     }
     end {
-        Write-Verbose "Loading package information from $Path"
+        Write-PSFMessage -Level Verbose -Message "Loading package information from $Path"
         if ($package = Get-DBOPackage -Path $Path) {
             #Prepare the scripts that's going to be added to the build
             $scriptsToAdd = @()
@@ -99,28 +99,28 @@ function Add-DBOBuild {
                     #Check if the script path was already added in one of the previous builds
                     if (!$package.SourcePathExists($childScript.SourcePath)) {
                         $includeFile = $true
-                        Write-Verbose "File $($childScript.SourcePath) was not found among the package source files, adding to the list."
+                        Write-PSFMessage -Level Verbose -Message "File $($childScript.SourcePath) was not found among the package source files, adding to the list."
                     }
                 }
                 if ($Type -contains 'Modified') {
                     #Check if the file was modified in the previous build
                     if ($package.ScriptModified($childScript.FullName, $childScript.SourcePath)) {
                         $includeFile = $true
-                        Write-Verbose "Hash of the file $($childScript.FullName) was modified since last deployment, adding to the list."
+                        Write-PSFMessage -Level Verbose -Message "Hash of the file $($childScript.FullName) was modified since last deployment, adding to the list."
                     }
                 }
                 if ($Type -contains 'Unique') {
                     #Check if the script hash was already added in one of the previous builds
                     if (!$package.ScriptExists($childScript.FullName)) {
                         $includeFile = $true
-                        Write-Verbose "Hash of the file $($childScript.FullName) was not found among the package scripts, adding to the list.."
+                        Write-PSFMessage -Level Verbose -Message "Hash of the file $($childScript.FullName) was not found among the package scripts, adding to the list.."
                     }
                 }
                 if ($includeFile) {
                     $scriptsToAdd += $childScript
                 }
                 else {
-                    Write-Verbose "File $($childScript.FullName) was not added to the current build due to -Type restrictions: $($Type -join ',')"
+                    Write-PSFMessage -Level Verbose -Message "File $($childScript.FullName) was not added to the current build due to -Type restrictions: $($Type -join ',')"
                 }
             }
 
@@ -131,7 +131,7 @@ function Add-DBOBuild {
 
                 foreach ($buildScript in $scriptsToAdd) {
                     $s = $currentBuild.NewScript($buildScript)
-                    Write-Verbose "Adding file '$($buildScript.FullName)' to $currentBuild as $($s.GetPackagePath())"
+                    Write-PSFMessage -Level Verbose -Message "Adding file '$($buildScript.FullName)' to $currentBuild as $($s.GetPackagePath())"
                 }
 
                 if ($pscmdlet.ShouldProcess($package, "Writing new build $currentBuild into the original package")) {

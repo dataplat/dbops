@@ -96,6 +96,7 @@ function Invoke-DBOPackageCI {
         }
         catch {
             Stop-PSFFunction -ErrorRecord $_ -EnableException $true -Message $_.Exception.Message
+            return
         }
 
         if ($Version) {

@@ -96,7 +96,7 @@
         foreach ($pFile in (Get-Item $Path)) {
             if ($package = [DBOpsPackage]::new($pFile.FullName)) {
                 $config = $package.Configuration
-                Write-Verbose "Assigning new values to the config"
+                Write-PSFMessage -Level Verbose -Message "Assigning new values to the config"
                 if ($PSCmdlet.ParameterSetName -eq 'Value') {
                     $newConfig = @{ $ConfigName = $Value }
                 }
@@ -112,7 +112,7 @@
                     $newConfig += @{ Variables = $Variables}
                 }
 
-                Write-Verbose "Saving configuration in the DBOpsPackage object"
+                Write-PSFMessage -Level Verbose -Message "Saving configuration in the DBOpsPackage object"
                 $config.Merge($newConfig)
 
                 if ($pscmdlet.ShouldProcess($package, "Updating the package file")) {

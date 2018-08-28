@@ -64,6 +64,7 @@ function Set-DBODefaultSetting {
     process {
         if (-not (Get-DBODefaultSetting -Name $Name)) {
             Stop-PSFFunction -Message "Setting named $Name does not exist." -EnableException $true
+            return
         }
         
         $newValue = $Value

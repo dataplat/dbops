@@ -179,7 +179,8 @@
             }
         }
         else {
-            throw "Prerequisites have not been met to run the deployment."
+            Stop-PSFFunction -EnableException $true -Message "Prerequisites have not been met to run the deployment."
+            return
         }
 
         #Join variables from config and parameters
@@ -316,7 +317,8 @@
         elseif ($config.SchemaVersionTable) {
             $table = $config.SchemaVersionTable.Split('.')
             if (($table | Measure-Object).Count -gt 2) {
-                throw 'Incorrect table name - use the following syntax: schema.table'
+                Stop-PSFFunction -EnableException $true -Message 'Incorrect table name - use the following syntax: schema.table'
+                return
             }
             elseif (($table | Measure-Object).Count -eq 2) {
                 $tableName = $table[1]
@@ -330,7 +332,8 @@
                 else {}
             }
             else {
-                throw 'No table name specified'
+                Stop-PSFFunction -EnableException $true -Message 'No table name specified'
+                return
             }
             # Set default schema for known DB Types
             if (!$schemaName) {

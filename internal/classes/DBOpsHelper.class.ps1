@@ -17,7 +17,9 @@ class DBOpsHelper {
         $stream = [System.IO.File]::Open($fileName, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
         $b = [byte[]]::new($stream.Length)
         try { $stream.Read($b, 0, $b.Length) }
-        catch {	throw $_ }
+        catch {
+            Stop-PSFFunction -EnableException $true -Message "Failed to read a binary stream from file $fileName" -ErrorRecord $_
+        }
         finally { $stream.Close() }
         return $b
     }
@@ -58,11 +60,14 @@ class DBOpsHelper {
     # }
     # Returns an entry list from the archive file
     static [psobject[]] GetArchiveItems ([string]$fileName) {
+        $entries = $null
         $zip = [Zipfile]::OpenRead($FileName)
         try {
             $entries = $zip.Entries | Select-Object *
         }
-        catch { throw $_ }
+        catch {
+            Stop-PSFFunction -EnableException $true -Message "Failed to get a list of files from archive $fileName" -ErrorRecord $_
+        }
         finally { $zip.Dispose() }
         return $entries
     }
@@ -73,16 +78,20 @@ class DBOpsHelper {
         try {
             $entries = $zip.Entries | Where-Object { $_.FullName -in $itemName }
             foreach ($entry in $entries) {
+                $bin = $null
                 #Read deflate stream
                 $stream = [DBOpsHelper]::ReadDeflateStream($entry.Open())
                 try { $bin = $stream.ToArray() }
-                catch { throw $_ }
+                catch {
+                    Stop-PSFFunction -EnableException $true -Message "Failed to read deflate stream for item $itemName in archive $fileName" -ErrorRecord $_
+                }
                 finally { $stream.Dispose()	}
-                
                 $output += $entry | Select-Object * | Add-Member -MemberType NoteProperty -Name ByteArray -Value $bin -PassThru
             }
         }
-        catch { throw $_ }
+        catch {
+            Stop-PSFFunction -EnableException $true -Message "Failed to complete the deflate operation against archive $fileName" -ErrorRecord $_
+        }
         finally { $zip.Dispose() }
         return $output
     }

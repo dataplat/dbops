@@ -22,10 +22,10 @@
     )
     foreach ($obj in $InputObject) {
         if ($obj -is [string]) {
-            Write-Debug "Processing string: $obj"
+            Write-PSFMessage -Level Debug -Message "Processing string: $obj"
             $output = $obj
             foreach ($token in (Get-VariableTokens $obj)) {
-                Write-Debug "Processing token: $token"
+                Write-PSFMessage -Level Debug -Message "Processing token: $token"
                 #Replace variables found in the config
                 $tokenRegEx = "\#\{$token\}"
                 if ($Runtime) {
@@ -33,7 +33,7 @@
                         $output = $obj -replace $tokenRegEx, $Runtime.$token
                     }
                 }
-                Write-Debug "String after replace: $obj"
+                Write-PSFMessage -Level Debug -Message "String after replace: $obj"
             }
             $output
         }
