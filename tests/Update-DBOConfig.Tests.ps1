@@ -22,16 +22,22 @@ $unpackedFolder = Join-Path $workFolder 'unpacked'
 
 $packageName = Join-Path $workFolder 'TempDeployment.zip'
 $v1scripts = "$here\etc\install-tests\success"
+$fullConfig = "$here\etc\tmp_full_config.json"
+$fullConfigSource = "$here\etc\full_config.json"
+$testPassword = 'TestPassword'
+$fromSecureString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertFrom-SecureString
 
 Describe "Update-DBOConfig tests" -Tag $commandName, UnitTests {
     BeforeAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = New-Item $workFolder -ItemType Directory -Force
         $null = New-Item $unpackedFolder -ItemType Directory -Force
-        $null = New-DBOPackage -ScriptPath $v1scripts -Name $packageName -Build 1.0 -Force -ConfigurationFile "$here\etc\full_config.json"
+        (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $fromSecureString | Out-File $fullConfig -Force
+        $null = New-DBOPackage -ScriptPath $v1scripts -Name $packageName -Build 1.0 -Force -ConfigurationFile $fullConfig
     }
     AfterAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
+        if (Test-Path $fullConfig) { Remove-Item $fullConfig }
     }
     Context "Updating single config item (config/value pairs)" {
         It "updates config item with new value" {
@@ -90,7 +96,7 @@ Describe "Update-DBOConfig tests" -Tag $commandName, UnitTests {
             $results.Schema | Should Be $null
         }
         It "updates config items with a proper config file" {
-            Update-DBOConfig -Path $packageName -ConfigurationFile "$here\etc\full_config.json"
+            Update-DBOConfig -Path $packageName -ConfigurationFile $fullConfig
             $results = (Get-DBOPackage -Path $packageName).Configuration
             $results.ApplicationName | Should Be "MyTestApp"
             $results.SqlInstance | Should Be "TestServer"
@@ -98,9 +104,10 @@ Describe "Update-DBOConfig tests" -Tag $commandName, UnitTests {
             $results.DeploymentMethod | Should Be "SingleTransaction"
             $results.ConnectionTimeout | Should Be 40
             $results.Encrypt | Should Be $null
-            $results.Credential | Should Be $null
+            $results.Credential.UserName | Should Be "CredentialUser"
+            $results.Credential.GetNetworkCredential().Password | Should Be "TestPassword"
             $results.Username | Should Be "TestUser"
-            $results.Password | Should Be "TestPassword"
+            [PSCredential]::new('test', $results.Password).GetNetworkCredential().Password | Should Be "TestPassword"
             $results.SchemaVersionTable | Should Be "test.Table"
             $results.Silent | Should Be $true
             $results.Variables | Should Be $null

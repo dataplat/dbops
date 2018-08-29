@@ -46,7 +46,7 @@ Function Remove-DBOBuild {
         
     }
     process {
-        Write-Verbose "Loading package information from $Path"
+        Write-PSFMessage -Level Verbose -Message "Loading package information from $Path"
         if ($package = Get-DBOPackage -Path $Path) {
             foreach ($currentBuild in $Build) {
                 #Verify that build exists
@@ -55,7 +55,7 @@ Function Remove-DBOBuild {
                     continue
                 }
             
-                Write-Verbose "Removing $currentBuild from the package object"
+                Write-PSFMessage -Level Verbose -Message "Removing $currentBuild from the package object"
                 $package.RemoveBuild($currentBuild)
 
                 if ($pscmdlet.ShouldProcess($package, "Saving changes to the package")) {

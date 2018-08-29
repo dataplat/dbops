@@ -31,7 +31,7 @@ Describe "Get-DBOPackageArtifact tests" -Tag $commandName, UnitTests {
         $null = New-Item $projectPath\Versions -ItemType Directory -Force
         $null = New-Item $projectPath\Versions\1.0 -ItemType Directory -Force
         $null = New-Item $projectPath\Versions\2.0 -ItemType Directory -Force
-        $null = New-DBOPackage -ScriptPath $v1scripts -Name $packageName -Build 1.0 -Force -ConfigurationFile "$here\etc\full_config.json"
+        $null = New-DBOPackage -ScriptPath $v1scripts -Name $packageName -Build 1.0 -Force
         Copy-Item -Path $packageName -Destination $projectPath\Versions\1.0
         $null = Add-DBOBuild -ScriptPath $v2scripts -Path $packageName -Build 2.0
         Copy-Item -Path $packageName -Destination $projectPath\Versions\2.0

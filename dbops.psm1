@@ -112,3 +112,26 @@ Set-PSFConfig -FullName dbops.Variables -Value $null -Initialize -Validation has
 
 New-Alias -Name Write-Message -Value Write-PSFMessage
 New-Alias -Name Stop-Function -Value Stop-PSFFunction
+
+# extensions for SMO
+$typeData = Get-TypeData -TypeName 'Microsoft.SqlServer.Management.Smo.Database'
+if ($typeData) {
+    if (!$typeData.Members.ContainsKey('Deploy')) {
+        Update-TypeData -TypeName Microsoft.SqlServer.Management.Smo.Database -MemberName Deploy -MemberType ScriptMethod -Value {
+            param (
+                $Package
+            )
+            $connectionString = $this.ExecutionManager.ConnectionContext.ConnectionString
+            Invoke-DBODeployment -InputObject $Package -ConnectionString $connectionString
+        } -ErrorAction Ignore
+    }
+    if (!$typeData.Members.ContainsKey('DeployScript')) {
+        Update-TypeData -TypeName Microsoft.SqlServer.Management.Smo.Database -MemberName DeployScript -MemberType ScriptMethod -Value {
+            param (
+                $Path
+            )
+            $connectionString = $this.ExecutionManager.ConnectionContext.ConnectionString
+            Invoke-DBODeployment -ScriptPath $Path -ConnectionString $connectionString
+        } -ErrorAction Ignore
+    }
+}

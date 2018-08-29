@@ -24,19 +24,24 @@ $scriptFolder = Join-Path $here 'etc\install-tests\success'
 $v1scripts = Join-Path $scriptFolder '1.sql'
 $v2scripts = Join-Path $scriptFolder '2.sql'
 $v3scripts = Join-Path $scriptFolder '3.sql'
+$fullConfig = "$here\etc\tmp_full_config.json"
+$fullConfigSource = "$here\etc\full_config.json"
+$testPassword = 'TestPassword'
+$fromSecureString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertFrom-SecureString
 
 Describe "Get-DBOPackage tests" -Tag $commandName, UnitTests {
-    
     BeforeAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = New-Item $workFolder -ItemType Directory -Force
         $null = New-Item $unpackedFolder -ItemType Directory -Force
-        $null = New-DBOPackage -ScriptPath $v1scripts -Name $packageName -Build 1.0 -Force -ConfigurationFile "$here\etc\full_config.json"
+        (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $fromSecureString | Out-File $fullConfig -Force
+        $null = New-DBOPackage -ScriptPath $v1scripts -Name $packageName -Build 1.0 -Force -ConfigurationFile $fullConfig
         $null = Add-DBOBuild -ScriptPath $v2scripts -Path $packageName -Build 2.0
         $null = Add-DBOBuild -ScriptPath $v3scripts -Path $packageName -Build 3.0
     }
     AfterAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
+        if (Test-Path $fullConfig) { Remove-Item $fullConfig }
     }
     Context "Negative tests" {
         BeforeAll {
@@ -106,9 +111,10 @@ Describe "Get-DBOPackage tests" -Tag $commandName, UnitTests {
             $result.Configuration.DeploymentMethod | Should Be "SingleTransaction"
             $result.Configuration.ConnectionTimeout | Should Be 40
             $result.Configuration.Encrypt | Should Be $null
-            $result.Configuration.Credential | Should Be $null
+            $result.Configuration.Credential.UserName | Should Be "CredentialUser"
+            $result.Configuration.Credential.GetNetworkCredential().Password | Should Be "TestPassword"
             $result.Configuration.Username | Should Be "TestUser"
-            $result.Configuration.Password | Should Be "TestPassword"
+            [PSCredential]::new('test', $result.Configuration.Password).GetNetworkCredential().Password  | Should Be "TestPassword"
             $result.Configuration.SchemaVersionTable | Should Be "test.Table"
             $result.Configuration.Silent | Should Be $true
             $result.Configuration.Variables | Should Be $null
@@ -170,9 +176,10 @@ Describe "Get-DBOPackage tests" -Tag $commandName, UnitTests {
             $result.Configuration.DeploymentMethod | Should Be "SingleTransaction"
             $result.Configuration.ConnectionTimeout | Should Be 40
             $result.Configuration.Encrypt | Should Be $null
-            $result.Configuration.Credential | Should Be $null
+            $result.Configuration.Credential.UserName | Should Be "CredentialUser"
+            $result.Configuration.Credential.GetNetworkCredential().Password | Should Be "TestPassword"
             $result.Configuration.Username | Should Be "TestUser"
-            $result.Configuration.Password | Should Be "TestPassword"
+            [PSCredential]::new('test', $result.Configuration.Password).GetNetworkCredential().Password | Should Be "TestPassword"
             $result.Configuration.SchemaVersionTable | Should Be "test.Table"
             $result.Configuration.Silent | Should Be $true
             $result.Configuration.Variables | Should Be $null

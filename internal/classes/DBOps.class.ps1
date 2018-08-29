@@ -6,17 +6,54 @@ using namespace System.IO.Compression
 ######################
 
 class DBOps {
-    hidden [void] ThrowException ([string]$exceptionType, [string]$errorText, [object]$object, [System.Management.Automation.ErrorCategory]$errorCategory) {
-        $errorMessageObject = [System.Management.Automation.ErrorRecord]::new( `
-            (New-Object -TypeName $exceptionType -ArgumentList $errorText),
-            "[$($this.gettype().Name)]",
-            $errorCategory,
-            $object)
-        throw $errorMessageObject
+    hidden [void] ThrowException ([string]$Message, [object]$Target, [string]$Category) {
+        $callStack = (Get-PSCallStack)[1]
+        $splatParam = @{
+            Tag             = 'DBOps', 'class', $this.GetType().Name
+            FunctionName    = $this.GetType().Name
+            ModuleName      = 'dbops'
+            File            = $callStack.Position.File
+            Line            = $callStack.Position.StartLineNumber
+            Message         = $Message
+            Target          = $Target
+            Category        = $Category
+            EnableException = $true
+        }
+        Stop-PSFFunction @splatParam
+    }
+
+    hidden [void] WriteVerbose ([string]$Message, [object]$Target) {
+        $callStack = (Get-PSCallStack)[1]
+        $splatParam = @{
+            Tag             = 'DBOps', 'class', $this.GetType().Name
+            FunctionName    = $this.GetType().Name
+            ModuleName      = 'dbops'
+            File            = $callStack.Position.File
+            Line            = $callStack.Position.StartLineNumber
+            Message         = $Message
+            Target          = $Target
+            Level           = 'Verbose'
+        }
+        Write-PSFMessage @splatParam
+    }
+   
+    hidden [void] WriteDebug ([string]$Message, [object]$Target) {
+        $callStack = (Get-PSCallStack)[1]
+        $splatParam = @{
+            Tag          = 'DBOps', 'class', $this.GetType().Name
+            FunctionName = $this.GetType().Name
+            ModuleName   = 'dbops'
+            File         = $callStack.Position.File
+            Line         = $callStack.Position.StartLineNumber
+            Message      = $Message
+            Target       = $Target
+            Level        = 'Debug'
+        }
+        Write-PSFMessage @splatParam
     }
 
     hidden [void] ThrowArgumentException ([object]$object, [string]$message) {
-        $this.ThrowException('ArgumentException', $message, $object, 'InvalidArgument')
+        $this.ThrowException($message, $object, 'InvalidArgument')
     }
     hidden [DBOpsFile] NewFile ([string]$Name, [string]$PackagePath, [string]$CollectionName) {
         return $this.NewFile($Name, $PackagePath, $CollectionName, [DBOpsFile])
@@ -112,7 +149,7 @@ class DBOps {
         #hidden properties
         hidden [string]$FileName
         hidden [string]$PackagePath
-    
+   
     
         #Methods
         [void] Init () {
@@ -354,7 +391,9 @@ class DBOps {
                 catch { throw $_ }
                 finally { $zip.Dispose() }
             }
-            catch {	throw $_ }
+            catch {
+                Stop-PSFFunction -EnableException $true -Message "Failed to complete the deflate operation against archive $currentFileName" -ErrorRecord $_ -FunctionName $this.GetType().Name
+            }
             finally { $stream.Dispose() }
 
             # Setting regular file properties
@@ -408,7 +447,7 @@ class DBOps {
     class DBOpsPackage : DBOpsPackageBase {
         #Constructors
         DBOpsPackage () {
-        
+       
             $this.Init()
             # Processing deploy file
             $file = [DBOpsConfig]::GetDeployFile()
@@ -423,7 +462,7 @@ class DBOps {
         }
 
         DBOpsPackage ([string]$fileName) {
-        
+       
             if (!(Test-Path $fileName -PathType Leaf)) {
                 throw "File $fileName not found. Aborting."
             }
@@ -462,7 +501,7 @@ class DBOps {
                                 $this.AddFile($newFile, $file)
                             }
                             else {
-                                $this.ThrowException('Exception', "File $($jsonFileObject.packagePath) not found in the package", $this, 'InvalidData')
+                                $this.ThrowException("File $($jsonFileObject.packagePath) not found in the package", $this, 'InvalidData')
                             }
                         }
                     }
@@ -477,13 +516,15 @@ class DBOps {
                     $this.Configuration.Parent = $this
                 }
             }
-            catch { throw $_ }
+            catch {
+                Stop-PSFFunction -EnableException $true -Message "Failed to complete the deflate operation against archive $fileName" -ErrorRecord $_ -FunctionName $this.GetType().Name
+            }
             finally {
                 # Dispose of the reader
                 $zip.Dispose()
             }
         }
-    
+   
     }
 
     ############################
@@ -497,7 +538,7 @@ class DBOps {
 
         DBOpsPackageFile ([string]$fileName) {
             if (!(Test-Path $fileName -PathType Leaf)) {
-                throw "File $fileName not found. Aborting."
+                $this.ThrowException("File $fileName not found. Aborting.", $fileName, 'ObjectNotFound')
             }
             # Processing package file
             $pkgFileBin = [DBOpsHelper]::GetBinaryFile($fileName)
@@ -546,7 +587,7 @@ class DBOps {
                 $this.Configuration = [DBOpsConfig]::new($this.ConfigurationFile.GetContent())
                 $this.Configuration.Parent = $this
             }
-    
+   
         }
 
         #overloads to prefent unpacked packages from being saved
@@ -579,10 +620,10 @@ class DBOps {
         [string]$Build
         [DBOpsFile[]]$Scripts
         [string]$CreatedDate
-    
+   
         hidden [DBOpsPackageBase]$Parent
         hidden [string]$PackagePath
-    
+   
         #Constructors
         DBOpsBuild ([string]$build) {
             if (!$build) {
@@ -752,7 +793,9 @@ class DBOps {
                 catch { throw $_ }
                 finally { $zip.Dispose() }
             }
-            catch { throw $_ }
+            catch {
+                Stop-PSFFunction -EnableException $true -Message "Failed to modify archive $($this.Parent.FileName)" -ErrorRecord $_ -FunctionName $this.GetType().Name
+            }
             finally { $stream.Dispose()	}
 
             # Refreshing regular file properties for parent object
@@ -776,7 +819,7 @@ class DBOps {
         #Hidden properties
         hidden [string]$Hash
         hidden [DBOps]$Parent
-    
+   
         #Constructors
         DBOpsFile () {}
         DBOpsFile ([string]$SourcePath, [string]$PackagePath) {
@@ -813,12 +856,12 @@ class DBOps {
                 $this.ByteArray = $stream.ToArray()
             }
             catch {
-                throw $_
+                Stop-PSFFunction -EnableException $true -Message "Failed to read deflate stream from $($file.Name)" -ErrorRecord $_ -FunctionName $this.GetType().Name
             }
             finally {
                 $stream.Dispose()
             }
-        
+      
             $this.Length = $this.ByteArray.Length
         }
         DBOpsFile ([psobject]$fileDescription, [System.IO.FileInfo]$file) {
@@ -892,7 +935,9 @@ class DBOps {
                 catch { throw $_ }
                 finally { $zip.Dispose() }
             }
-            catch { throw $_ }
+            catch {
+                Stop-PSFFunction -EnableException $true -Message "Failed to modify archive $($pkgObj.FileName)" -ErrorRecord $_ -FunctionName $this.GetType().Name
+            }
             finally { $stream.Dispose()	}
 
             # Refreshing regular file properties for parent object
@@ -984,7 +1029,7 @@ class DBOps {
         [System.Nullable[bool]]$Encrypt
         [pscredential]$Credential
         [string]$Username
-        [string]$Password
+        [SecureString]$Password
         [string]$SchemaVersionTable
         [System.Nullable[bool]]$Silent
         [psobject]$Variables
@@ -1003,7 +1048,7 @@ class DBOps {
             $this.Init()
 
             $jsonConfig = $jsonString | ConvertFrom-Json -ErrorAction Stop
-        
+       
             foreach ($property in $jsonConfig.psobject.properties.Name) {
                 if ($property -in [DBOpsConfig]::EnumProperties()) {
                     $this.SetValue($property, $jsonConfig.$property)
@@ -1017,7 +1062,8 @@ class DBOps {
         hidden [void] Init () {
             #Reading default values from PSF
             foreach ($prop in [DBOpsConfig]::EnumProperties()) {
-                $this.SetValue($prop, (Get-PSFConfigValue -FullName dbops.$prop))
+                $configValue = Get-PSFConfigValue -FullName dbops.$prop
+                $this.SetValue($prop, $configValue)
             }
         }
 
@@ -1038,13 +1084,44 @@ class DBOps {
             if ($Value -eq $null -and $Property -in ($this.PsObject.Properties | Where-Object TypeNameOfValue -like 'System.String*').Name) {
                 $this.$Property = [NullString]::Value
             }
+            elseif ($Value -ne $null -and $Property -eq 'Password') {
+                if ($Value -is [SecureString]) {
+                    $this.$Property = $Value
+                }
+                else {
+                    $this.$Property = ConvertTo-SecureString -String $Value -ErrorAction Stop
+                }
+            }
+            elseif ($Value -ne $null -and $Property -eq 'Credential') {
+                if ($Value -is [pscredential]) {
+                    $this.$Property = $Value
+                }
+                else {
+                    $this.$Property = [pscredential]::new($Value.UserName, (ConvertTo-SecureString -String $Value.Password -ErrorAction Stop))
+                }
+            }
             else {
                 $this.$Property = $Value
             }
         }
         # Returns a JSON string representin the object
         [string] ExportToJson() {
-            return $this | Select-Object -Property ([DBOpsConfig]::EnumProperties()) | ConvertTo-Json -Depth 2
+            $outObject = @{}
+            foreach ($prop in [DBOpsConfig]::EnumProperties()) {
+                if ($this.$prop -is [securestring]) {
+                    $outObject += @{ $prop = $this.$prop | ConvertFrom-SecureString }
+                }
+                elseif ($this.$prop -is [pscredential]) {
+                    $outObject += @{
+                        $prop = @{
+                            UserName = $this.$prop.UserName
+                            Password = $this.$prop.Password | ConvertFrom-SecureString
+                        }
+                    }
+                }
+                else { $outObject += @{ $prop = $this.$prop }}
+            }
+            return $outObject | ConvertTo-Json -Depth 3
         }
         # Save package to an opened zip file
         [void] Save([ZipArchive]$zipFile) {
@@ -1077,7 +1154,9 @@ class DBOps {
                     catch { throw $_ }
                     finally { $zip.Dispose() }
                 }
-                catch { throw $_ }
+                catch {
+                    Stop-PSFFunction -EnableException $true -Message "Failed to modify archive $($this.Parent.FileName)" -ErrorRecord $_ -FunctionName $this.GetType().Name
+                }
                 finally { $stream.Dispose()	}
 
                 # Refreshing regular file properties for parent object
@@ -1093,7 +1172,11 @@ class DBOps {
                 $this.SetValue($key, $config.$key)
             }
         }
-    
+        
+        #Save configuration to a file
+        [void] SaveToFile([string]$fileName) {
+            $this.ExportToJson() | Out-File -FilePath $fileName -Encoding unicode
+        }
 
         #Static Methods
         static [DBOpsConfig] FromJsonString ([string]$jsonString) {
@@ -1101,7 +1184,7 @@ class DBOps {
         }
         static [DBOpsConfig] FromFile ([string]$path) {
             if (!(Test-Path $path)) {
-                throw "Config file $path not found. Aborting."
+                Stop-PSFFunction -EnableException $true -Message "Config file $path not found. Aborting." -FunctionName 'DBOps'
             }
             return [DBOpsConfig]::FromJsonString((Get-Content $path -Raw -ErrorAction Stop))
         }

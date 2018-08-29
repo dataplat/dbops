@@ -4,7 +4,7 @@
         [object[]]$Path
     )
     Function Get-ChildItemDepth ([System.IO.FileSystemInfo]$Item, [int]$Depth = 0, [bool]$IsAbsolute) {
-        Write-Debug "Getting child items from $Item with current depth $Depth"
+        Write-PSFMessage -Level Debug -Message "Getting child items from $Item with current depth $Depth"
         foreach ($childItem in (Get-ChildItem $Item)) {
             if ($childItem.PSIsContainer) {
                 Get-ChildItemDepth -Item (Get-Item $childItem.FullName) -Depth ($Depth + 1)
@@ -24,17 +24,18 @@
     }
     foreach ($p in $Path) {
         if ($p.GetType() -in @([System.IO.FileSystemInfo], [System.IO.FileInfo])) {
-            Write-Verbose "Item $p ($($p.GetType())) is a File object"
+            Write-PSFMessage -Level Verbose -Message "Item $p ($($p.GetType())) is a File object"
             $stringPath = $p.FullName
             $isAbsolute = $true
         }
         else {
-            Write-Verbose "Item $p ($($p.GetType())) will be treated as a string"
+            Write-PSFMessage -Level Verbose -Message "Item $p ($($p.GetType())) will be treated as a string"
             $stringPath = [string]$p
             $isAbsolute = Split-Path -Path $stringPath -IsAbsolute
         }
         if (!(Test-Path $stringPath)) {
-            throw "The following path is not valid: $stringPath"
+            Stop-PSFFunction -EnableException $true -Message "The following path is not valid: $stringPath"
+            return
         }
         foreach ($currentItem in (Get-Item $stringPath)) {
             Get-ChildItemDepth -Item $currentItem -Depth ([int]$currentItem.PSIsContainer) -IsAbsolute $isAbsolute

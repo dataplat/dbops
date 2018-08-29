@@ -28,7 +28,10 @@ $v2scripts = "$here\etc\install-tests\success\2.sql"
 $verificationScript = "$here\etc\install-tests\verification\select.sql"
 $packageName = Join-Path $workFolder "TempDeployment.zip"
 $packageNamev1 = Join-Path $workFolder "TempDeployment_v1.zip"
-
+$fullConfig = "$here\etc\tmp_full_config.json"
+$fullConfigSource = "$here\etc\full_config.json"
+$testPassword = 'TestPassword'
+$fromSecureString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertFrom-SecureString
 
 Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
@@ -36,9 +39,11 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = New-Item $workFolder -ItemType Directory -Force
         $null = New-Item $unpackedFolder -ItemType Directory -Force
+        (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $fromSecureString | Out-File $fullConfig -Force
     }
     AfterAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
+        if (Test-Path $fullConfig) { Remove-Item $fullConfig }
     }
     Context "testing transactional deployment" {
         BeforeAll {
@@ -233,7 +238,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
     }
     Context "testing regular deployment with configuration overrides" {
         BeforeAll {
-            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force -ConfigurationFile "$here\etc\full_config.json"
+            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force -ConfigurationFile $fullConfig
             $p2 = New-DBOPackage -ScriptPath $v2scripts -Name "$workFolder\pv2" -Build 2.0 -Force -Configuration @{
                 SqlInstance        = 'nonexistingServer'
                 Database           = 'nonexistingDB'

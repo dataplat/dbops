@@ -39,15 +39,15 @@
         [hashtable]$Configuration
     )
     if ($Path) {
-        Write-Verbose "Reading configuration from $Path"
+        Write-PSFMessage -Level Verbose -Message "Reading configuration from $Path"
         $config = [DBOpsConfig]::FromFile($Path)
     }
     else {
-        Write-Verbose "Generating blank configuration object"
+        Write-PSFMessage -Level Verbose -Message "Generating blank configuration object"
         $config = [DBOpsConfig]::new()
     }
     if ($Configuration) {
-        Write-Verbose "Overwriting configuration keys $($Configuration.Keys -join ', ') with new values"
+        Write-PSFMessage -Level Verbose -Message "Overwriting configuration keys $($Configuration.Keys -join ', ') with new values"
         foreach ($property in $Configuration.Keys) {
             $config.SetValue($property, $Configuration.$property)
         }

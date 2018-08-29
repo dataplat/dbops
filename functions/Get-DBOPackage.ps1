@@ -46,23 +46,25 @@ Function Get-DBOPackage {
         if ($PsCmdlet.ParameterSetName -eq 'Pipeline') {
             if ($InputObject) {
                 if ($InputObject -is [DBOpsPackageBase]) {
-                    Write-Verbose "Loading package file from pipelined object"
+                    Write-PSFMessage -Level Verbose -Message "Loading package file from pipelined object"
                     $InputObject
                 }
                 elseif ($InputObject -is [System.IO.FileInfo]) {
-                    Write-Verbose "Loading package file from the archive $($InputObject.FullName)"
+                    Write-PSFMessage -Level Verbose -Message "Loading package file from the archive $($InputObject.FullName)"
                     [DBOpsPackage]::new($InputObject.FullName)
                 }
                 elseif ($InputObject -is [String]) {
-                    Write-Verbose "Loading package file from the archive $($InputObject)"
+                    Write-PSFMessage -Level Verbose -Message "Loading package file from the archive $($InputObject)"
                     [DBOpsPackage]::new($InputObject)
                 }
                 else {
-                    throw "The following object type is not supported: $($InputObject.GetType().Name). The only supported types are DBOpsPackage, FileInfo and String"
+                    Stop-PSFFunction -EnableException $true -Message "The following object type is not supported: $($InputObject.GetType().Name). The only supported types are DBOpsPackage, FileInfo and String"
+                    return
                 }
             }
             else {
-                throw "The object was not found"
+                Stop-PSFFunction -EnableException $true -Message "The object was not found"
+                return
             }
         }
         elseif ($PsCmdlet.ParameterSetName -eq 'Default') {
@@ -71,22 +73,22 @@ Function Get-DBOPackage {
                     if ($pathItem.PSIsContainer) {
                         $packageFileName = [DBOpsConfig]::GetPackageFileName()
                         $packageFile = Join-Path $pathItem.FullName $packageFileName
-                        Write-Verbose "Loading package $packageFileName from folder $($pathItem.FullName)"
+                        Write-PSFMessage -Level Verbose -Message "Loading package $packageFileName from folder $($pathItem.FullName)"
                         [DBOpsPackageFile]::new($packageFile)
                     }
                     else {
-                        Write-Verbose "Loading package from the json file $pathItem"
+                        Write-PSFMessage -Level Verbose -Message "Loading package from the json file $pathItem"
                         [DBOpsPackageFile]::new($pathItem.FullName)
                     }
                 }
                 else {
-                    Write-Verbose "Loading package file from the archive $pathItem"
+                    Write-PSFMessage -Level Verbose -Message "Loading package file from the archive $pathItem"
                     [DBOpsPackage]::new($pathItem.FullName)
                 }
             }
         }
         else {
-            Write-Verbose "Creating new DBOps package $pFile"
+            Write-PSFMessage -Level Verbose -Message "Creating new DBOps package $pFile"
             [DBOpsPackage]::new()
         }
     }

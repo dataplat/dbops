@@ -179,7 +179,8 @@
             }
         }
         else {
-            throw "Prerequisites have not been met to run the deployment."
+            Stop-PSFFunction -EnableException $true -Message "Prerequisites have not been met to run the deployment."
+            return
         }
 
         #Join variables from config and parameters
@@ -231,12 +232,13 @@
             elseif ($config.Username) {
                 $CSBuilder["User ID"] = $config.UserName
                 if ($Password) {
-                    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
-                    $CSBuilder["Password"] = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+                    [SecureString]$currentPassword = $Password
                 }
-                elseif ($config.Password) {
-                    $CSBuilder["Password"] = $config.Password
+                else {
+                    [SecureString]$currentPassword = $config.Password
                 }
+                $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($currentPassword)
+                $CSBuilder["Password"] = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
             }
             else {
                 $CSBuilder["Integrated Security"] = $true
@@ -316,7 +318,8 @@
         elseif ($config.SchemaVersionTable) {
             $table = $config.SchemaVersionTable.Split('.')
             if (($table | Measure-Object).Count -gt 2) {
-                throw 'Incorrect table name - use the following syntax: schema.table'
+                Stop-PSFFunction -EnableException $true -Message 'Incorrect table name - use the following syntax: schema.table'
+                return
             }
             elseif (($table | Measure-Object).Count -eq 2) {
                 $tableName = $table[1]
@@ -330,7 +333,8 @@
                 else {}
             }
             else {
-                throw 'No table name specified'
+                Stop-PSFFunction -EnableException $true -Message 'No table name specified'
+                return
             }
             # Set default schema for known DB Types
             if (!$schemaName) {
