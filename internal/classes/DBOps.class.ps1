@@ -1172,6 +1172,11 @@ class DBOps {
                 $this.SetValue($key, $config.$key)
             }
         }
+        
+        #Save configuration to a file
+        [void] SaveToFile([string]$fileName) {
+            $this.ExportToJson() | Out-File -FilePath $fileName -Encoding unicode
+        }
 
         #Static Methods
         static [DBOpsConfig] FromJsonString ([string]$jsonString) {

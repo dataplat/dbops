@@ -27,6 +27,7 @@ $script:file = $null
 $script1 = "$here\etc\install-tests\success\1.sql"
 $script2 = "$here\etc\install-tests\success\2.sql"
 $script3 = "$here\etc\install-tests\success\3.sql"
+$outConfig = "$here\etc\out_full_config.json"
 $fullConfig = "$here\etc\tmp_full_config.json"
 $fullConfigSource = "$here\etc\full_config.json"
 $testPassword = 'TestPassword'
@@ -39,6 +40,7 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
     }
     AfterAll {
         if (Test-Path $fullConfig) { Remove-Item $fullConfig }
+        if (Test-Path $outConfig) { Remove-Item $outConfig }
     }
     Context "tests DBOpsConfig constructors" {
         It "Should return an empty config by default" {
@@ -279,6 +281,25 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
         It "Should load package successfully after saving it" {
             $p = [DBOpsPackage]::new($packageName)
             $p.Configuration.ApplicationName | Should Be 'TestApp3'
+        }
+        It "should test SaveToFile method" {
+            [DBOpsConfig]::new((Get-Content $fullConfig -Raw)).SaveToFile($outConfig) 
+            $result = Get-Content $outConfig -Raw | ConvertFrom-Json -ErrorAction Stop
+            $result.ApplicationName | Should Be "MyTestApp"
+            $result.SqlInstance | Should Be "TestServer"
+            $result.Database | Should Be "MyTestDB"
+            $result.DeploymentMethod | Should Be "SingleTransaction"
+            $result.ConnectionTimeout | Should Be 40
+            $result.ExecutionTimeout | Should Be 0
+            $result.Encrypt | Should Be $null
+            $result.Credential.UserName | Should Be 'CredentialUser'
+            [PSCredential]::new('test', ($result.Credential.Password | ConvertTo-SecureString)).GetNetworkCredential().Password | Should Be $testPassword
+            $result.Username | Should Be "TestUser"
+            [PSCredential]::new('test', ($result.Password | ConvertTo-SecureString)).GetNetworkCredential().Password | Should Be "TestPassword"
+            $result.SchemaVersionTable | Should Be "test.Table"
+            $result.Silent | Should Be $true
+            $result.Variables | Should Be $null
+            $result.Schema | Should Be "testschema"
         }
     }
     Context "tests static methods of DBOpsConfig" {
