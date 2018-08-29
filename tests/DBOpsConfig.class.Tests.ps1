@@ -283,7 +283,7 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             $p.Configuration.ApplicationName | Should Be 'TestApp3'
         }
         It "should test SaveToFile method" {
-            [DBOpsConfig]::new((Get-Content $fullConfig -Raw)).SaveToFile($outConfig) 
+            [DBOpsConfig]::new((Get-Content $fullConfig -Raw)).SaveToFile($outConfig)
             $result = Get-Content $outConfig -Raw | ConvertFrom-Json -ErrorAction Stop
             $result.ApplicationName | Should Be "MyTestApp"
             $result.SqlInstance | Should Be "TestServer"
