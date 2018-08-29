@@ -92,6 +92,7 @@ function Invoke-DBOPackageCI {
         }
         catch [System.Management.Automation.ItemNotFoundException] {
             $pkgVersion = [Version]'1.0'
+            $pkg = $null
             Write-Message -Message "Assuming a new version $pkgVersion for the build" -Level Verbose
         }
         catch {

@@ -1029,7 +1029,7 @@ class DBOps {
         [System.Nullable[bool]]$Encrypt
         [pscredential]$Credential
         [string]$Username
-        [string]$Password
+        [SecureString]$Password
         [string]$SchemaVersionTable
         [System.Nullable[bool]]$Silent
         [psobject]$Variables
@@ -1063,7 +1063,6 @@ class DBOps {
             #Reading default values from PSF
             foreach ($prop in [DBOpsConfig]::EnumProperties()) {
                 $configValue = Get-PSFConfigValue -FullName dbops.$prop
-                $this.WriteDebug("Setting config '$prop' to '$configValue'",$this)
                 $this.SetValue($prop, $configValue)
             }
         }
@@ -1085,13 +1084,44 @@ class DBOps {
             if ($Value -eq $null -and $Property -in ($this.PsObject.Properties | Where-Object TypeNameOfValue -like 'System.String*').Name) {
                 $this.$Property = [NullString]::Value
             }
+            elseif ($Value -ne $null -and $Property -eq 'Password') {
+                if ($Value -is [SecureString]) {
+                    $this.$Property = $Value
+                }
+                else {
+                    $this.$Property = ConvertTo-SecureString -String $Value -ErrorAction Stop
+                }
+            }
+            elseif ($Value -ne $null -and $Property -eq 'Credential') {
+                if ($Value -is [pscredential]) {
+                    $this.$Property = $Value
+                }
+                else {
+                    $this.$Property = [pscredential]::new($Value.UserName, (ConvertTo-SecureString -String $Value.Password -ErrorAction Stop))
+                }
+            }
             else {
                 $this.$Property = $Value
             }
         }
         # Returns a JSON string representin the object
         [string] ExportToJson() {
-            return $this | Select-Object -Property ([DBOpsConfig]::EnumProperties()) | ConvertTo-Json -Depth 2
+            $outObject = @{}
+            foreach ($prop in [DBOpsConfig]::EnumProperties()) {
+                if ($this.$prop -is [securestring]) {
+                    $outObject += @{ $prop = $this.$prop | ConvertFrom-SecureString }
+                }
+                elseif ($this.$prop -is [pscredential]) {
+                    $outObject += @{
+                        $prop = @{
+                            UserName = $this.$prop.UserName
+                            Password = $this.$prop.Password | ConvertFrom-SecureString
+                        }
+                    }
+                }
+                else { $outObject += @{ $prop = $this.$prop }}
+            }
+            return $outObject | ConvertTo-Json -Depth 3
         }
         # Save package to an opened zip file
         [void] Save([ZipArchive]$zipFile) {

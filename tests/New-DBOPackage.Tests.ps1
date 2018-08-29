@@ -19,15 +19,21 @@ $workFolder = Join-Path "$here\etc" "$commandName.Tests.dbops"
 $unpackedFolder = Join-Path $workFolder 'unpacked'
 $packageName = "$workFolder\dbopsTest.zip"
 $scriptFolder = "$here\etc\install-tests\success"
+$fullConfig = "$here\etc\tmp_full_config.json"
+$fullConfigSource = "$here\etc\full_config.json"
+$testPassword = 'TestPassword'
+$fromSecureString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertFrom-SecureString
 
 Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
     BeforeAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = New-Item $workFolder -ItemType Directory -Force
         $null = New-Item $unpackedFolder -ItemType Directory -Force
+        (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $fromSecureString | Out-File $fullConfig -Force
     }
     AfterAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
+        if (Test-Path $fullConfig) { Remove-Item $fullConfig }
     }
     Context "testing package contents" {
         AfterAll {
@@ -91,7 +97,7 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
             if (Test-Path "$workFolder\dbops.config.json") { Remove-Item "$workFolder\dbops.config.json" -Recurse }
         }
         It "should be able to apply config file" {
-            $null = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -Name $packageName -ConfigurationFile "$here\etc\full_config.json" -Force
+            $null = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -Name $packageName -ConfigurationFile $fullConfig -Force
             $null = Expand-ArchiveItem -Path $packageName -DestinationPath $workFolder -Item 'dbops.config.json'
             $config = Get-Content "$workFolder\dbops.config.json" | ConvertFrom-Json
             $config.ApplicationName | Should Be "MyTestApp"
@@ -100,9 +106,10 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
             $config.DeploymentMethod | Should Be "SingleTransaction"
             $config.ConnectionTimeout | Should Be 40
             $config.Encrypt | Should Be $null
-            $config.Credential | Should Be $null
+            $config.Credential.UserName | Should Be "CredentialUser"
+            [PSCredential]::new('test', ($config.Credential.Password | ConvertTo-SecureString)).GetNetworkCredential().Password | Should Be "TestPassword"
             $config.Username | Should Be "TestUser"
-            $config.Password | Should Be "TestPassword"
+            [PSCredential]::new('test', ($config.Password | ConvertTo-SecureString)).GetNetworkCredential().Password | Should Be "TestPassword"
             $config.SchemaVersionTable | Should Be "test.Table"
             $config.Silent | Should Be $true
             $config.Variables | Should Be $null

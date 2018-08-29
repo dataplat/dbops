@@ -40,20 +40,19 @@ Describe "$ModuleName indentation" -Tag 'Compliance' {
 }
 
 Describe "$ModuleName ScriptAnalyzerErrors" -Tag 'Compliance' {
-    $ScriptAnalyzerErrors = @()
-    $ScriptAnalyzerErrors += Invoke-ScriptAnalyzer -Path "$ModulePath\functions" -Severity Warning
-    $ScriptAnalyzerErrors += Invoke-ScriptAnalyzer -Path "$ModulePath\internal\functions" -Severity Error
-    $ScriptAnalyzerErrors += Invoke-ScriptAnalyzer -Path "$ModulePath\$ModuleName.psm1" -Severity Error
-    if ($ScriptAnalyzerErrors.Count -gt 0) {
-        foreach ($err in $ScriptAnalyzerErrors) {
+    $functionErrors = Invoke-ScriptAnalyzer -Path "$ModulePath\functions" -Severity Warning
+    $internalErrors = Invoke-ScriptAnalyzer -Path "$ModulePath\internal\functions" -Severity Error
+    $moduleErrors = Invoke-ScriptAnalyzer -Path "$ModulePath\$ModuleName.psm1" -Severity Error
+    foreach ($scriptAnalyzerErrors in @($functionErrors, $internalErrors, $moduleErrors)) {
+        foreach ($err in $scriptAnalyzerErrors) {
             It "$($err.scriptName) has Error(s) : $($err.RuleName)" {
                 $err.Message | Should Be $null
             }
         }
     }
-    else {
-        It "should successfully pass all the tests" {
-            $ScriptAnalyzerErrors.Count | Should Be 0
-        }
+    It "should successfully pass all the tests" {
+        $functionErrors | Should BeNullOrEmpty
+        $internalErrors | Should BeNullOrEmpty
+        $moduleErrors | Should BeNullOrEmpty
     }
 }

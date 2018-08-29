@@ -232,12 +232,13 @@
             elseif ($config.Username) {
                 $CSBuilder["User ID"] = $config.UserName
                 if ($Password) {
-                    $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)
-                    $CSBuilder["Password"] = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+                    [SecureString]$currentPassword = $Password
                 }
-                elseif ($config.Password) {
-                    $CSBuilder["Password"] = $config.Password
+                else {
+                    [SecureString]$currentPassword = $config.Password
                 }
+                $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($currentPassword)
+                $CSBuilder["Password"] = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
             }
             else {
                 $CSBuilder["Integrated Security"] = $true

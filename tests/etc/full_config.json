@@ -5,9 +5,12 @@
     "DeploymentMethod":  "SingleTransaction",
     "ConnectionTimeout":  40,
     "Encrypt":  null,
-    "Credential":  null,
+    "Credential":  {
+        "UserName": "CredentialUser",
+        "Password": "replaceMe"
+    },
     "Username":  "TestUser",
-    "Password":  "TestPassword",
+    "Password":  "replaceMe",
     "SchemaVersionTable":  "test.Table",
     "Silent":  true,
     "Variables":  null,

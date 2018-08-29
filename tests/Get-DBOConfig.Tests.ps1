@@ -15,7 +15,18 @@ else {
     Write-Host "Running $commandName tests" -ForegroundColor Cyan
 }
 
+$fullConfig = "$here\etc\tmp_full_config.json"
+$fullConfigSource = "$here\etc\full_config.json"
+$testPassword = 'TestPassword'
+$fromSecureString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertFrom-SecureString
+
 Describe "Get-DBOConfig tests" -Tag $commandName, UnitTests {
+    BeforeAll {
+        (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $fromSecureString | Out-File $fullConfig -Force
+    }
+    AfterAll {
+        if (Test-Path $fullConfig) { Remove-Item $fullConfig }
+    }
     It "Should throw when path does not exist" {
         { Get-DBOConfig 'asdqweqsdfwer' } | Should throw
     }
@@ -72,16 +83,17 @@ Describe "Get-DBOConfig tests" -Tag $commandName, UnitTests {
     }
 
     It "Should return all configurations from the config file" {
-        $result = Get-DBOConfig "$here\etc\full_config.json"
+        $result = Get-DBOConfig $fullConfig
         $result.ApplicationName | Should Be "MyTestApp"
         $result.SqlInstance | Should Be "TestServer"
         $result.Database | Should Be "MyTestDB"
         $result.DeploymentMethod | Should Be "SingleTransaction"
         $result.ConnectionTimeout | Should Be 40
         $result.Encrypt | Should Be $null
-        $result.Credential | Should Be $null
+        $result.Credential.UserName | Should Be "CredentialUser"
+        $result.Credential.GetNetworkCredential().Password | Should Be "TestPassword"
         $result.Username | Should Be "TestUser"
-        $result.Password | Should Be "TestPassword"
+        [PSCredential]::new('test', $result.Password).GetNetworkCredential().Password | Should Be "TestPassword"
         $result.SchemaVersionTable | Should Be "test.Table"
         $result.Silent | Should Be $true
         $result.Variables | Should Be $null
@@ -89,21 +101,20 @@ Describe "Get-DBOConfig tests" -Tag $commandName, UnitTests {
     }
 
     It "Should override configurations of the config file" {
-        $result = Get-DBOConfig "$here\etc\full_config.json" -Configuration @{ApplicationName = 'MyNewApp'; ConnectionTimeout = 3; Database = $null}
+        $result = Get-DBOConfig $fullConfig -Configuration @{ApplicationName = 'MyNewApp'; ConnectionTimeout = 3; Database = $null}
         $result.ApplicationName | Should Be "MyNewApp"
         $result.SqlInstance | Should Be "TestServer"
         $result.Database | Should Be $null
         $result.DeploymentMethod | Should Be "SingleTransaction"
         $result.ConnectionTimeout | Should Be 3
         $result.Encrypt | Should Be $null
-        $result.Credential | Should Be $null
+        $result.Credential.UserName | Should Be "CredentialUser"
+        $result.Credential.GetNetworkCredential().Password | Should Be "TestPassword"
         $result.Username | Should Be "TestUser"
-        $result.Password | Should Be "TestPassword"
+        [PSCredential]::new('test', $result.Password).GetNetworkCredential().Password | Should Be "TestPassword"
         $result.SchemaVersionTable | Should Be "test.Table"
         $result.Silent | Should Be $true
         $result.Variables | Should Be $null
         $result.Schema | Should Be 'testschema'
     }
-
-    
 }
