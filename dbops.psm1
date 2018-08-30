@@ -121,7 +121,9 @@ if ($typeData) {
             param (
                 $Package
             )
-            $connectionString = $this.ExecutionManager.ConnectionContext.ConnectionString
+            $cS = $this.ExecutionManager.ConnectionContext.ConnectionString.Split(';') | Where-Object { $_.Split('=')[0] -ne 'Database' }
+            $cS += "Database=$($this.Name)"
+            $connectionString = $cS -join ';'
             Invoke-DBODeployment -InputObject $Package -ConnectionString $connectionString
         } -ErrorAction Ignore
     }
@@ -130,7 +132,9 @@ if ($typeData) {
             param (
                 $Path
             )
-            $connectionString = $this.ExecutionManager.ConnectionContext.ConnectionString
+            $cS = $this.ExecutionManager.ConnectionContext.ConnectionString.Split(';') | Where-Object { $_.Split('=')[0] -ne 'Database' }
+            $cS += "Database=$($this.Name)"
+            $connectionString = $cS -join ';'
             Invoke-DBODeployment -ScriptPath $Path -ConnectionString $connectionString
         } -ErrorAction Ignore
     }
