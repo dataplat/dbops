@@ -81,11 +81,11 @@ Expand-Archive Deploy.zip '.\MyTempFolder'
 ### Configurations and defaults
 ```powershell
 # Setting deployment options within the package to be able to deploy it without specifying options
-Update-DBOConfig Deploy.zip -Configuration @{ DeploymentMethod = 'SingleTransaction'; SqlInstance = 'localhost'; DatabaseName = 'MyDb2' }
+Update-DBOConfig Deploy.zip -Configuration @{ DeploymentMethod = 'SingleTransaction'; SqlInstance = 'localhost'; Database = 'MyDb2' }
 Install-DBOPackage Deploy.zip
 
 # Generating config files and using it later as a deployment template
-(Get-DBOConfig -Configuration @{ DeploymentMethod = 'SingleTransaction'; SqlInstance = 'devInstance'; DatabaseName = 'MyDB' }).SaveToFile('.\dev.json')
+(Get-DBOConfig -Configuration @{ DeploymentMethod = 'SingleTransaction'; SqlInstance = 'devInstance'; Database = 'MyDB' }).SaveToFile('.\dev.json')
 (Get-DBOConfig -Path '.\dev.json' -Configuration @{ SqlInstance = 'prodInstance' }).SaveToFile('.\prod.json')
 Install-DBOPackage Deploy.zip -ConfigurationFile .\dev.json
 
