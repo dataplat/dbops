@@ -54,11 +54,23 @@ Install-Module dbops
 
 ## Examples
 ### Simple deployment
+Short video (click to open):
+
+[![Invoke-DBODeployment](https://img.youtube.com/vi/KtEnuGhaOWQ/0.jpg)](http://www.youtube.com/watch?v=KtEnuGhaOWQ)
+
+Example code:
+
 ```powershell
 # Ad-hoc deployment of the scripts from a folder myscripts
 Invoke-DBODeployment -ScriptPath C:\temp\myscripts -SqlInstance server1 -Database MyDB
 ```
 ### Package management
+Short video (click to open):
+
+[![Add-DBOBuild](https://img.youtube.com/vi/JqznvjBh1Hc/0.jpg)](http://www.youtube.com/watch?v=JqznvjBh1Hc)
+
+Example code:
+
 ```powershell
 # Deployment using packaging system
 New-DBOPackage Deploy.zip -ScriptPath C:\temp\myscripts | Install-DBOPackage -SqlInstance server1 -Database MyDB
@@ -76,6 +88,12 @@ Expand-Archive Deploy.zip '.\MyTempFolder'
 .\MyTempFolder\Deploy.ps1 -SqlInstance server1 -Database MyDB
 ```
 ### Configurations and defaults
+Short video (click to open):
+
+[![Get-DBOConfig](https://img.youtube.com/vi/WwXVcZcK9Lc/0.jpg)](http://www.youtube.com/watch?v=WwXVcZcK9Lc)
+
+Example code:
+
 ```powershell
 # Setting deployment options within the package to be able to deploy it without specifying options
 Update-DBOConfig Deploy.zip -Configuration @{ DeploymentMethod = 'SingleTransaction'; SqlInstance = 'localhost'; Database = 'MyDb2' }
@@ -99,6 +117,12 @@ Get-DBODefaultSetting
 Set-DBODefaultSetting -Name SchemaVersionTable -Value $null
 ```
 ### CI/CD features
+Short video (click to open):
+
+[![Invoke-DBOPackageCI](https://img.youtube.com/vi/ZEhaWXUJcFE/0.jpg)](http://www.youtube.com/watch?v=ZEhaWXUJcFE)
+
+Example code:
+
 ```powershell
 # Invoke CI/CD build of the package MyPackage.zip using scripts from the source folder .\Scripts
 # Each execution of the command will only pick up new files from the ScriptPath folder
