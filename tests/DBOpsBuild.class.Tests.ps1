@@ -21,9 +21,6 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 . "$here\..\internal\classes\DBOps.class.ps1"
 
 $packageName = "$here\etc\$commandName.zip"
-$script:pkg = $null
-$script:build = $null
-$script:file = $null
 $script1 = "$here\etc\install-tests\success\1.sql"
 $script2 = "$here\etc\install-tests\success\2.sql"
 $script3 = "$here\etc\install-tests\success\3.sql"
@@ -53,21 +50,17 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             if (Test-Path $packageName) { Remove-Item $packageName }
         }
         BeforeAll {
-            $script:pkg = [DBOpsPackage]::new()
-            $script:pkg.SaveToFile($packageName)
         }
         BeforeEach {
-            if ( $script:pkg.GetBuild('1.0')) { $script:pkg.RemoveBuild('1.0') }
-            $b = $script:pkg.NewBuild('1.0')
-            # $f = [DBOpsFile]::new($script1, 'success\1.sql')
-            # $b.AddScript($f)
-            $script:build = $b
+            $pkg = [DBOpsPackage]::new()
+            $pkg.SaveToFile($packageName, $true)
+            $build = $pkg.NewBuild('1.0')
         }
         It "should test NewScript([psobject]) method" {
-            $so = $script:build.NewScript(@{FullName = $script1; Depth = 1})
+            $so = $build.NewScript(@{FullName = $script1; Depth = 1})
             #test build to contain the script
-            '1.sql' | Should BeIn $script:build.Scripts.Name
-            ($script:build.Scripts | Measure-Object).Count | Should Be 1
+            '1.sql' | Should BeIn $build.Scripts.Name
+            ($build.Scripts | Measure-Object).Count | Should Be 1
             #test the file returned to have all the necessary properties
             $so.SourcePath | Should Be $script1
             $so.PackagePath | Should Be 'success\1.sql'
@@ -79,8 +72,8 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             $so.Parent.ToString() | Should Be '[Build: 1.0; Scripts: @{1.sql}]'
         }
         It "should test NewScript([string],[int]) method" {
-            $so = $script:build.NewScript(@{FullName = $script1; Depth = 1})
-            ($script:build.Scripts | Measure-Object).Count | Should Be 1
+            $so = $build.NewScript(@{FullName = $script1; Depth = 1})
+            ($build.Scripts | Measure-Object).Count | Should Be 1
             $so.SourcePath | Should Be $script1
             $so.PackagePath | Should Be 'success\1.sql'
             $so.Length -gt 0 | Should Be $true
@@ -89,87 +82,83 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             $so.ByteArray | Should Not BeNullOrEmpty
             $so.Hash |Should Not BeNullOrEmpty
             $so.Parent.ToString() | Should Be '[Build: 1.0; Scripts: @{1.sql}]'
-            { $script:pkg.Alter() } | Should Not Throw
+            { $pkg.Alter() } | Should Not Throw
             #Negative tests
-            { $script:build.NewScript($script1, 1) } | Should Throw
+            { $build.NewScript($script1, 1) } | Should Throw
         }
         It "Should test AddScript([string]) method" {
             $f = [DBOpsFile]::new($script1, 'success\1.sql')
-            $script:build.AddScript($f)
+            $build.AddScript($f)
             #test build to contain the script
-            '1.sql' | Should BeIn $script:build.Scripts.Name
-            ($script:build.Scripts | Measure-Object).Count | Should Be 1
+            '1.sql' | Should BeIn $build.Scripts.Name
+            ($build.Scripts | Measure-Object).Count | Should Be 1
         }
         It "Should test AddScript([string],[bool]) method" {
             $f = [DBOpsFile]::new($script1, 'success\1.sql')
-            $script:build.AddScript($f,$false)
+            $build.AddScript($f,$false)
             #test build to contain the script
-            '1.sql' | Should BeIn $script:build.Scripts.Name
-            ($script:build.Scripts | Measure-Object).Count | Should Be 1
+            '1.sql' | Should BeIn $build.Scripts.Name
+            ($build.Scripts | Measure-Object).Count | Should Be 1
             $f2 = [DBOpsFile]::new($script1, 'success\1a.sql')
-            { $script:build.AddScript($f2, $false) } | Should Throw
-            ($script:build.Scripts | Measure-Object).Count | Should Be 1
+            { $build.AddScript($f2, $false) } | Should Throw
+            ($build.Scripts | Measure-Object).Count | Should Be 1
             $f3 = [DBOpsFile]::new($script1, 'success\1a.sql')
-            $script:build.AddScript($f3, $true)
-            ($script:build.Scripts | Measure-Object).Count | Should Be 2
+            $build.AddScript($f3, $true)
+            ($build.Scripts | Measure-Object).Count | Should Be 2
         }
     }
     Context "tests other methods" {
         BeforeEach {
-            if ( $script:pkg.GetBuild('1.0')) { $script:pkg.RemoveBuild('1.0') }
-            $b = $script:pkg.NewBuild('1.0')
+            $pkg = [DBOpsPackage]::new()
+            $pkg.SaveToFile($packageName, $true)
+            $build = $pkg.NewBuild('1.0')
             $f = [DBOpsScriptFile]::new($script1, 'success\1.sql')
-            $b.AddScript($f)
-            $script:build = $b
+            $build.AddScript($f)
         }
         AfterAll {
             if (Test-Path $packageName) { Remove-Item $packageName }
         }
-        BeforeAll {
-            $script:pkg = [DBOpsPackage]::new()
-            $script:pkg.SaveToFile($packageName)
-        }
         It "should test ToString method" {
-            $script:build.ToString() | Should Be '[Build: 1.0; Scripts: @{1.sql}]'
+            $build.ToString() | Should Be '[Build: 1.0; Scripts: @{1.sql}]'
         }
         It "should test HashExists method" {
             $f = [DBOpsScriptFile]::new(@{PackagePath = '1.sql'; SourcePath = '.\1.sql'; Hash = 'MyHash'})
-            $script:build.AddScript($f, $true)
-            $script:build.HashExists('MyHash') | Should Be $true
-            $script:build.HashExists('MyHash2') | Should Be $false
-            $script:build.HashExists('MyHash','.\1.sql') | Should Be $true
-            $script:build.HashExists('MyHash','.\1a.sql') | Should Be $false
-            $script:build.HashExists('MyHash2','.\1.sql') | Should Be $false
+            $build.AddScript($f, $true)
+            $build.HashExists('MyHash') | Should Be $true
+            $build.HashExists('MyHash2') | Should Be $false
+            $build.HashExists('MyHash','.\1.sql') | Should Be $true
+            $build.HashExists('MyHash','.\1a.sql') | Should Be $false
+            $build.HashExists('MyHash2','.\1.sql') | Should Be $false
         }
         It "should test ScriptExists method" {
-            $script:build.ScriptExists($script1) | Should Be $true
-            $script:build.ScriptExists("$here\etc\install-tests\transactional-failure\1.sql") | Should Be $false
-            { $script:build.ScriptExists("Nonexisting\path") } | Should Throw
+            $build.ScriptExists($script1) | Should Be $true
+            $build.ScriptExists("$here\etc\install-tests\transactional-failure\1.sql") | Should Be $false
+            { $build.ScriptExists("Nonexisting\path") } | Should Throw
         }
         It "should test ScriptModified method" {
-            $script:build.ScriptModified($script1, $script1) | Should Be $false
-            $script:build.ScriptModified($script2, $script1) | Should Be $true
-            $script:build.ScriptModified($script2, $script2) | Should Be $false
+            $build.ScriptModified($script1, $script1) | Should Be $false
+            $build.ScriptModified($script2, $script1) | Should Be $true
+            $build.ScriptModified($script2, $script2) | Should Be $false
         }
         It "should test SourcePathExists method" {
-            $script:build.SourcePathExists($script1) | Should Be $true
-            $script:build.SourcePathExists($script2) | Should Be $false
-            $script:build.SourcePathExists('') | Should Be $false
+            $build.SourcePathExists($script1) | Should Be $true
+            $build.SourcePathExists($script2) | Should Be $false
+            $build.SourcePathExists('') | Should Be $false
         }
         It "should test PackagePathExists method" {
             $s1 = "success\1.sql"
             $s2 = "success\2.sql"
-            $script:build.PackagePathExists($s1) | Should Be $true
-            $script:build.PackagePathExists($s2) | Should Be $false
+            $build.PackagePathExists($s1) | Should Be $true
+            $build.PackagePathExists($s2) | Should Be $false
             #Overloads
-            $script:build.PackagePathExists("a\$s1", 1) | Should Be $true
-            $script:build.PackagePathExists("a\$s2", 1) | Should Be $false
+            $build.PackagePathExists("a\$s1", 1) | Should Be $true
+            $build.PackagePathExists("a\$s2", 1) | Should Be $false
         }
         It "should test GetPackagePath method" {
-            $script:build.GetPackagePath() | Should Be 'content\1.0'
+            $build.GetPackagePath() | Should Be 'content\1.0'
         }
         It "should test ExportToJson method" {
-            $j = $script:build.ExportToJson() | ConvertFrom-Json
+            $j = $build.ExportToJson() | ConvertFrom-Json
             $j.Scripts | Should Not BeNullOrEmpty
             $j.Build | Should Be '1.0'
             $j.PackagePath | Should Be '1.0'
@@ -181,18 +170,18 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             if (Test-Path $packageName) { Remove-Item $packageName }
             if (Test-Path "$packageName.test.zip") { Remove-Item "$packageName.test.zip" }
         }
+        BeforeAll {
+
+        }
         It "should test Save method" {
             #Generate new package file
-            $script:pkg = [DBOpsPackage]::new()
-            $script:pkg.SaveToFile($packageName)
-            if ( $script:pkg.GetBuild('1.0')) { $script:pkg.RemoveBuild('1.0') }
-            $b = $script:pkg.NewBuild('1.0')
+            $pkg = [DBOpsPackage]::new()
+            $pkg.SaveToFile($packageName, $true)
+            $build = $pkg.NewBuild('1.0')
             $f = [DBOpsScriptFile]::new($script1, 'success\1.sql')
-            $b.AddScript($f)
+            $build.AddScript($f)
             $f = [DBOpsScriptFile]::new($script2, 'success\2.sql')
-            $b.AddScript($f)
-            $script:build = $b
-
+            $build.AddScript($f)
             #Open zip file stream
             $writeMode = [System.IO.FileMode]::Open
             $stream = [FileStream]::new($packageName, $writeMode)
@@ -201,7 +190,7 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
                 $zip = [ZipArchive]::new($stream, [ZipArchiveMode]::Update)
                 try {
                     #Initiate saving
-                    { $script:build.Save($zip) } | Should Not Throw
+                    { $build.Save($zip) } | Should Not Throw
                 }
                 catch {
                     throw $_
@@ -234,26 +223,26 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
         }
         It "Should save and reopen the package under a different name" {
             #Generate new package file
-            $p1 = [DBOpsPackage]::new()
-            $p1.SaveToFile($packageName, $true)
-            $p2 = [DBOpsPackage]::new($packageName)
-            if ( $p2.GetBuild('1.0')) { $script:pkg.RemoveBuild('1.0') }
-            $b = $p2.NewBuild('1.0')
+            $pkg = [DBOpsPackage]::new()
+            $pkg.SaveToFile($packageName, $true)
+            $b = $pkg.NewBuild('1.0')
             $f = [DBOpsScriptFile]::new($script1, 'success\1.sql')
             $b.AddScript($f)
             $f = [DBOpsScriptFile]::new($script2, 'success\2.sql')
             $b.AddScript($f)
-            $p2.SaveToFile("$packageName.test.zip")
-            $script:pkg = [DBOpsPackage]::new("$packageName.test.zip")
-            $script:build = $script:pkg.GetBuild('1.0')
+            $pkg.SaveToFile("$packageName.test.zip")
+            $pkg = [DBOpsPackage]::new("$packageName.test.zip")
+            $pkg.GetBuild('1.0').Scripts.Name | Should Be @('1.sql','2.sql')
         }
-        $oldResults = Get-ArchiveItem "$packageName.test.zip" | Where-Object IsFolder -eq $false
+        $oldResults = Get-ArchiveItem "$packageName.test.zip"
         #Sleep 1 second to ensure that modification date is changed
         Start-Sleep -Seconds 2
         It "should test Alter method" {
+            $pkg = [DBOpsPackage]::new("$packageName.test.zip")
+            $build = $pkg.GetBuild('1.0')
             $f = [DBOpsScriptFile]::new($script3, 'success\3.sql')
-            $script:build.AddScript($f)
-            { $script:build.Alter() } | Should Not Throw
+            $build.AddScript($f)
+            { $build.Alter() } | Should Not Throw
             $results = Get-ArchiveItem "$packageName.test.zip"
             foreach ($file in (Get-DBOModuleFileList)) {
                 Join-Path 'Modules\dbops' $file.Path | Should BeIn $results.Path
@@ -269,10 +258,10 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             $p.Builds.Scripts.Name | Should Be @('1.sql', '2.sql', '3.sql')
         }
         # Testing file contents to be updated by the Save method
-        $results = Get-ArchiveItem "$packageName.test.zip" | Where-Object IsFolder -eq $false
+        $results = Get-ArchiveItem "$packageName.test.zip"
         $saveTestsErrors = 0
         #should trigger file updates for build files and module files
-        foreach ($result in ($oldResults | Where-Object { $_.Path -like 'content\1.0\success' -or $_.Path -like 'Modules\dbops\*'  } )) {
+        foreach ($result in ($oldResults | Where-Object { $_.Path -like 'content\1.0\success\*' -or $_.Path -like 'Modules\dbops\*'  } )) {
             if ($result.LastWriteTime -ge ($results | Where-Object Path -eq $result.Path).LastWriteTime) {
                 It "Should have updated Modified date for file $($result.Path)" {
                     $result.LastWriteTime -lt ($results | Where-Object Path -eq $result.Path).LastWriteTime | Should Be $true
