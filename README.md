@@ -54,9 +54,11 @@ Install-Module dbops
 
 ## Examples
 ### Simple deployment
-Short video (click to open):
 
-[![Invoke-DBODeployment](https://img.youtube.com/vi/KtEnuGhaOWQ/0.jpg)](http://www.youtube.com/watch?v=KtEnuGhaOWQ)
+Perform plain-text script deployments using a single command:
+
+[![Invoke-DBODeployment](https://img.youtube.com/vi/KtEnuGhaOWQ/0.jpg)](http://www.youtube.com/watch?v=KtEnuGhaOWQ)<br/>
+<small>(click to open the video)</small>
 
 Example code:
 
@@ -65,9 +67,13 @@ Example code:
 Invoke-DBODeployment -ScriptPath C:\temp\myscripts -SqlInstance server1 -Database MyDB
 ```
 ### Package management
-Short video (click to open):
 
-[![Add-DBOBuild](https://img.youtube.com/vi/JqznvjBh1Hc/0.jpg)](http://www.youtube.com/watch?v=JqznvjBh1Hc)
+<img src="https://sqlcollaborative.github.io/dbops/img/dbops-package.jpg" alt="dbops packages" width="800"/>
+
+Each package consists of multiple builds and can be easily deployed to the database, ensuring that each build is deployed in proper order and only once.
+
+[![Add-DBOBuild](https://img.youtube.com/vi/JqznvjBh1Hc/0.jpg)](http://www.youtube.com/watch?v=JqznvjBh1Hc)<br/>
+<small>(click to open the video)</small>
 
 Example code:
 
@@ -88,9 +94,14 @@ Expand-Archive Deploy.zip '.\MyTempFolder'
 .\MyTempFolder\Deploy.ps1 -SqlInstance server1 -Database MyDB
 ```
 ### Configurations and defaults
-Short video (click to open):
 
-[![Get-DBOConfig](https://img.youtube.com/vi/WwXVcZcK9Lc/0.jpg)](http://www.youtube.com/watch?v=WwXVcZcK9Lc)
+There are multiple configuration options available, including:
+* Configuring default settings
+* Specifying runtime parameters
+* Using configuration files
+
+[![Get-DBOConfig](https://img.youtube.com/vi/WwXVcZcK9Lc/0.jpg)](http://www.youtube.com/watch?v=WwXVcZcK9Lc)<br/>
+<small>(click to open the video)</small>
 
 Example code:
 
@@ -117,9 +128,15 @@ Get-DBODefaultSetting
 Set-DBODefaultSetting -Name SchemaVersionTable -Value $null
 ```
 ### CI/CD features
-Short video (click to open):
 
-[![Invoke-DBOPackageCI](https://img.youtube.com/vi/ZEhaWXUJcFE/0.jpg)](http://www.youtube.com/watch?v=ZEhaWXUJcFE)
+dbops CI/CD flow assumes that each package version is built only once and deployed onto every single environment. The successfull builds should make their way as artifacts into the artifact storage, from which they would be pulled again to add new builds into the package during the next iteration.
+
+<img src="https://sqlcollaborative.github.io/dbops/img/ci-cd-flow.jpg" alt="CI-CD flow" width="800"/>
+
+CI/CD capabilities of the module enable user to integrate SQL scripts into a package file using a single command and to store packages in a versioned package repository.
+
+[![Invoke-DBOPackageCI](https://img.youtube.com/vi/ZEhaWXUJcFE/0.jpg)](http://www.youtube.com/watch?v=ZEhaWXUJcFE)<br/>
+<small>(click to open the video)</small>
 
 Example code:
 
