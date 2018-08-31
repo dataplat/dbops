@@ -17,16 +17,12 @@ Currently supported RDBMS:
 ## Features
 The most notable features of the module:
 
-* No scripting experience required - the module is designed around usability and functionality
-* Introduces an option to aggregate source scripts from multiple sources into a single ready-to-deploy file
-* CI/CD pipelining functionality: builds, artifact management, deployment
-* Can detect new/changed files in your source code folder and generate a new deployment build based on those files
-* Introduces optional internal build system: older builds are kept inside the deployment package ensuring smooth and errorless deployments
-* Reliably deploys the scripts in a consistent manner - all the scripts are executed in alphabetical order one build at a time
-* Can be deployed without the module installed in the system - module itself is integrated into the deployment package
-* Transactionality of the deployments/migrations: every build can be deployed as a part of a single transaction, rolling back unsuccessful deployments
-* Dynamically change your code based on custom variables - use `#{customVarName}` tokens to define variables inside the scripts or execution parameters
-* Packages are fully compatible with Octopus Deploy deployments: all packages are in essence zip archives with Deploy.ps1 file that initiates deployment
+* Reliably deploy your scripts in a consistent and repeatable manner
+* Perform ad-hoc deployments with highly customizable deployment parameters
+* Create ready-to-deploy versioned packages in a single command
+* Brings along all features of CI/CD pipelining functionality: builds, artifact management, deployment
+* Roll back the script (or a whole deployment!) in case of errors
+* Dynamically change your code based on custom variables using `#{customVarName}` tokens
 
 
 ## System requirements
@@ -54,16 +50,35 @@ Install-Module dbops
 * Delivering new version of the database schema in a consistent manner to multiple environments
 * Build/Test/Deploy scenarios inside the Continuous Integration/Continuous Delivery pipeline
 * Dynamic deployment based on modified files in the source folder
+* Versioned package deployment (e.g. Octopus Deployment)
 
 ## Examples
 ### Simple deployment
+
+Perform plain-text script deployments using a single command:
+
+[![Invoke-DBODeployment](https://img.youtube.com/vi/KtEnuGhaOWQ/0.jpg)](http://www.youtube.com/watch?v=KtEnuGhaOWQ)<br/>
+<small>(click to open the video)</small>
+
+Example code:
+
 ```powershell
-# Quick deployment without tracking deployment history
-Invoke-DBODeployment -ScriptPath C:\temp\myscripts -SqlInstance server1 -Database MyDB -SchemaVersionTable $null
+# Ad-hoc deployment of the scripts from a folder myscripts
+Invoke-DBODeployment -ScriptPath C:\temp\myscripts -SqlInstance server1 -Database MyDB
 ```
 ### Package management
+
+<img src="https://sqlcollaborative.github.io/dbops/img/dbops-package.jpg" alt="dbops packages" width="800"/>
+
+Each package consists of multiple builds and can be easily deployed to the database, ensuring that each build is deployed in proper order and only once.
+
+[![Add-DBOBuild](https://img.youtube.com/vi/JqznvjBh1Hc/0.jpg)](http://www.youtube.com/watch?v=JqznvjBh1Hc)<br/>
+<small>(click to open the video)</small>
+
+Example code:
+
 ```powershell
-# Deployment using packages & builds with keeping track of deployment history in the SchemaVersions table
+# Deployment using packaging system
 New-DBOPackage Deploy.zip -ScriptPath C:\temp\myscripts | Install-DBOPackage -SqlInstance server1 -Database MyDB
 
 # Create new deployment package with predefined configuration and deploy it replacing #{dbName} tokens with corresponding values
@@ -72,13 +87,24 @@ Install-DBOPackage MyPackage.zip -Variables @{ dbName = 'myDB' }
 
 # Adding builds to the package
 Add-DBOBuild Deploy.zip -ScriptPath .\myscripts -Type Unique -Build 2.0
-Get-ChildItem .\myscripts | Add-DBOBuild Deploy.zip -Type New,Modified -Build 3.0\
+Get-ChildItem .\myscripts | Add-DBOBuild Deploy.zip -Type New,Modified -Build 3.0
 
 # Install package using internal script Deploy.ps1 - to use when module is not installed locally
 Expand-Archive Deploy.zip '.\MyTempFolder'
 .\MyTempFolder\Deploy.ps1 -SqlInstance server1 -Database MyDB
 ```
 ### Configurations and defaults
+
+There are multiple configuration options available, including:
+* Configuring default settings
+* Specifying runtime parameters
+* Using configuration files
+
+[![Get-DBOConfig](https://img.youtube.com/vi/WwXVcZcK9Lc/0.jpg)](http://www.youtube.com/watch?v=WwXVcZcK9Lc)<br/>
+<small>(click to open the video)</small>
+
+Example code:
+
 ```powershell
 # Setting deployment options within the package to be able to deploy it without specifying options
 Update-DBOConfig Deploy.zip -Configuration @{ DeploymentMethod = 'SingleTransaction'; SqlInstance = 'localhost'; Database = 'MyDb2' }
@@ -98,10 +124,22 @@ Install-DBOPackage -Path Deploy.zip -Server OracleDB -ConnectionType Oracle
 # Get a list of all the default settings
 Get-DBODefaultSetting
 
-# Change the default SchemaVersionTable setting to null, disabling the deployment logging by default
+# Change the default SchemaVersionTable setting to null, disabling the deployment journalling by default
 Set-DBODefaultSetting -Name SchemaVersionTable -Value $null
 ```
 ### CI/CD features
+
+dbops CI/CD flow assumes that each package version is built only once and deployed onto every single environment. The successfull builds should make their way as artifacts into the artifact storage, from which they would be pulled again to add new builds into the package during the next iteration.
+
+<img src="https://sqlcollaborative.github.io/dbops/img/ci-cd-flow.jpg" alt="CI-CD flow" width="800"/>
+
+CI/CD capabilities of the module enable user to integrate SQL scripts into a package file using a single command and to store packages in a versioned package repository.
+
+[![Invoke-DBOPackageCI](https://img.youtube.com/vi/ZEhaWXUJcFE/0.jpg)](http://www.youtube.com/watch?v=ZEhaWXUJcFE)<br/>
+<small>(click to open the video)</small>
+
+Example code:
+
 ```powershell
 # Invoke CI/CD build of the package MyPackage.zip using scripts from the source folder .\Scripts
 # Each execution of the command will only pick up new files from the ScriptPath folder
