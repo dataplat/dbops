@@ -4,7 +4,7 @@
     RootModule             = 'dbops.psm1'
     
     # Version number of this module.
-    ModuleVersion          = '0.3.5'
+    ModuleVersion          = '0.3.7'
     
     # ID used to uniquely identify this module
     GUID                   = '16dff216-533a-4fa3-9b2e-4408dbe15e63'
