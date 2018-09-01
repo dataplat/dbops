@@ -21,9 +21,6 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 . "$here\..\internal\classes\DBOps.class.ps1"
 
 $packageName = "$here\etc\$commandName.zip"
-$script:pkg = $null
-$script:build = $null
-$script:file = $null
 $script1 = "$here\etc\install-tests\success\1.sql"
 $script2 = "$here\etc\install-tests\success\2.sql"
 $script3 = "$here\etc\install-tests\success\3.sql"
@@ -139,20 +136,20 @@ Describe "DBOpsRootFile class tests" -Tag $commandName, UnitTests, DBOpsFile, DB
         AfterAll {
             if (Test-Path $packageName) { Remove-Item $packageName }
         }
-        BeforeAll {
-            $script:pkg = [DBOpsPackage]::new()
-            $script:pkg.SaveToFile($packageName, $true)
-            $script:file = $script:pkg.GetFile('Deploy.ps1', 'DeployFile')
+        BeforeEach {
+            $pkg = [DBOpsPackage]::new()
+            $pkg.SaveToFile($packageName, $true)
+            $file = $pkg.GetFile('Deploy.ps1', 'DeployFile')
         }
         It "should test SetContent method" {
-            $oldData = $script:file.ByteArray
-            $script:file.SetContent([DBOpsHelper]::GetBinaryFile($script2))
-            $script:file.ByteArray | Should Not Be $oldData
-            $script:file.ByteArray | Should Not BeNullOrEmpty
-            $script:file.Hash | Should BeNullOrEmpty
+            $oldData = $file.ByteArray
+            $file.SetContent([DBOpsHelper]::GetBinaryFile($script2))
+            $file.ByteArray | Should Not Be $oldData
+            $file.ByteArray | Should Not BeNullOrEmpty
+            $file.Hash | Should BeNullOrEmpty
         }
         It "should test ExportToJson method" {
-            $j = $script:file.ExportToJson() | ConvertFrom-Json
+            $j = $file.ExportToJson() | ConvertFrom-Json
             $j.PackagePath | Should Be 'Deploy.ps1'
             $j.SourcePath | Should Be (Get-DBOModuleFileList | Where-Object {$_.Type -eq 'Misc' -and $_.Name -eq 'Deploy.ps1'}).FullName
         }
@@ -162,7 +159,7 @@ Describe "DBOpsRootFile class tests" -Tag $commandName, UnitTests, DBOpsFile, DB
             #Sleep 2 seconds to ensure that modification date is changed
             Start-Sleep -Seconds 2
             #Modify file content
-            $script:file.SetContent([DBOpsHelper]::GetBinaryFile($script2))
+            $file.SetContent([DBOpsHelper]::GetBinaryFile($script2))
             #Open zip file stream
             $writeMode = [System.IO.FileMode]::Open
             $stream = [FileStream]::new($packageName, $writeMode)
@@ -171,7 +168,7 @@ Describe "DBOpsRootFile class tests" -Tag $commandName, UnitTests, DBOpsFile, DB
                 $zip = [ZipArchive]::new($stream, [ZipArchiveMode]::Update)
                 try {
                     #Initiate saving
-                    { $script:file.Save($zip) } | Should Not Throw
+                    { $file.Save($zip) } | Should Not Throw
                 }
                 catch {
                     throw $_
@@ -197,8 +194,8 @@ Describe "DBOpsRootFile class tests" -Tag $commandName, UnitTests, DBOpsFile, DB
             #Sleep 2 seconds to ensure that modification date is changed
             Start-Sleep -Seconds 2
             #Modify file content
-            $script:file.SetContent([DBOpsHelper]::GetBinaryFile($script2))
-            { $script:file.Alter() } | Should Not Throw
+            $file.SetContent([DBOpsHelper]::GetBinaryFile($script2))
+            { $file.Alter() } | Should Not Throw
             $results = Get-ArchiveItem $packageName | Where-Object Path -eq 'Deploy.ps1'
             $oldResults.LastWriteTime -lt ($results | Where-Object Path -eq $oldResults.Path).LastWriteTime | Should Be $true
         }
