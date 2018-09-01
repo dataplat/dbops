@@ -57,7 +57,7 @@ Install-Module dbops
 
 Perform plain-text script deployments using a single command:
 
-[![Invoke-DBODeployment](https://img.youtube.com/vi/KtEnuGhaOWQ/0.jpg)](http://www.youtube.com/watch?v=KtEnuGhaOWQ)<br/>
+[![Invoke-DBODeployment](https://img.youtube.com/vi/PdMCk0Wa-FA/0.jpg)](http://www.youtube.com/watch?v=PdMCk0Wa-FA)<br/>
 <small>(click to open the video)</small>
 
 Example code:
@@ -72,7 +72,7 @@ Invoke-DBODeployment -ScriptPath C:\temp\myscripts -SqlInstance server1 -Databas
 
 Each package consists of multiple builds and can be easily deployed to the database, ensuring that each build is deployed in proper order and only once.
 
-[![Add-DBOBuild](https://img.youtube.com/vi/JqznvjBh1Hc/0.jpg)](http://www.youtube.com/watch?v=JqznvjBh1Hc)<br/>
+[![Add-DBOBuild](https://img.youtube.com/vi/SasXV9Sz7gs/0.jpg)](http://www.youtube.com/watch?v=SasXV9Sz7gs)<br/>
 <small>(click to open the video)</small>
 
 Example code:
@@ -100,7 +100,7 @@ There are multiple configuration options available, including:
 * Specifying runtime parameters
 * Using configuration files
 
-[![Get-DBOConfig](https://img.youtube.com/vi/WwXVcZcK9Lc/0.jpg)](http://www.youtube.com/watch?v=WwXVcZcK9Lc)<br/>
+[![Get-DBOConfig](https://img.youtube.com/vi/JRwNyiMyyes/0.jpg)](http://www.youtube.com/watch?v=JRwNyiMyyes)<br/>
 <small>(click to open the video)</small>
 
 Example code:
@@ -135,7 +135,7 @@ dbops CI/CD flow assumes that each package version is built only once and deploy
 
 CI/CD capabilities of the module enable user to integrate SQL scripts into a package file using a single command and to store packages in a versioned package repository.
 
-[![Invoke-DBOPackageCI](https://img.youtube.com/vi/ZEhaWXUJcFE/0.jpg)](http://www.youtube.com/watch?v=ZEhaWXUJcFE)<br/>
+[![Invoke-DBOPackageCI](https://img.youtube.com/vi/A6EwiHM9wE8/0.jpg)](http://www.youtube.com/watch?v=A6EwiHM9wE8)<br/>
 <small>(click to open the video)</small>
 
 Example code:
