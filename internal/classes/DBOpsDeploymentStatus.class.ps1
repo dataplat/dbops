@@ -28,8 +28,8 @@ class DBOpsDeploymentStatus {
             $false { "Failed" }
             default { "Not deployed" }
         }
-        $dur = switch ($this.Duration) {
-            ([timespan]::new(0)) { "Not run yet" }
+        $dur = switch ($this.Duration.TotalMilliseconds) {
+            0 { "Not run yet" }
             default { $this.Duration.ToString('hh\:mm\:ss') }
         }
         $scriptCount = ($this.Scripts | Measure-Object).Count

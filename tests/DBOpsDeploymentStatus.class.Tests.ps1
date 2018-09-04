@@ -29,7 +29,7 @@ Describe "DBOpsDeploymentStatus class tests" -Tag $commandName, UnitTests, DBOps
             $results.ConnectionType | Should BeNullOrEmpty
             $results.Configuration | Should BeNullOrEmpty
             $results.Error | Should BeNullOrEmpty
-            $results.Duration | Should -Be ([timespan]::new(0))
+            $results.Duration.TotalMilliseconds | Should -Be 0
             $results.StartTime | Should BeNullOrEmpty
             $results.EndTime | Should BeNullOrEmpty
             $results.DeploymentLog | Should BeNullOrEmpty
@@ -53,13 +53,13 @@ Describe "DBOpsDeploymentStatus class tests" -Tag $commandName, UnitTests, DBOps
         }
         It "Should test Duration scriptproperty" {
             $results = [DBOpsDeploymentStatus]::new()
-            $results.Duration | Should Be ([timespan]::new(0))
+            $results.Duration.TotalMilliseconds | Should -Be 0
             $results.StartTime = [datetime]'00:00:01'
-            $results.Duration | Should Be ([timespan]::new(0))
+            $results.Duration.TotalMilliseconds | Should -Be 0
             $results.EndTime = [datetime]'00:00:02'
-            $results.Duration | Should Be ([timespan]::new(10000000))
+            $results.Duration.TotalMilliseconds | Should -Be 1000
             $results.EndTime = $null
-            $results.Duration | Should Be ([timespan]::new(0))
+            $results.Duration.TotalMilliseconds | Should -Be 0
         }
     }
 }

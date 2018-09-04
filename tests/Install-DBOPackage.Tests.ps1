@@ -119,7 +119,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
             $results.EndTime | Should -BeGreaterThan $results.StartTime
@@ -145,7 +145,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
             $results.EndTime | Should -BeGreaterThan $results.StartTime
@@ -170,7 +170,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
             $results.EndTime | Should -BeGreaterThan $results.StartTime
@@ -196,7 +196,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
             $results.EndTime | Should -BeGreaterThan $results.StartTime
@@ -222,7 +222,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
             $results.EndTime | Should -BeGreaterThan $results.StartTime
@@ -268,7 +268,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration | Should -BeGreaterThan ([timespan]::new(30000000))
+            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 3000
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
             $results.EndTime | Should -BeGreaterThan $results.StartTime
@@ -288,7 +288,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
             $results.EndTime | Should -BeGreaterThan $results.StartTime
@@ -316,7 +316,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
             $results.EndTime | Should -BeGreaterThan $results.StartTime
@@ -361,7 +361,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
             $results.EndTime | Should -BeGreaterThan $results.StartTime
@@ -393,7 +393,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
             $results.EndTime | Should -BeGreaterThan $results.StartTime
@@ -432,7 +432,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
             $results.Error | Should BeNullOrEmpty
-            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
             $results.EndTime | Should -BeGreaterThan $results.StartTime
@@ -459,7 +459,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
             $results.Error | Should BeNullOrEmpty
-            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
             $results.EndTime | Should -BeGreaterThan $results.StartTime
@@ -495,7 +495,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should BeNullOrEmpty
             $results.Error | Should BeNullOrEmpty
-            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
             $results.EndTime | Should -BeGreaterThan $results.StartTime
@@ -533,7 +533,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
             $results.Configuration.Schema | Should Be 'testschema'
             $results.Error | Should BeNullOrEmpty
-            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
             $results.EndTime | Should -BeGreaterThan $results.StartTime
@@ -569,7 +569,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
             $results.EndTime | Should -BeGreaterThan $results.StartTime
