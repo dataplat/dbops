@@ -2,13 +2,13 @@ class DBOpsDeploymentStatus {
     [string] $SqlInstance
     [string] $Database
     [string[]] $SourcePath
-    [DBOpsConnectionType] $ConnectionType
+    [System.Nullable[DBOpsConnectionType]] $ConnectionType
     [DBOpsConfig] $Configuration
     [DbUp.Engine.SqlScript[]] $Scripts
     [Exception] $Error
-    [bool] $Successful
-    [datetime] $StartTime
-    [datetime] $EndTime
+    [System.Nullable[bool]] $Successful
+    [System.Nullable[datetime]] $StartTime
+    [System.Nullable[datetime]] $EndTime
     [string[]] $DeploymentLog
 
     DBOpsDeploymentStatus() {
@@ -29,13 +29,10 @@ class DBOpsDeploymentStatus {
             default { "Not deployed" }
         }
         $dur = switch ($this.Duration) {
-            $null { "Not run yet" }
-            default { $this.Duration.ToString('hh\:mm\:ss\.f') }
+            ([timespan]::new(0)) { "Not run yet" }
+            default { $this.Duration.ToString('hh\:mm\:ss') }
         }
-        $scriptCount = switch ($this.Scripts) {
-            $null { 0 }
-            default { $this.Scripts.count() }
-        }
+        $scriptCount = ($this.Scripts | Measure-Object).Count
         return "Deployment status`: $status. Duration`: $dur. Script count`: $scriptCount"
     }
 }
