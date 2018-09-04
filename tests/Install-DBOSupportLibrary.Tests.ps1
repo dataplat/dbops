@@ -16,12 +16,6 @@ else {
 
 Describe "Install-DBOSupportLibrary tests" -Tag $commandName, UnitTests {
     Context "Testing support for different RDBMS" {
-        It "should register a nuget repo" {
-            Install-DBOSupportLibrary -Type SQLServer
-            $p = Get-PackageSource -Name nuget.org -ErrorAction SilentlyContinue
-            $p.Name | Should Be 'nuget.org'
-            $p.ProviderName  | Should Be 'NuGet'
-        }
         $dependencies = Get-Content (Join-Path "$PSScriptRoot\.." "internal\json\dbops.dependencies.json") -Raw | ConvertFrom-Json
         foreach ($d in ($dependencies | Get-Member | Where-Object MemberType -eq NoteProperty | Select-Object -ExpandProperty Name)) {
             It "should attempt to install $d support" {
