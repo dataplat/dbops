@@ -69,7 +69,6 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             $so.LastWriteTime | Should Not BeNullOrEmpty
             $so.ByteArray | Should Not BeNullOrEmpty
             $so.Hash |Should Not BeNullOrEmpty
-            $so.Parent.ToString() | Should Be '[Build: 1.0; Scripts: @{1.sql}]'
         }
         It "should test NewScript([string],[int]) method" {
             $so = $build.NewScript(@{FullName = $script1; Depth = 1})
@@ -81,7 +80,6 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             $so.LastWriteTime | Should Not BeNullOrEmpty
             $so.ByteArray | Should Not BeNullOrEmpty
             $so.Hash |Should Not BeNullOrEmpty
-            $so.Parent.ToString() | Should Be '[Build: 1.0; Scripts: @{1.sql}]'
             { $pkg.Alter() } | Should Not Throw
             #Negative tests
             { $build.NewScript($script1, 1) } | Should Throw
@@ -119,7 +117,7 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             if (Test-Path $packageName) { Remove-Item $packageName }
         }
         It "should test ToString method" {
-            $build.ToString() | Should Be '[Build: 1.0; Scripts: @{1.sql}]'
+            $build.ToString() | Should Be '[1.0]'
         }
         It "should test HashExists method" {
             $f = [DBOpsScriptFile]::new(@{PackagePath = '1.sql'; SourcePath = '.\1.sql'; Hash = 'MyHash'})
