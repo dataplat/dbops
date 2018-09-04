@@ -1,0 +1,4 @@
+enum DBOpsConnectionType {
+    SQLServer
+    Oracle
+}

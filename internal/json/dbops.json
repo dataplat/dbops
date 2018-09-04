@@ -27,6 +27,7 @@
         "functions\\Copy-DBOPackageArtifact.ps1"
     ],
     "Internal": [
+        "internal\\classes\\DBOps.enums.ps1",
         "internal\\functions\\Get-ChildScriptItem.ps1",
         "internal\\functions\\Get-VariableTokens.ps1",
         "internal\\functions\\Resolve-VariableToken.ps1",
@@ -34,6 +35,7 @@
         "internal\\functions\\Get-ExternalLibrary.ps1",
         "internal\\classes\\DBOpsHelper.class.ps1",
         "internal\\classes\\DBOps.class.ps1",
+        "internal\\classes\\DBOpsDeploymentStatus.class.ps1",
         "internal\\classes\\DBOpsLog.class.ps1",
         "internal\\classes\\DBOpsScriptComparer.class.ps1"
     ],

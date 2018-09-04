@@ -306,8 +306,15 @@
             $dbUp = [StandardExtensions]::WithTransactionPerScript($dbUp)
         }
 
+        #Create an output object
+        $status = [DBOpsDeploymentStatus]::new()
+        $status.Configuration = $config
+        $status.SqlInstance = $config.SqlInstance
+        $status.Database = $config.Database
+        $status.ConnectionType = $ConnectionType
+
         # Enable logging using dbopsConsoleLog class implementing a logging Interface
-        $dbUpLog = [DBOpsLog]::new($config.Silent, $OutputFile, $Append)
+        $dbUpLog = [DBOpsLog]::new($config.Silent, $OutputFile, $Append, $status)
         $dbUp = [StandardExtensions]::LogTo($dbUp, $dbUpLog)
         $dbUp = [StandardExtensions]::LogScriptOutput($dbUp)
 
@@ -354,14 +361,20 @@
         $dbUp = [StandardExtensions]::WithExecutionTimeout($dbUp, [timespan]::FromSeconds($config.ExecutionTimeout))
 
         #Build and Upgrade
+        $status.StartTime = Get-Date
         if ($PSCmdlet.ShouldProcess($package, "Deploying the package")) {
-            $build = $dbUp.Build()
-            $upgradeResult = $build.PerformUpgrade()
-            $upgradeResult
-            if (!$upgradeResult.Successful) {
-                #Throw output error if unsuccessful
-                throw $upgradeResult.Error
-            }
+            $dbUpBuild = $dbUp.Build()
+            $upgradeResult = $dbUpBuild.PerformUpgrade()
+            $status.Successful = $upgradeResult.Successful
+            $status.Error = $upgradeResult.Error
+            $status.Scripts = $upgradeResult.Scripts
+        }
+        $status.EndTime = Get-Date
+        $status.Duration = $status.StartTime - $status.EndTime
+        $status
+        if (!$status.Successful) {
+            #Throw output error if unsuccessful
+            throw $status.Error
         }
 
     }
