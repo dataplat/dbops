@@ -20,9 +20,6 @@
       <TableColumnHeader>
         <Width>24</Width>
       </TableColumnHeader>
-      <TableColumnHeader>
-        <Width>24</Width>
-      </TableColumnHeader>
     </TableHeaders>
     <TableRowEntries>
       <TableRowEntry>
@@ -35,9 +32,6 @@
           </TableColumnItem>
           <TableColumnItem>
             <PropertyName>LastWriteTime</PropertyName>
-          </TableColumnItem>
-          <TableColumnItem>
-            <PropertyName>Configuration</PropertyName>
           </TableColumnItem>
           <TableColumnItem>
             <PropertyName>Builds</PropertyName>
@@ -66,9 +60,6 @@
       <TableColumnHeader>
         <Width>24</Width>
       </TableColumnHeader>
-      <TableColumnHeader>
-        <Width>24</Width>
-      </TableColumnHeader>
     </TableHeaders>
     <TableRowEntries>
       <TableRowEntry>
@@ -83,15 +74,44 @@
             <PropertyName>LastWriteTime</PropertyName>
           </TableColumnItem>
           <TableColumnItem>
-            <PropertyName>Configuration</PropertyName>
-          </TableColumnItem>
-          <TableColumnItem>
             <PropertyName>Builds</PropertyName>
           </TableColumnItem>
         </TableColumnItems>
       </TableRowEntry>
     </TableRowEntries>
   </TableControl>
+</View>
+<View>
+    <Name>DBOpsDeploymentStatus</Name>
+    <ViewSelectedBy>
+        <TypeName>DBOpsDeploymentStatus</TypeName>
+    </ViewSelectedBy>
+    <ListControl>
+        <ListEntries>
+            <ListEntry>
+                <ListItems>
+                    <ListItem>
+                        <PropertyName>SourcePath</PropertyName>
+                    </ListItem>
+                    <ListItem>
+                        <PropertyName>SqlInstance</PropertyName>
+                    </ListItem>
+                    <ListItem>
+                        <PropertyName>Database</PropertyName>
+                    </ListItem>
+                    <ListItem>
+                        <PropertyName>Successful</PropertyName>
+                    </ListItem>
+                    <ListItem>
+                        <PropertyName>Error</PropertyName>
+                    </ListItem>
+                    <ListItem>
+                        <PropertyName>Duration</PropertyName>
+                    </ListItem>
+                </ListItems>
+            </ListEntry>
+        </ListEntries>
+    </ListControl>
 </View>
 </ViewDefinitions>
 </Configuration>

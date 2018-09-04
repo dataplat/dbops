@@ -95,6 +95,18 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results = Invoke-DBODeployment -ScriptPath $v1scripts -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -Silent
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
+            $results.SqlInstance | Should Be $script:instance1
+            $results.Database | Should Be $script:database1
+            $results.SourcePath | Should Be $v1scripts
+            $results.ConnectionType | Should Be 'SQLServer'
+            $results.Configuration.SchemaVersionTable | Should Be $logTable
+            $results.Error | Should BeNullOrEmpty
+            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.StartTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            'Upgrade successful' | Should BeIn $results.DeploymentLog
+
             #Verifying objects
             $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
             $logTable | Should BeIn $results.name
@@ -107,6 +119,18 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results = Invoke-DBODeployment -ScriptPath $v2scripts -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -Silent
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be (Resolve-Path $v2scripts).Path
+            $results.SqlInstance | Should Be $script:instance1
+            $results.Database | Should Be $script:database1
+            $results.SourcePath | Should Be $v2scripts
+            $results.ConnectionType | Should Be 'SQLServer'
+            $results.Configuration.SchemaVersionTable | Should Be $logTable
+            $results.Error | Should BeNullOrEmpty
+            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.StartTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            'Upgrade successful' | Should BeIn $results.DeploymentLog
+
             #Verifying objects
             $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
             $logTable | Should BeIn $results.name
@@ -124,6 +148,18 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results = Invoke-DBODeployment -ScriptPath $v2scripts, $v1scripts -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -Silent
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be (Resolve-Path $v2scripts, $v1scripts).Path
+            $results.SqlInstance | Should Be $script:instance1
+            $results.Database | Should Be $script:database1
+            $results.SourcePath | Should Be @($v2scripts, $v1scripts)
+            $results.ConnectionType | Should Be 'SQLServer'
+            $results.Configuration.SchemaVersionTable | Should Be $logTable
+            $results.Error | Should BeNullOrEmpty
+            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.StartTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            'Upgrade successful' | Should BeIn $results.DeploymentLog
+
             #Verifying objects
             $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
             $logTable | Should BeIn $results.name
@@ -161,6 +197,17 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results = Invoke-DBODeployment -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 6
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be "$workFolder\delay.sql"
+            $results.SqlInstance | Should Be $script:instance1
+            $results.Database | Should Be $script:database1
+            $results.SourcePath | Should Be "$workFolder\delay.sql"
+            $results.ConnectionType | Should Be 'SQLServer'
+            $results.Configuration.SchemaVersionTable | Should Be $logTable
+            $results.Error | Should BeNullOrEmpty
+            $results.Duration | Should -BeGreaterThan ([timespan]::new(30000000))
+            $results.StartTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should -BeGreaterThan $results.StartTime
+
             $output = Get-Content "$workFolder\log.txt" -Raw
             $output | Should Not BeLike '*Execution Timeout Expired*'
             $output | Should BeLike '*Successful!*'
@@ -169,6 +216,18 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results = Invoke-DBODeployment -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 0
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be "$workFolder\delay.sql"
+            $results.SqlInstance | Should Be $script:instance1
+            $results.Database | Should Be $script:database1
+            $results.SourcePath | Should Be "$workFolder\delay.sql"
+            $results.ConnectionType | Should Be 'SQLServer'
+            $results.Configuration.SchemaVersionTable | Should Be $logTable
+            $results.Error | Should BeNullOrEmpty
+            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.StartTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            'Upgrade successful' | Should BeIn $results.DeploymentLog
+
             $output = Get-Content "$workFolder\log.txt" -Raw
             $output | Should Not BeLike '*Execution Timeout Expired*'
             $output | Should BeLike '*Successful!*'
@@ -182,7 +241,20 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
         }
         It "should deploy nothing" {
             $results = Invoke-DBODeployment -ScriptPath $v1scripts -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -Silent -WhatIf
-            $results | Should BeNullOrEmpty
+            $results.Successful | Should Be $true
+            $results.Scripts | Should BeNullOrEmpty
+            $results.SqlInstance | Should Be $script:instance1
+            $results.Database | Should Be $script:database1
+            $results.SourcePath | Should Be $v1scripts
+            $results.ConnectionType | Should Be 'SQLServer'
+            $results.Configuration.SchemaVersionTable | Should Be $logTable
+            $results.Error | Should BeNullOrEmpty
+            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.StartTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            "Running in WhatIf mode - no deployment performed." | Should BeIn $results.DeploymentLog
+
             #Verifying objects
             $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
             $logTable | Should Not BeIn $results.name
@@ -205,6 +277,18 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results = Invoke-DBODeployment -ScriptPath $v1scripts -SqlInstance $script:instance1 -Database $script:database1 -Silent
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
+            $results.SqlInstance | Should Be $script:instance1
+            $results.Database | Should Be $script:database1
+            $results.SourcePath | Should Be $v1scripts
+            $results.ConnectionType | Should Be 'SQLServer'
+            $results.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
+            $results.Error | Should BeNullOrEmpty
+            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.StartTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            'Upgrade successful' | Should BeIn $results.DeploymentLog
+
             #Verifying objects
             $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
             'SchemaVersions' | Should BeIn $results.name
@@ -220,6 +304,18 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results = Invoke-DBODeployment -ScriptPath $v2scripts -SqlInstance $script:instance1 -Database $script:database1 -Silent
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be (Resolve-Path $v2scripts).Path
+            $results.SqlInstance | Should Be $script:instance1
+            $results.Database | Should Be $script:database1
+            $results.SourcePath | Should Be $v2scripts
+            $results.ConnectionType | Should Be 'SQLServer'
+            $results.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
+            $results.Error | Should BeNullOrEmpty
+            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.StartTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            'Upgrade successful' | Should BeIn $results.DeploymentLog
+
             #Verifying objects
             $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
             'SchemaVersions' | Should BeIn $results.name
@@ -243,6 +339,19 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results = Invoke-DBODeployment -ScriptPath $v1scripts  -SqlInstance $script:instance1 -Database $script:database1 -Silent -SchemaVersionTable $null
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
+            $results.SqlInstance | Should Be $script:instance1
+            $results.Database | Should Be $script:database1
+            $results.SourcePath | Should Be $v1scripts
+            $results.ConnectionType | Should Be 'SQLServer'
+            $results.Configuration.SchemaVersionTable | Should BeNullOrEmpty
+            $results.Error | Should BeNullOrEmpty
+            $results.Duration | Should -BeGreaterThan ([timespan]::new(0))
+            $results.StartTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            'Upgrade successful' | Should BeIn $results.DeploymentLog
+            'Checking whether journal table exists..' | Should Not BeIn $results.DeploymentLog
+
             #Verifying objects
             $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
             'SchemaVersions' | Should Not BeIn $results.name

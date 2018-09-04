@@ -309,9 +309,17 @@
         #Create an output object
         $status = [DBOpsDeploymentStatus]::new()
         $status.Configuration = $config
-        $status.SqlInstance = $config.SqlInstance
-        $status.Database = $config.Database
+        if (!$ConnectionString) {
+            $status.SqlInstance = $config.SqlInstance
+            $status.Database = $config.Database
+        }
         $status.ConnectionType = $ConnectionType
+        if ($PsCmdlet.ParameterSetName -eq 'Script') {
+            $status.SourcePath += $ScriptPath
+        }
+        else {
+            $status.SourcePath = $package.FileName
+        }
 
         # Enable logging using dbopsConsoleLog class implementing a logging Interface
         $dbUpLog = [DBOpsLog]::new($config.Silent, $OutputFile, $Append, $status)
@@ -369,12 +377,20 @@
             $status.Error = $upgradeResult.Error
             $status.Scripts = $upgradeResult.Scripts
         }
+        else {
+            $status.Successful = $true
+            $status.DeploymentLog += "Running in WhatIf mode - no deployment performed."
+        }
         $status.EndTime = Get-Date
-        $status.Duration = $status.StartTime - $status.EndTime
         $status
         if (!$status.Successful) {
             #Throw output error if unsuccessful
-            throw $status.Error
+            if ($status.Error) {
+                throw $status.Error
+            }
+            else {
+                Stop-PSFFunction -EnableException $true -Message 'Deployment failed. Failed to retrieve error record'
+            }
         }
 
     }

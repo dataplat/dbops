@@ -187,6 +187,9 @@
         if ($PSCmdlet.ShouldProcess($params.PackageFile, "Initiating the deployment of the package")) {
             Invoke-DBODeployment @params
         }
+        else {
+            Invoke-DBODeployment @params -WhatIf
+        }
     }
     end {
         
