@@ -119,10 +119,10 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
@@ -170,10 +170,10 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
@@ -222,10 +222,10 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
@@ -288,10 +288,10 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" -Raw
@@ -361,10 +361,10 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
@@ -393,10 +393,10 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
@@ -432,10 +432,10 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             #Verifying objects
@@ -459,10 +459,10 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             #Verifying objects
@@ -495,10 +495,10 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should BeNullOrEmpty
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             #Verifying objects
@@ -533,10 +533,10 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
             $results.Configuration.Schema | Should Be 'testschema'
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             #Verifying objects
@@ -569,10 +569,10 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1

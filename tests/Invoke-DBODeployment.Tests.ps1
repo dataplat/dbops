@@ -101,10 +101,10 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             #Verifying objects
@@ -125,10 +125,10 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             #Verifying objects
@@ -154,10 +154,10 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             #Verifying objects
@@ -222,10 +222,10 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" -Raw
@@ -252,7 +252,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             "Running in WhatIf mode - no deployment performed." | Should BeIn $results.DeploymentLog
 
             #Verifying objects
@@ -283,10 +283,10 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             #Verifying objects
@@ -310,10 +310,10 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             #Verifying objects
@@ -345,10 +345,10 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should BeNullOrEmpty
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'Upgrade successful' | Should BeIn $results.DeploymentLog
             'Checking whether journal table exists..' | Should Not BeIn $results.DeploymentLog
 
