@@ -308,6 +308,7 @@
 
         #Create an output object
         $status = [DBOpsDeploymentStatus]::new()
+        $status.StartTime = [datetime]::Now
         $status.Configuration = $config
         if (!$ConnectionString) {
             $status.SqlInstance = $config.SqlInstance
@@ -369,7 +370,6 @@
         $dbUp = [StandardExtensions]::WithExecutionTimeout($dbUp, [timespan]::FromSeconds($config.ExecutionTimeout))
 
         #Build and Upgrade
-        $status.StartTime = Get-Date
         if ($PSCmdlet.ShouldProcess($package, "Deploying the package")) {
             $dbUpBuild = $dbUp.Build()
             $upgradeResult = $dbUpBuild.PerformUpgrade()
@@ -381,7 +381,7 @@
             $status.Successful = $true
             $status.DeploymentLog += "Running in WhatIf mode - no deployment performed."
         }
-        $status.EndTime = Get-Date
+        $status.EndTime = [datetime]::Now
         $status
         if (!$status.Successful) {
             #Throw output error if unsuccessful

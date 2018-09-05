@@ -145,10 +145,10 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'No new scripts need to be executed - completing.' | Should BeIn $results.DeploymentLog
 
             'No new scripts need to be executed - completing.' | Should BeIn (Get-Content "$workFolder\log.txt" | Select-Object -Skip 1)
@@ -196,10 +196,10 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             'No new scripts need to be executed - completing.' | Should BeIn $results.DeploymentLog
 
             'No new scripts need to be executed - completing.' | Should BeIn (Get-Content "$workFolder\log.txt" | Select-Object -Skip 1)
@@ -316,10 +316,10 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 0
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
             "Running in WhatIf mode - no deployment performed." | Should BeIn $results.DeploymentLog
 
             #Verifying objects
