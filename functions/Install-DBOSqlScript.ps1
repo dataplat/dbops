@@ -1,19 +1,19 @@
-﻿function Install-DBOPackage {
+﻿function Install-DBOSqlScript {
     <#
     .SYNOPSIS
-        Deploys an existing DBOps package
+        Deploys genering SQL scripts to a target database
     
     .DESCRIPTION
-        Deploys an existing DBOps package with optional parameters.
+        Deploys genering SQL scripts with optional parameters.
         Uses a table specified in SchemaVersionTable parameter to determine scripts to run.
         Will deploy all the builds from the package that previously have not been deployed.
     
     .PARAMETER Path
-        Path to the existing DBOpsPackage.
-        Aliases: Name, FileName, Package
+        Path to one or more SQL sript files or folders, containing script files.
+        Aliases: Name, FileName, ScriptPath
 
     .PARAMETER InputObject
-        Pipeline implementation of Path. Can also contain a DBOpsPackage object.
+        Pipeline implementation of Path. Accepts output from Get-Item and Get-ChildItem, as well as simple strings and arrays.
     
     .PARAMETER SqlInstance
         Database server to connect to. SQL Server only for now.
@@ -70,10 +70,7 @@
         Proper format of the variable tokens is #{MyVariableName}
         Can also be provided as a part of Configuration hashtable: -Configuration @{ Variables = @{ Var1 = ...; Var2 = ...}}
         Will augment and/or overwrite Variables defined inside the package.
-    
-    .PARAMETER SkipValidation
-        Skip validation of the package that ensures the integrity of all the files and builds.
-    
+     
     .PARAMETER OutputFile
         Log output into specified file.
     
@@ -90,7 +87,7 @@
 
     .PARAMETER Schema
         Deploy into a specific schema (if supported by RDBMS)
-
+    
     .PARAMETER ConnectionType
         Defines the driver to use when connecting to the database server.
         Available options: SqlServer (default), Oracle
@@ -102,24 +99,24 @@
         Shows what would happen if the command would execute, but does not actually perform the command
 
     .EXAMPLE
-        # Installs package with predefined configuration inside the package
-        Install-DBOPackage .\MyPackage.zip
+        # Deploys all SQL scripts from the folder .\SqlCode to the target database
+        Install-DBOSqlScript .\SqlCode\*.sql -SqlInstance 'myserver\instance1' -Database 'MyDb'
     
     .EXAMPLE
-        # Installs package using specific connection parameters
-        .\MyPackage.zip | Install-DBOPackage -SqlInstance 'myserver\instance1' -Database 'MyDb' -ExecutionTimeout 3600
+        # Deploys script file using specific connection parameters
+        Get-Item .\SqlCode\Script1.sql | Install-DBOSqlScript -SqlInstance 'Srv1' -Database 'MyDb' -ExecutionTimeout 3600
         
     .EXAMPLE
-        # Installs package using custom logging parameters and schema tracking table
-        .\MyPackage.zip | Install-DBOPackage -SchemaVersionTable dbo.SchemaHistory -OutputFile .\out.log -Append
+        # Deploys all the scripts from the .\SqlCode folder using custom logging parameters and schema tracking table
+        Get-ChildItem .\SqlCode | Install-DBOSqlScript -SqlInstance 'Srv1' -Database 'MyDb' -SchemaVersionTable dbo.SchemaHistory -OutputFile .\out.log -Append
 
     .EXAMPLE
-        # Installs package using custom configuration file
-        .\MyPackage.zip | Install-DBOPackage -ConfigurationFile .\localconfig.json
+        # Deploys two scripts from the current folder using custom configuration file
+        Install-DBOSqlScript -Path .\Script1.sql,.\Script2.sql -SqlInstance 'Srv1' -Database 'MyDb' -ConfigurationFile .\localconfig.json
 
     .EXAMPLE
-        # Installs package using variables instead of specifying values directly
-        .\MyPackage.zip | Install-DBOPackage -SqlInstance '#{server}' -Database '#{db}' -Variables @{server = 'myserver\instance1'; db = 'MyDb'}
+        # Deploys two scripts from the current folder using variables instead of specifying values directly
+        '.\Script1.sql','.\Script2.sql' | Install-DBOSqlScript -SqlInstance '#{server}' -Database '#{db}' -Variables @{server = 'Srv1'; db = 'MyDb'}
 #>
     
     [CmdletBinding(SupportsShouldProcess = $true, DefaultParameterSetName = 'Default')]
@@ -128,8 +125,8 @@
         [Parameter(Mandatory = $true,
             Position = 1,
             ParameterSetName = 'Default')]
-        [Alias('Name', 'Package', 'Filename')]
-        [string]$Path,
+        [Alias('Name', 'ScriptPath', 'Filename')]
+        [string[]]$Path,
         [Parameter(Mandatory = $true,
             Position = 1,
             ValueFromPipeline = $true,
@@ -153,7 +150,6 @@
         [switch]$Silent,
         [Alias('ArgumentList')]
         [hashtable]$Variables,
-        [switch]$SkipValidation,
         [string]$OutputFile,
         [switch]$Append,
         [Alias('Config')]
@@ -167,25 +163,39 @@
     )
     
     begin {
+        $scripts = @()
     }
     process {
         if ($PsCmdlet.ParameterSetName -eq 'Default') {
-            $package = Get-DBOPackage -Path $Path
+            $scripts += $Path
         }
         elseif ($PsCmdlet.ParameterSetName -eq 'Pipeline') {
-            $package = Get-DBOPackage -InputObject $InputObject
+            $scripts += $InputObject
         }
+    }
+    end {
+
+        #checking if there is something to deploy
+        if (!$scripts) {
+            Stop-PSFFunction -Message "No scripts found in provided path, aborting execution." -EnableException $true
+        }
+
+        #Getting new config with current defaults
+        $config = [DBOpsConfig]::new()
 
         #Convert custom parameters into a package configuration, excluding variables
         foreach ($key in ($PSBoundParameters.Keys)) {
             if ($key -in [DBOpsConfig]::EnumProperties() -and $key -ne 'Variables') {
                 Write-PSFMessage -Level Debug -Message "Overriding parameter $key with $($PSBoundParameters[$key])"
-                $package.Configuration.SetValue($key, $PSBoundParameters[$key])
+                $config.SetValue($key, $PSBoundParameters[$key])
             }
         }
         
         #Prepare deployment function call parameters
-        $params = @{ InputObject = $package }
+        $params = @{
+            ScriptPath = $scripts
+            Configuration = $config
+        }
         foreach ($key in ($PSBoundParameters.Keys)) {
             #If any custom properties were specified
             if ($key -in @('OutputFile', 'Append', 'Configuration', 'Variables', 'ConnectionType')) {
@@ -193,14 +203,11 @@
             }
         }
         Write-PSFMessage -Level Verbose -Message "Preparing to start the deployment with custom parameters: $($params.Keys -join ', ')"
-        if ($PSCmdlet.ShouldProcess($params.PackageFile, "Initiating the deployment of the package")) {
+        if ($PSCmdlet.ShouldProcess($params.PackageFile, "Initiating the deployment of the scripts")) {
             Invoke-DBODeployment @params
         }
         else {
             Invoke-DBODeployment @params -WhatIf
         }
-    }
-    end {
-        
     }
 }

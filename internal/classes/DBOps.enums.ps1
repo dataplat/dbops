@@ -17,4 +17,5 @@ enum DBOpsConfigProperty {
     Silent
     Variables
     Schema
+    ConnectionString
 }

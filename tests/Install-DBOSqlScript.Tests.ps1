@@ -31,22 +31,10 @@ $cleanupPackageName = "$here\etc\TempCleanup.zip"
 $outFile = "$here\etc\outLog.txt"
 
 
-Describe "Invoke-DBODeployment integration tests" -Tag $commandName, IntegrationTests {
+Describe "Install-DBOSqlScript integration tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = New-Item $workFolder -ItemType Directory -Force
-        $null = New-Item $unpackedFolder -ItemType Directory -Force
-        $packageName = New-DBOPackage -Path (Join-Path $workFolder 'tmp.zip') -ScriptPath $tranFailScripts -Build 1.0 -Force
-        $null = Expand-Archive -Path $packageName -DestinationPath $workFolder -Force
-    }
-    BeforeEach {
-        $deploymentConfig = @{
-            SqlInstance        = $script:instance1
-            Database           = $script:database1
-            SchemaVersionTable = $logTable
-            Silent             = $true
-            DeploymentMethod   = 'NoTransaction'
-        }
     }
     AfterAll {
         $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
@@ -58,9 +46,8 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
         }
         It "Should throw an error and not create any objects" {
             #Running package
-            $deploymentConfig.DeploymentMethod = 'SingleTransaction'
             try {
-                $null = Invoke-DBODeployment -PackageFile $packageFileName -Configuration $deploymentConfig
+                $null = Install-DBOSqlScript -Path $tranFailScripts -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -DeploymentMethod SingleTransaction -Silent
             }
             catch {
                 $results = $_
@@ -82,7 +69,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
         It "Should throw an error and create one object" {
             #Running package
             try {
-                $null = Invoke-DBODeployment -PackageFile $packageFileName -Configuration $deploymentConfig
+                $null = Install-DBOSqlScript -Path $tranFailScripts -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent
             }
             catch {
                 $results = $_
@@ -102,7 +89,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
         }
         It "should deploy version 1.0" {
-            $results = Invoke-DBODeployment -ScriptPath $v1scripts -Configuration $deploymentConfig
+            $results = Install-DBOSqlScript -ScriptPath $v1scripts -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -Silent
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $results.SqlInstance | Should Be $script:instance1
@@ -126,7 +113,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             'd' | Should Not BeIn $results.name
         }
         It "should deploy version 2.0" {
-            $results = Invoke-DBODeployment -ScriptPath $v2scripts -Configuration $deploymentConfig
+            $results = Install-DBOSqlScript -ScriptPath $v2scripts -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -Silent
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be (Resolve-Path $v2scripts).Path
             $results.SqlInstance | Should Be $script:instance1
@@ -155,7 +142,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
         }
         It "should deploy 2.sql before 1.sql" {
-            $results = Invoke-DBODeployment -ScriptPath $v2scripts, $v1scripts -Configuration $deploymentConfig
+            $results = Install-DBOSqlScript -ScriptPath $v2scripts, $v1scripts -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -Silent
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be (Resolve-Path $v2scripts, $v1scripts).Path
             $results.SqlInstance | Should Be $script:instance1
@@ -191,9 +178,8 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
         }
         It "should throw timeout error" {
-            $deploymentConfig.ExecutionTimeout = 2
             try {
-                $null = Invoke-DBODeployment -ScriptPath "$workFolder\delay.sql" -Configuration $deploymentConfig -OutputFile "$workFolder\log.txt"
+                $null = Install-DBOSqlScript -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 2
             }
             catch {
                 $results = $_
@@ -205,8 +191,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $output | Should Not BeLike '*Successful!*'
         }
         It "should successfully run within specified timeout" {
-            $deploymentConfig.ExecutionTimeout = 6
-            $results = Invoke-DBODeployment -ScriptPath "$workFolder\delay.sql" -Configuration $deploymentConfig -OutputFile "$workFolder\log.txt"
+            $results = Install-DBOSqlScript -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 6
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be "$workFolder\delay.sql"
             $results.SqlInstance | Should Be $script:instance1
@@ -225,8 +210,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $output | Should BeLike '*Successful!*'
         }
         It "should successfully run with infinite timeout" {
-            $deploymentConfig.ExecutionTimeout = 0
-            $results = Invoke-DBODeployment -ScriptPath "$workFolder\delay.sql" -Configuration $deploymentConfig -OutputFile "$workFolder\log.txt"
+            $results = Install-DBOSqlScript -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 0
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be "$workFolder\delay.sql"
             $results.SqlInstance | Should Be $script:instance1
@@ -253,7 +237,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
         AfterAll {
         }
         It "should deploy nothing" {
-            $results = Invoke-DBODeployment -ScriptPath $v1scripts -Configuration $deploymentConfig -WhatIf
+            $results = Install-DBOSqlScript -ScriptPath $v1scripts -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -Silent -WhatIf
             $results.Successful | Should Be $true
             $results.Scripts | Should BeNullOrEmpty
             $results.SqlInstance | Should Be $script:instance1
@@ -285,10 +269,9 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
         }
         It "should deploy version 1.0" {
-            $deploymentConfig.Remove('SchemaVersionTable')
             $before = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $results = Invoke-DBODeployment -ScriptPath $v1scripts -Configuration $deploymentConfig
+            $results = Install-DBOSqlScript -ScriptPath $v1scripts -SqlInstance $script:instance1 -Database $script:database1 -Silent
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $results.SqlInstance | Should Be $script:instance1
@@ -313,10 +296,9 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             ($results | Measure-Object).Count | Should Be ($rowsBefore + 3)
         }
         It "should deploy version 2.0" {
-            $deploymentConfig.Remove('SchemaVersionTable')
             $before = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $results = Invoke-DBODeployment -ScriptPath $v2scripts -Configuration $deploymentConfig
+            $results = Install-DBOSqlScript -ScriptPath $v2scripts -SqlInstance $script:instance1 -Database $script:database1 -Silent
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be (Resolve-Path $v2scripts).Path
             $results.SqlInstance | Should Be $script:instance1
@@ -349,10 +331,9 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
         }
         It "should deploy version 1.0 without creating SchemaVersions" {
-            $deploymentConfig.SchemaVersionTable = $null
             $before = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $results = Invoke-DBODeployment -ScriptPath $v1scripts -Configuration $deploymentConfig
+            $results = Install-DBOSqlScript -ScriptPath $v1scripts  -SqlInstance $script:instance1 -Database $script:database1 -Silent -SchemaVersionTable $null
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $results.SqlInstance | Should Be $script:instance1
@@ -381,16 +362,13 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
     Context "deployments with errors should throw terminating errors" {
         BeforeAll {
             $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
+            $null = Install-DBOSqlScript -ScriptPath $v1scripts  -SqlInstance $script:instance1 -Database $script:database1 -Silent -SchemaVersionTable $null
         }
         It "Should return terminating error when object exists" {
-            # Deploy a non-logged script
-            $dc = $deploymentConfig.Clone()
-            $dc.SchemaVersionTable = $null
-            $null = Invoke-DBODeployment -ScriptPath $v1scripts -Configuration $dc
             #Running package
             try {
                 $results = $null
-                $results = Invoke-DBODeployment -PackageFile $packageFileName -Configuration $deploymentConfig
+                $results = Install-DBOSqlScript -Path $tranFailScripts -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent
             }
             catch {
                 $errorObject = $_
@@ -403,8 +381,8 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             #Running package
             try {
                 $results = $null
-                $null = Invoke-DBODeployment -PackageFile $packageFileName -Configuration $deploymentConfig
-                $results = Invoke-DBODeployment -ScriptPath $v2scripts -Configuration $deploymentConfig
+                $null = Install-DBOSqlScript -Path $tranFailScripts -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent
+                $results = Install-DBOSqlScript -ScriptPath $v2scripts -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -Silent
             }
             catch {
                 $errorObject = $_
