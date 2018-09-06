@@ -36,7 +36,7 @@
     param
     (
         [string]$Path,
-        [hashtable]$Configuration
+        [object]$Configuration
     )
     if ($Path) {
         Write-PSFMessage -Level Verbose -Message "Reading configuration from $Path"
@@ -47,9 +47,12 @@
         $config = [DBOpsConfig]::new()
     }
     if ($Configuration) {
-        Write-PSFMessage -Level Verbose -Message "Overwriting configuration keys $($Configuration.Keys -join ', ') with new values"
-        foreach ($property in $Configuration.Keys) {
-            $config.SetValue($property, $Configuration.$property)
+        if ($Configuration -is [DBOpsConfig] -or $Configuration -is [hashtable]) {
+            Write-PSFMessage -Level Verbose -Message "Merging configuration"
+            $config.Merge($Configuration)
+        }
+        else {
+            Stop-PSFFunction -EnableException $true -Message "The following object type is not supported: $($InputObject.GetType().Name). The only supported types are DBOpsConfig and Hashtable."
         }
     }
     $config

@@ -21,9 +21,6 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 . "$here\..\internal\classes\DBOps.class.ps1"
 
 $packageName = "$here\etc\$commandName.zip"
-$script:pkg = $null
-$script:build = $null
-$script:file = $null
 $script1 = "$here\etc\install-tests\success\1.sql"
 $script2 = "$here\etc\install-tests\success\2.sql"
 $script3 = "$here\etc\install-tests\success\3.sql"
@@ -139,29 +136,25 @@ Describe "dbopsScriptFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
     }
     Context "tests overloaded dbopsScriptFile methods" {
         BeforeEach {
-            if ( $script:build.GetFile('success\1.sql', 'Scripts')) { $script:build.RemoveFile('success\1.sql', 'Scripts') }
-            $script:file = $script:build.NewFile($script1, 'success\1.sql', 'Scripts', [DBOpsScriptFile])
-            $script:build.Alter()
+            $pkg = [DBOpsPackage]::new()
+            $build = $pkg.NewBuild('1.0')
+            $file = $build.NewFile($script1, 'success\1.sql', 'Scripts', [DBOpsScriptFile])
+            $pkg.SaveToFile($packageName, $true)
         }
         AfterAll {
             if (Test-Path $packageName) { Remove-Item $packageName }
         }
-        BeforeAll {
-            $script:pkg = [DBOpsPackage]::new()
-            $script:build = $script:pkg.NewBuild('1.0')
-            $script:pkg.SaveToFile($packageName, $true)
-        }
         It "should test SetContent method" {
-            $oldData = $script:file.ByteArray
-            $oldHash = $script:file.Hash
-            $script:file.SetContent([DBOpsHelper]::GetBinaryFile($script2))
-            $script:file.ByteArray | Should Not Be $oldData
-            $script:file.ByteArray | Should Not BeNullOrEmpty
-            $script:file.Hash | Should Not Be $oldHash
-            $script:file.Hash | Should Not BeNullOrEmpty
+            $oldData = $file.ByteArray
+            $oldHash = $file.Hash
+            $file.SetContent([DBOpsHelper]::GetBinaryFile($script2))
+            $file.ByteArray | Should Not Be $oldData
+            $file.ByteArray | Should Not BeNullOrEmpty
+            $file.Hash | Should Not Be $oldHash
+            $file.Hash | Should Not BeNullOrEmpty
         }
         It "should test ExportToJson method" {
-            $j = $script:file.ExportToJson() | ConvertFrom-Json
+            $j = $file.ExportToJson() | ConvertFrom-Json
             $j.PackagePath | Should Be 'success\1.sql'
             $j.Hash | Should Be ([DBOpsHelper]::ToHexString([Security.Cryptography.HashAlgorithm]::Create( "MD5" ).ComputeHash([DBOpsHelper]::GetBinaryFile($script1))))
             $j.SourcePath | Should Be $script1
@@ -172,7 +165,7 @@ Describe "dbopsScriptFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
             #Sleep 2 seconds to ensure that modification date is changed
             Start-Sleep -Seconds 2
             #Modify file content
-            $script:file.SetContent([DBOpsHelper]::GetBinaryFile($script2))
+            $file.SetContent([DBOpsHelper]::GetBinaryFile($script2))
             #Open zip file stream
             $writeMode = [System.IO.FileMode]::Open
             $stream = [FileStream]::new($packageName, $writeMode)
@@ -181,7 +174,7 @@ Describe "dbopsScriptFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
                 $zip = [ZipArchive]::new($stream, [ZipArchiveMode]::Update)
                 try {
                     #Initiate saving
-                    { $script:file.Save($zip) } | Should Not Throw
+                    { $file.Save($zip) } | Should Not Throw
                 }
                 catch {
                     throw $_
@@ -208,8 +201,8 @@ Describe "dbopsScriptFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
             #Sleep 2 seconds to ensure that modification date is changed
             Start-Sleep -Seconds 2
             #Modify file content
-            $script:file.SetContent([DBOpsHelper]::GetBinaryFile($script2))
-            { $script:file.Alter() } | Should Not Throw
+            $file.SetContent([DBOpsHelper]::GetBinaryFile($script2))
+            { $file.Alter() } | Should Not Throw
             $results = Get-ArchiveItem $packageName | Where-Object Path -eq 'content\1.0\success\1.sql'
             $oldResults.LastWriteTime -lt ($results | Where-Object Path -eq $oldResults.Path).LastWriteTime | Should Be $true
             $p = [DBOpsPackage]::new($packageName)

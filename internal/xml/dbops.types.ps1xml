@@ -1,43 +1,62 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <Types>
     <Type>
-    <Name>DBOpsPackageFile</Name>
-    <Members>
-        <MemberSet>
-        <Name>PSStandardMembers</Name>
+        <Name>DBOpsPackageFile</Name>
         <Members>
-            <PropertySet>
-            <Name>DefaultDisplayPropertySet</Name>
-            <ReferencedProperties>
-                <Name>Name</Name>
-                <Name>Version</Name>
-                <Name>LastWriteTime</Name>
-                <Name>Configuration</Name>
-                <Name>Builds</Name>
-            </ReferencedProperties>
-            </PropertySet>
+            <MemberSet>
+                <Name>PSStandardMembers</Name>
+                <Members>
+                    <PropertySet>
+                        <Name>DefaultDisplayPropertySet</Name>
+                        <ReferencedProperties>
+                            <Name>Name</Name>
+                            <Name>Version</Name>
+                            <Name>LastWriteTime</Name>
+                            <Name>Builds</Name>
+                        </ReferencedProperties>
+                    </PropertySet>
+                </Members>
+            </MemberSet>
         </Members>
-        </MemberSet>
-    </Members>
     </Type>
     <Type>
-    <Name>DBOpsPackage</Name>
-    <Members>
-        <MemberSet>
-        <Name>PSStandardMembers</Name>
+        <Name>DBOpsPackage</Name>
         <Members>
-            <PropertySet>
-            <Name>DefaultDisplayPropertySet</Name>
-            <ReferencedProperties>
-                <Name>Name</Name>
-                <Name>Version</Name>
-                <Name>LastWriteTime</Name>
-                <Name>Configuration</Name>
-                <Name>Builds</Name>
-            </ReferencedProperties>
-            </PropertySet>
+            <MemberSet>
+                <Name>PSStandardMembers</Name>
+                <Members>
+                    <PropertySet>
+                        <Name>DefaultDisplayPropertySet</Name>
+                        <ReferencedProperties>
+                            <Name>Name</Name>
+                            <Name>Version</Name>
+                            <Name>LastWriteTime</Name>
+                            <Name>Builds</Name>
+                        </ReferencedProperties>
+                    </PropertySet>
+                </Members>
+            </MemberSet>
         </Members>
-        </MemberSet>
-    </Members>
+    </Type>
+    <Type>
+        <Name>DBOpsDeploymentStatus</Name>
+        <Members>
+            <MemberSet>
+                <Name>PSStandardMembers</Name>
+                <Members>
+                    <PropertySet>
+                        <Name>DefaultDisplayPropertySet</Name>
+                        <ReferencedProperties>
+                            <Name>SourcePath</Name>
+                            <Name>SqlInstance</Name>
+                            <Name>Database</Name>
+                            <Name>Successful</Name>
+                            <Name>Error</Name>
+                            <Name>Duration</Name>
+                        </ReferencedProperties>
+                    </PropertySet>
+                </Members>
+            </MemberSet>
+        </Members>
     </Type>
 </Types>

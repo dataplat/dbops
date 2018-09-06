@@ -3,12 +3,22 @@ class DBOpsLog : DbUp.Engine.Output.IUpgradeLog {
     hidden [string]$LogToFile
     hidden [bool]$Silent
     hidden [object]$CallStack
+    hidden [DBOpsDeploymentStatus]$Status
     
     #Constructors
     DBOpsLog ([bool]$silent, [string]$outFile, [bool]$append) {
+        $this.Init($silent, $outFile, $append)
+    }
+
+    DBOpsLog ([bool]$silent, [string]$outFile, [bool]$append, $status) {
+        $this.Init($silent, $outFile, $append)
+        $this.Status = $status
+    }
+
+    hidden [void] Init ([bool]$silent, [string]$outFile, [bool]$append) {
         $this.silent = $silent
         $this.logToFile = $outFile
-        $txt = "Logging started at " + (get-date).ToString()
+        $txt = "Logging started at " + (Get-Date).ToString()
         if ($outFile) {
             if ($append) {
                 $txt | Out-File $this.logToFile -Append
@@ -19,6 +29,7 @@ class DBOpsLog : DbUp.Engine.Output.IUpgradeLog {
         }
         $this.CallStack = (Get-PSCallStack)[1]
     }
+    
     
     #Methods
     [void] WriteInformation([string]$format, [object[]]$params) {
@@ -40,6 +51,7 @@ class DBOpsLog : DbUp.Engine.Output.IUpgradeLog {
         if ($this.logToFile) {
             $this.WriteToFile($format, $params)
         }
+        $this.Status.DeploymentLog += $splatParam.Message
     }
     [void] WriteError([string]$format, [object[]]$params) {
         $level = switch ($this.silent) {
@@ -60,6 +72,7 @@ class DBOpsLog : DbUp.Engine.Output.IUpgradeLog {
         if ($this.logToFile) {
             $this.WriteToFile($format, $params)
         }
+        $this.Status.DeploymentLog += $splatParam.Message
     }
     [void] WriteWarning([string]$format, [object[]]$params) {
         $level = switch ($this.silent) {
@@ -80,6 +93,7 @@ class DBOpsLog : DbUp.Engine.Output.IUpgradeLog {
         if ($this.logToFile) {
             $this.WriteToFile($format, $params)
         }
+        $this.Status.DeploymentLog += $splatParam.Message
     }
     [void] WriteToFile([string]$format, [object[]]$params) {
         $format -f $params | Out-File $this.logToFile -Append

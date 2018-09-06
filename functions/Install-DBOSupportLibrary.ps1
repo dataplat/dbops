@@ -32,20 +32,28 @@ Function Install-DBOSupportLibrary {
         [string]$Scope = 'AllUsers',
         [switch]$Force
     )
-    begin {}
+    begin {
+        $nugetAPI = "http://www.nuget.org/api/v2"
+        $packageSource = Get-PackageSource -Name nuget.org -ErrorAction SilentlyContinue
+        # checking if nuget has an incorrect API url
+        if ($packageSource.Location -like 'https://api.nuget.org/v3*') {
+            Write-PSFMessage -Level Warning -Message "NuGet package source is registered using API v3, which prevents Install-Package to download nuget packages. Registering a new package source nuget.org.dbops to download packages."
+            $packageSource = Register-PackageSource -Name nuget.org.dbops -Location $nugetAPI -ProviderName nuget -Force:$Force -ErrorAction Stop
+        }
+        if (!$packageSource) {
+            Write-PSFMessage -Level Verbose -Message "Registering nuget.org package source $nugetAPI"
+            $packageSource = Register-PackageSource -Name nuget.org -Location $nugetAPI -ProviderName nuget -Force:$Force -ErrorAction Stop
+        }
+    }
     process {
         $dependencies = Get-ExternalLibrary
-        # Installing Oracle dependencies
-        $packageSource = Get-PackageSource -Name nuget.org -ErrorAction SilentlyContinue
-        if (!$packageSource) {
-            $null = Register-PackageSource -Name nuget.org -Location http://www.nuget.org/api/v2 -ProviderName nuget -Force:$Force -ErrorAction Stop
-        }
         foreach ($t in $Type) {
             # Install dependencies
             foreach ($package in $dependencies.$t) {
-                Install-Package -Name $package.Name -MinimumVersion $package.Version -Force:$Force -Scope:$Scope
+                Write-PSFMessage -Level Verbose -Message "Installing package $($package.Name)($($package.Version))"
+                Install-Package -Source $packageSource.Name -Name $package.Name -MinimumVersion $package.Version -Force:$Force -Scope:$Scope
             }
         }
     }
-    end {}
+    end { }
 }

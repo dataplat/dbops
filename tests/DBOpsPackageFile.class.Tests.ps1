@@ -21,9 +21,6 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 . "$here\..\internal\classes\DBOps.class.ps1"
 
 $packageName = "$here\etc\$commandName.zip"
-$script:pkg = $null
-$script:build = $null
-$script:file = $null
 $script1 = "$here\etc\install-tests\success\1.sql"
 $script2 = "$here\etc\install-tests\success\2.sql"
 $script3 = "$here\etc\install-tests\success\3.sql"

@@ -21,9 +21,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 . "$here\..\internal\classes\DBOps.class.ps1"
 
 $packageName = "$here\etc\$commandName.zip"
-$script:pkg = $null
-$script:build = $null
-$script:file = $null
+
 $script1 = "$here\etc\install-tests\success\1.sql"
 $script2 = "$here\etc\install-tests\success\2.sql"
 $script3 = "$here\etc\install-tests\success\3.sql"
@@ -226,9 +224,9 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
         }
         It "should test Save method" {
             #Generate new package file
-            $script:pkg = [DBOpsPackage]::new()
-            $script:pkg.Configuration.ApplicationName = 'TestApp2'
-            $script:pkg.SaveToFile($packageName)
+            $pkg = [DBOpsPackage]::new()
+            $pkg.Configuration.ApplicationName = 'TestApp2'
+            $pkg.SaveToFile($packageName)
 
             #Open zip file stream
             $writeMode = [System.IO.FileMode]::Open
@@ -238,7 +236,7 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
                 $zip = [ZipArchive]::new($stream, [ZipArchiveMode]::Update)
                 try {
                     #Initiate saving
-                    $script:pkg.Configuration.Save($zip)
+                    $pkg.Configuration.Save($zip)
                 }
                 catch {
                     throw $_
@@ -264,12 +262,13 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             'Deploy.ps1' | Should BeIn $results.Path
         }
         It "Should load package successfully after saving it" {
-            $script:pkg = [DBOpsPackage]::new($packageName)
-            $script:pkg.Configuration.ApplicationName | Should Be 'TestApp2'
+            $pkg = [DBOpsPackage]::new($packageName)
+            $pkg.Configuration.ApplicationName | Should Be 'TestApp2'
         }
         It "should test Alter method" {
-            $script:pkg.Configuration.ApplicationName = 'TestApp3'
-            $script:pkg.Configuration.Alter()
+            $pkg = [DBOpsPackage]::new($packageName)
+            $pkg.Configuration.ApplicationName = 'TestApp3'
+            $pkg.Configuration.Alter()
             $results = Get-ArchiveItem "$packageName"
             foreach ($file in (Get-DBOModuleFileList)) {
                 Join-Path 'Modules\dbops' $file.Path | Should BeIn $results.Path

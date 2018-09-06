@@ -16,7 +16,7 @@ class DBOpsHelper {
     static [byte[]] GetBinaryFile ([string]$fileName) {
         $stream = [System.IO.File]::Open($fileName, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
         $b = [byte[]]::new($stream.Length)
-        try { $stream.Read($b, 0, $b.Length) }
+        try { $null = $stream.Read($b, 0, $b.Length) }
         catch {
             Stop-PSFFunction -EnableException $true -Message "Failed to read a binary stream from file $fileName" -ErrorRecord $_
         }
