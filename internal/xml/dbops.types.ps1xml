@@ -4,37 +4,37 @@
         <Name>DBOpsPackageFile</Name>
         <Members>
             <MemberSet>
-            <Name>PSStandardMembers</Name>
-            <Members>
-                <PropertySet>
-                <Name>DefaultDisplayPropertySet</Name>
-                <ReferencedProperties>
-                    <Name>Name</Name>
-                    <Name>Version</Name>
-                    <Name>LastWriteTime</Name>
-                    <Name>Builds</Name>
-                </ReferencedProperties>
-                </PropertySet>
-            </Members>
+                <Name>PSStandardMembers</Name>
+                <Members>
+                    <PropertySet>
+                        <Name>DefaultDisplayPropertySet</Name>
+                        <ReferencedProperties>
+                            <Name>Name</Name>
+                            <Name>Version</Name>
+                            <Name>LastWriteTime</Name>
+                            <Name>Builds</Name>
+                        </ReferencedProperties>
+                    </PropertySet>
+                </Members>
             </MemberSet>
         </Members>
     </Type>
     <Type>
-    <Name>DBOpsPackage</Name>
+        <Name>DBOpsPackage</Name>
         <Members>
             <MemberSet>
-            <Name>PSStandardMembers</Name>
-            <Members>
-                <PropertySet>
-                <Name>DefaultDisplayPropertySet</Name>
-                <ReferencedProperties>
-                    <Name>Name</Name>
-                    <Name>Version</Name>
-                    <Name>LastWriteTime</Name>
-                    <Name>Builds</Name>
-                </ReferencedProperties>
-                </PropertySet>
-            </Members>
+                <Name>PSStandardMembers</Name>
+                <Members>
+                    <PropertySet>
+                        <Name>DefaultDisplayPropertySet</Name>
+                        <ReferencedProperties>
+                            <Name>Name</Name>
+                            <Name>Version</Name>
+                            <Name>LastWriteTime</Name>
+                            <Name>Builds</Name>
+                        </ReferencedProperties>
+                    </PropertySet>
+                </Members>
             </MemberSet>
         </Members>
     </Type>

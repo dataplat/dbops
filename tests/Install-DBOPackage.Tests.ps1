@@ -343,7 +343,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $outputFile = "$workFolder\log.txt"
             $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
         }
-        It "should deploy version 1.0 using -ConfigurationFile override" {
+        It "should deploy version 1.0 using -Configuration file override" {
             $configFile = "$workFolder\config.custom.json"
             @{
                 SqlInstance        = $script:instance1
@@ -352,7 +352,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
                 Silent             = $true
                 DeploymentMethod   = 'NoTransaction'
             } | ConvertTo-Json -Depth 2 | Out-File $configFile -Force
-            $results = Install-DBOPackage "$workFolder\pv1.zip" -ConfigurationFile $configFile -OutputFile "$workFolder\log.txt"
+            $results = Install-DBOPackage "$workFolder\pv1.zip" -Configuration $configFile -OutputFile "$workFolder\log.txt"
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be ((Get-Item $v1scripts).Name | ForEach-Object {'1.0\' + $_})
             $results.SqlInstance | Should Be $script:instance1
@@ -377,7 +377,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             'c' | Should Not BeIn $results.name
             'd' | Should Not BeIn $results.name
         }
-        It "should deploy version 2.0 using -Configuration override" {
+        It "should deploy version 2.0 using -Configuration object override" {
             $results = Install-DBOPackage "$workFolder\pv2.zip" -Configuration @{
                 SqlInstance        = $script:instance1
                 Database           = $script:database1
@@ -583,6 +583,39 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             'a' | Should BeIn $results.name
             'b' | Should BeIn $results.name
             ($results | Measure-Object).Count | Should Be ($rowsBefore + 3)
+        }
+    }
+    Context "testing deployment with custom connection string" {
+        BeforeAll {
+            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
+            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
+        }
+        It "should deploy version 1.0" {
+            $connectionString = "Server=$script:instance1;Database=$script:database1;Trusted_Connection=True"
+            $results = Install-DBOPackage "$workFolder\pv1.zip" -ConnectionString $connectionString -SqlInstance willBeIgnored -Database IgnoredAsWell -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $results.Successful | Should Be $true
+            $results.Scripts.Name | Should Be ((Get-Item $v1scripts).Name | ForEach-Object {'1.0\' + $_})
+            $results.SqlInstance | Should BeNullOrEmpty
+            $results.Database | Should BeNullOrEmpty
+            $results.SourcePath | Should Be "$workFolder\pv1.zip"
+            $results.ConnectionType | Should Be 'SQLServer'
+            $results.Configuration.SchemaVersionTable | Should Be $logTable
+            $results.Error | Should BeNullOrEmpty
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $results.StartTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
+            'Upgrade successful' | Should BeIn $results.DeploymentLog
+
+            $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
+            $output | Should Be (Get-Content "$here\etc\log1.txt")
+            #Verifying objects
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
+            $logTable | Should BeIn $results.name
+            'a' | Should BeIn $results.name
+            'b' | Should BeIn $results.name
+            'c' | Should Not BeIn $results.name
+            'd' | Should Not BeIn $results.name
         }
     }
 }

@@ -80,7 +80,8 @@
         'Invoke-DBOPackageCI',
         'Get-DBOPackageArtifact',
         'Publish-DBOPackageArtifact',
-        'Copy-DBOPackageArtifact'
+        'Copy-DBOPackageArtifact',
+        'Install-DBOSqlScript'
     )
     
     # Cmdlets to export from this module
