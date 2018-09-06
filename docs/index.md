@@ -53,7 +53,7 @@ Install-Module dbops
 ### Simple deployment
 ```powershell
 # Quick deployment without tracking deployment history
-Invoke-DBODeployment -ScriptPath C:\temp\myscripts -SqlInstance server1 -Database MyDB -SchemaVersionTable $null
+Install-DBOSqlScript -ScriptPath C:\temp\myscripts -SqlInstance server1 -Database MyDB -SchemaVersionTable $null
 ```
 ### Package management
 ```powershell
