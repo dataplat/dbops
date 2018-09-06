@@ -193,7 +193,7 @@
             }
         }
         Write-PSFMessage -Level Verbose -Message "Preparing to start the deployment with custom parameters: $($params.Keys -join ', ')"
-        if ($PSCmdlet.ShouldProcess($params.PackageFile, "Initiating the deployment of the package")) {
+        if ($PSCmdlet.ShouldProcess($package, "Initiating the deployment of the package")) {
             Invoke-DBODeployment @params
         }
         else {

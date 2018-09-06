@@ -181,7 +181,7 @@
         }
 
         #Getting new config with current defaults
-        $config = [DBOpsConfig]::new()
+        $config = Get-DBOConfig -Configuration $Configuration
 
         #Convert custom parameters into a package configuration, excluding variables
         foreach ($key in ($PSBoundParameters.Keys)) {
@@ -198,7 +198,7 @@
         }
         foreach ($key in ($PSBoundParameters.Keys)) {
             #If any custom properties were specified
-            if ($key -in @('OutputFile', 'Append', 'Configuration', 'Variables', 'ConnectionType')) {
+            if ($key -in @('OutputFile', 'Append', 'Variables', 'ConnectionType')) {
                 $params += @{ $key = $PSBoundParameters[$key] }
             }
         }

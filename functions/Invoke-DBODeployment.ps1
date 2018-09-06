@@ -106,10 +106,9 @@
                 $config.Merge($Configuration)
             }
             elseif ($Configuration -is [String] -or $Configuration -is [System.IO.FileInfo]) {
-                Write-PSFMessage -Level Verbose -Message "Loading configuration file $($Configuration)"
-                $configurationJson = Get-Content -Path $Configuration -Raw -ErrorAction Stop
-                $configFromJson = [DBOpsConfig]::new($configurationJson)
-                $config.Merge($configFromJson)
+                $configFromFile = Get-DBOConfig -Path $Configuration
+                Write-PSFMessage -Level Verbose -Message "Merging configuration from file $($Configuration)"
+                $config.Merge($configFromFile)
             }
             else {
                 Stop-PSFFunction -EnableException $true -Message "The following object type is not supported: $($InputObject.GetType().Name). The only supported types are DBOpsConfig, Hashtable, FileInfo and String"
