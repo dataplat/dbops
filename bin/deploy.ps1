@@ -45,7 +45,7 @@ foreach ($key in ($PSBoundParameters.Keys)) {
 }
 
 #Prepare deployment function call parameters
-$params = @{ 
+$params = @{
     PackageFile = "$PSScriptRoot\dbops.package.json"
     Configuration = $config
 }

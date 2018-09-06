@@ -26,7 +26,7 @@ $v1scripts = "$here\etc\install-tests\success\1.sql"
 $verificationScript = "$here\etc\install-tests\verification\select.sql"
 $packageName = Join-Path $workFolder 'TempDeployment.zip'
 
-Describe "Invoke-DBODeployment integration tests" -Tag $commandName, IntegrationTests {
+Describe "deploy.ps1 integration tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = New-Item $workFolder -ItemType Directory -Force
@@ -52,10 +52,10 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             }
             $results = & $workFolder\deploy.ps1 -Configuration $deploymentConfig
             $results.Successful | Should Be $true
-            $results.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
+            $results.Scripts.Name | Should Be ((Get-Item $v1scripts).Name | ForEach-Object {'1.0\' + $_})
             $results.SqlInstance | Should Be $script:instance1
             $results.Database | Should Be $script:database1
-            $results.SourcePath | Should Be $v1scripts
+            $results.SourcePath | Should Be $workFolder
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
@@ -76,10 +76,10 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
         It "should deploy with a set of parameters" {
             $results = & $workFolder\deploy.ps1 -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             $results.Successful | Should Be $true
-            $results.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
+            $results.Scripts.Name | Should Be ((Get-Item $v1scripts).Name | ForEach-Object {'1.0\' + $_})
             $results.SqlInstance | Should Be $script:instance1
             $results.Database | Should Be $script:database1
-            $results.SourcePath | Should Be $v1scripts
+            $results.SourcePath | Should Be $workFolder
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
@@ -110,7 +110,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results.Scripts | Should BeNullOrEmpty
             $results.SqlInstance | Should Be $script:instance1
             $results.Database | Should Be $script:database1
-            $results.SourcePath | Should Be $v1scripts
+            $results.SourcePath | Should Be $workFolder
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
