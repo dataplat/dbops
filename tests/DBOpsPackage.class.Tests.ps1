@@ -88,9 +88,9 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
         }
         It "Should test GetBuilds method" {
             $pkg.GetBuilds() | Should Be $null
-            $pkg.Builds += [DBOpsBuild]::new('1.0')
+            $pkg.Builds.Add([DBOpsBuild]::new('1.0'))
             $pkg.GetBuilds().Build | Should Be '1.0'
-            $pkg.Builds += [DBOpsBuild]::new('2.0')
+            $pkg.Builds.Add([DBOpsBuild]::new('2.0'))
             $pkg.GetBuilds().Build | Should Be @('1.0', '2.0')
         }
         It "Should test NewBuild method" {
@@ -122,8 +122,8 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
             $pkg.Version | Should Be '2.0'
         }
         It "Should test EnumBuilds method" {
-            $pkg.Builds += [DBOpsBuild]::new('1.0')
-            $pkg.Builds += [DBOpsBuild]::new('2.0')
+            $pkg.Builds.Add([DBOpsBuild]::new('1.0'))
+            $pkg.Builds.Add([DBOpsBuild]::new('2.0'))
             $pkg.EnumBuilds() | Should Be @('1.0', '2.0')
         }
         It "Should test GetVersion method" {
