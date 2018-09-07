@@ -4,7 +4,7 @@
     RootModule             = 'dbops.psm1'
     
     # Version number of this module.
-    ModuleVersion          = '0.3.9'
+    ModuleVersion          = '0.3.10'
     
     # ID used to uniquely identify this module
     GUID                   = '16dff216-533a-4fa3-9b2e-4408dbe15e63'
@@ -80,7 +80,8 @@
         'Invoke-DBOPackageCI',
         'Get-DBOPackageArtifact',
         'Publish-DBOPackageArtifact',
-        'Copy-DBOPackageArtifact'
+        'Copy-DBOPackageArtifact',
+        'Install-DBOSqlScript'
     )
     
     # Cmdlets to export from this module

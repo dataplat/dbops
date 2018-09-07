@@ -24,55 +24,9 @@
              
         Aliases: SourcePath
     
-    .PARAMETER SqlInstance
-        Database server to connect to. SQL Server only for now.
-        Aliases: Server, SQLServer, DBServer, Instance
-    
-    .PARAMETER Database
-        Name of the database to execute the scripts in. Optional - will use default database if not specified.
-    
-    .PARAMETER DeploymentMethod
-        Choose one of the following deployment methods:
-        - SingleTransaction: wrap all the deployment scripts into a single transaction and rollback whole deployment on error
-        - TransactionPerScript: wrap each script into a separate transaction; rollback single script deployment in case of error
-        - NoTransaction: deploy as is
-        
-        Default: NoTransaction
-    
-    .PARAMETER ConnectionTimeout
-        Database server connection timeout in seconds. Only affects connection attempts. Does not affect execution timeout.
-        If 0, will wait for connection until the end of times.
-        
-        Default: 30
-        
-    .PARAMETER ExecutionTimeout
-        Script execution timeout. The script will be aborted if the execution takes more than specified number of seconds.
-        If 0, the script is allowed to run until the end of times.
-
-        Default: 0
-    
-    .PARAMETER Encrypt
-        Enables connection encryption.
-    
-    .PARAMETER Credential
-        PSCredential object with username and password to login to the database server.
-    
-    .PARAMETER UserName
-        An alternative to -Credential - specify username explicitly
-    
-    .PARAMETER Password
-        An alternative to -Credential - specify password explicitly
-    
-    .PARAMETER SchemaVersionTable
-        A table that will hold the history of script execution. This table is used to choose what scripts are going to be
-        run during the deployment, preventing the scripts from being execured twice.
-        If set to $null, the deployment will not be tracked in the database. That will also mean that all the scripts
-        and all the builds from the package are going to be deployed regardless of any previous deployment history.
-
-        Default: SchemaVersions
-    
-    .PARAMETER Silent
-        Will supress all output from the command.
+    .PARAMETER Configuration
+        A custom configuration that will be used during a deployment, overriding existing parameters inside the package.
+        Can be a Hashtable, a DBOpsConfig object, or a path to a json file.
     
     .PARAMETER Variables
         Hashtable with variables that can be used inside the scripts and deployment parameters.
@@ -86,12 +40,6 @@
     .PARAMETER ConnectionType
         Defines the driver to use when connecting to the database server.
         Available options: SqlServer (default), Oracle
-        
-    .PARAMETER ConnectionString
-        Use a custom connection string to connect to the database server.
-    
-    .PARAMETER Schema
-        Deploy into a specific schema (if supported by RDBMS)
         
     .PARAMETER Append
         Append output to the -OutputFile instead of overwriting it.
@@ -129,28 +77,13 @@
         [parameter(ParameterSetName = 'Pipeline')]
         [Alias('Package')]
         [object]$InputObject,
-        [Alias('Server', 'SqlServer', 'DBServer', 'Instance')]
-        [string]$SqlInstance,
-        [string]$Database,
-        [ValidateSet('SingleTransaction', 'TransactionPerScript', 'NoTransaction')]
-        [string]$DeploymentMethod = 'NoTransaction',
-        [int]$ConnectionTimeout,
-        [int]$ExecutionTimeout,
-        [switch]$Encrypt,
-        [pscredential]$Credential,
-        [string]$UserName,
-        [securestring]$Password,
-        [AllowNull()]
-        [string]$SchemaVersionTable,
-        [switch]$Silent,
         [string]$OutputFile,
         [switch]$Append,
-        [hashtable]$Variables,
         [ValidateSet('SQLServer', 'Oracle')]
         [Alias('Type', 'ServerType')]
         [string]$ConnectionType = 'SQLServer',
-        [string]$ConnectionString,
-        [string]$Schema
+        [object]$Configuration,
+        [hashtable]$Variables
     )
     begin {}
     process {
@@ -167,6 +100,21 @@
             $config = $package.Configuration
         }
 
+        if ($Configuration) {
+            if ($Configuration -is [DBOpsConfig] -or $Configuration -is [hashtable]) {
+                Write-PSFMessage -Level Verbose -Message "Merging configuration from a $($Configuration.GetType().Name) object"
+                $config.Merge($Configuration)
+            }
+            elseif ($Configuration -is [String] -or $Configuration -is [System.IO.FileInfo]) {
+                $configFromFile = Get-DBOConfig -Path $Configuration
+                Write-PSFMessage -Level Verbose -Message "Merging configuration from file $($Configuration)"
+                $config.Merge($configFromFile)
+            }
+            else {
+                Stop-PSFFunction -EnableException $true -Message "The following object type is not supported: $($InputObject.GetType().Name). The only supported types are DBOpsConfig, Hashtable, FileInfo and String"
+            }
+        }
+
         #Test if the selected Connection type is supported
         if (Test-DBOSupportedSystem -Type $ConnectionType) {
             #Load external libraries
@@ -179,7 +127,7 @@
             }
         }
         else {
-            Stop-PSFFunction -EnableException $true -Message "Prerequisites have not been met to run the deployment."
+            Stop-PSFFunction -EnableException $true -Message "$ConnectionType is not supported on this system - some of the external dependencies are missing."
             return
         }
 
@@ -202,22 +150,9 @@
         foreach ($property in $config.psobject.Properties.Name | Where-Object { $_ -ne 'Variables' }) {
             $config.SetValue($property, (Resolve-VariableToken $config.$property $runtimeVariables))
         }
-    
-        #Apply overrides if any
-        foreach ($key in ($PSBoundParameters.Keys | Where-Object { $_ -notin 'Variables', 'Password' })) {
-            if ($key -in [DBOpsConfig]::EnumProperties()) {
-                $config.SetValue($key, (Resolve-VariableToken $PSBoundParameters[$key] $runtimeVariables))
-            }
-        }
-    
-        #Apply default values if not set
-        # if (!$config.ApplicationName) { $config.SetValue('ApplicationName', 'dbops') }
-        # if (!$config.SqlInstance) { $config.SetValue('SqlInstance', 'localhost') }
-        # if ($config.ConnectionTimeout -eq $null) { $config.SetValue('ConnectionTimeout', 30) }
-        # if ($config.ExecutionTimeout -eq $null) { $config.SetValue('ExecutionTimeout', 0) }
-    
+       
         #Build connection string
-        if (!$ConnectionString) {
+        if (!$config.ConnectionString) {
             $CSBuilder = New-Object -TypeName System.Data.SqlClient.SqlConnectionStringBuilder
             $CSBuilder["Server"] = $config.SqlInstance
             if ($config.Database) { $CSBuilder["Database"] = $config.Database }
@@ -249,7 +184,7 @@
             $connString = $CSBuilder.ToString()
         }
         else {
-            $connString = $ConnectionString
+            $connString = $config.ConnectionString
         }
     
         $scriptCollection = @()

@@ -12,7 +12,7 @@ class DBOpsDeploymentStatus {
     [string[]] $DeploymentLog
 
     DBOpsDeploymentStatus() {
-        Add-Member -InputObject $this -MemberType ScriptProperty -Name Duration -TypeName timespan -Value {
+        Add-Member -InputObject $this -MemberType ScriptProperty -Name Duration -Value {
             if ($this.StartTime -and $this.EndTime) {
                 return $this.EndTime.Subtract($this.StartTime)
             }

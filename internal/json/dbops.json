@@ -24,7 +24,8 @@
         "functions\\Invoke-DBOPackageCI.ps1",
         "functions\\Get-DBOPackageArtifact.ps1",
         "functions\\Publish-DBOPackageArtifact.ps1",
-        "functions\\Copy-DBOPackageArtifact.ps1"
+        "functions\\Copy-DBOPackageArtifact.ps1",
+        "functions\\Install-DBOSqlScript.ps1"
     ],
     "Internal": [
         "internal\\classes\\DBOps.enums.ps1",

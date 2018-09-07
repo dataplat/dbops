@@ -64,7 +64,7 @@ Example code:
 
 ```powershell
 # Ad-hoc deployment of the scripts from a folder myscripts
-Invoke-DBODeployment -ScriptPath C:\temp\myscripts -SqlInstance server1 -Database MyDB
+Install-DBOSqlScript -ScriptPath C:\temp\myscripts -SqlInstance server1 -Database MyDB
 ```
 ### Package management
 
