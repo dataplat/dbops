@@ -77,6 +77,9 @@ class DBOps {
             if (($this.PsObject.Properties | Where-Object Name -eq $CollectionName).TypeNameOfValue -like '*`[`]') {
                 $this.$CollectionName += $file
             }
+            elseif (($this.PsObject.Properties | Where-Object Name -eq $CollectionName).TypeNameOfValue -like 'System.Collections.Generic.List*') {
+                $this.$CollectionName.Add($file)
+            }
             else {
                 $this.$CollectionName = $file
             }
@@ -94,7 +97,20 @@ class DBOps {
     hidden [void] RemoveFile ([string[]]$PackagePath, [string]$CollectionName) {
         if ($this.$CollectionName) {
             foreach ($path in $PackagePath) {
-                $this.$CollectionName = $this.$CollectionName | Where-Object { $_.PackagePath -ne $path }
+                $this.RemoveFile($this.$CollectionName.GetFile($path, $CollectionName),$CollectionName)
+            }
+        }
+    }
+    hidden [void] RemoveFile ([DBOpsFile[]]$DBOpsFile, [string]$CollectionName) {
+        if ($this.$CollectionName) {
+            foreach ($file in $DBOpsFile) {
+                if (($this.PsObject.Properties | Where-Object Name -eq $CollectionName).TypeNameOfValue -like 'System.Collections.Generic.List*') {
+                    $null = $this.$CollectionName.Remove($file)
+                }
+                else {
+                    $this.$CollectionName = $this.$CollectionName | Where-Object { $_.PackagePath -ne $file.PackagePath }
+                }
+                
             }
         }
     }
@@ -112,7 +128,7 @@ class DBOps {
 
 class DBOpsPackageBase : DBOps {
     #Public properties
-    [DBOpsBuild[]]$Builds
+    [System.Collections.Generic.List[DBOpsBuild]]$Builds
     [string]$ScriptDirectory
     [DBOpsFile]$DeployFile
     [DBOpsFile]$PostDeployFile
@@ -150,6 +166,9 @@ class DBOpsPackageBase : DBOps {
     hidden [string]$FileName
     hidden [string]$PackagePath
 
+    DBOpsPackageBase () {
+        $this.Builds = [System.Collections.Generic.List[DBOpsBuild]]::new()
+    }
 
     #Methods
     [void] Init () {
@@ -211,7 +230,7 @@ class DBOpsPackageBase : DBOps {
         else {
             $newBuild = [DBOpsBuild]::new($build)
             $newBuild.Parent = $this
-            $this.builds += $newBuild
+            $this.builds.Add($newBuild)
             $this.Version = $newBuild.Build
             return $newBuild
         }
@@ -238,7 +257,7 @@ class DBOpsPackageBase : DBOps {
         }
         else {
             $build.Parent = $this
-            $this.builds += $build
+            $this.builds.Add($build)
             $this.Version = $build.Build
         }
     }
@@ -618,7 +637,7 @@ class DBOpsPackageFile : DBOpsPackageBase {
 class DBOpsBuild : DBOps {
     #Public properties
     [string]$Build
-    [DBOpsFile[]]$Scripts
+    [System.Collections.Generic.List[DBOpsFile]]$Scripts
     [string]$CreatedDate
 
     hidden [DBOpsPackageBase]$Parent
@@ -632,6 +651,7 @@ class DBOpsBuild : DBOps {
         $this.build = $build
         $this.PackagePath = $build
         $this.CreatedDate = (Get-Date).Datetime
+        $this.Scripts = [System.Collections.Generic.List[DBOpsFile]]::new()
     }
 
     hidden DBOpsBuild ([psobject]$object) {
