@@ -383,7 +383,13 @@ class DBOpsPackageBase : DBOps {
             $true { [System.IO.FileMode]::Create }
             default { [System.IO.FileMode]::CreateNew }
         }
-        $stream = [FileStream]::new($currentFileName, $writeMode)
+        $stream = $null
+        try {
+            $stream = [FileStream]::new($currentFileName, $writeMode)
+        }
+        catch {
+            Stop-PSFFunction -Message "Failed to open filestream to $currentFileName with mode $writeMode" -EnableException $true -ErrorRecord $_ -ModuleName dbops -FunctionName $this.GetType().Name
+        }
         try {
             #Create zip file
             $zip = [ZipArchive]::new($stream, [ZipArchiveMode]::Create)
@@ -798,7 +804,14 @@ class DBOpsBuild : DBOps {
     [void] Alter() {
         #Open new file stream
         $writeMode = [System.IO.FileMode]::Open
-        $stream = [FileStream]::new($this.Parent.FileName, $writeMode)
+        $stream = $null
+        try {
+            $stream = [FileStream]::new($this.Parent.FileName, $writeMode)
+        }
+        catch {
+            Stop-PSFFunction -Message "Failed to open filestream to $($this.Parent.FileName) with mode $writeMode" -EnableException $true -ErrorRecord $_ -ModuleName dbops -FunctionName $this.GetType().Name
+        }
+        
         try {
             #Open zip file
             $zip = [ZipArchive]::new($stream, [ZipArchiveMode]::Update)
@@ -942,7 +955,13 @@ class DBOpsFile : DBOps {
         else {
             $pkgObj = $null
         }
-        $stream = [FileStream]::new($pkgObj.FileName, $writeMode, [System.IO.FileAccess]::ReadWrite)
+        $stream = $null
+        try {
+            $stream = [FileStream]::new($pkgObj.FileName, $writeMode, [System.IO.FileAccess]::ReadWrite)
+        }
+        catch {
+            Stop-PSFFunction -Message "Failed to open filestream to $($pkgObj.FileName) with mode ReadWrite" -EnableException $true -ErrorRecord $_ -ModuleName dbops -FunctionName $this.GetType().Name
+        }
         try {
             #Open zip file
             $zip = [ZipArchive]::new($stream, [ZipArchiveMode]::Update)
@@ -1164,7 +1183,13 @@ class DBOpsConfig : DBOps {
         if ($this.Parent -is [DBOpsPackageBase]) {
             #Open new file stream
             $writeMode = [System.IO.FileMode]::Open
-            $stream = [FileStream]::new($this.Parent.FileName, $writeMode, [System.IO.FileAccess]::ReadWrite)
+            $stream = $null
+            try {
+                $stream = [FileStream]::new($this.Parent.FileName, $writeMode, [System.IO.FileAccess]::ReadWrite)
+            }
+            catch {
+                Stop-PSFFunction -Message "Failed to open filestream to $($this.Parent.FileName) with mode $writeMode" -EnableException $true -ErrorRecord $_ -ModuleName dbops -FunctionName $this.GetType().Name
+            }
             try {
                 #Open zip file
                 $zip = [ZipArchive]::new($stream, [ZipArchiveMode]::Update)

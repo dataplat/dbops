@@ -242,13 +242,26 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
     }
     Context "runs negative tests" {
         It "should throw error when scripts with the same relative path is being added" {
+            $result = $null
             try {
-                $null = New-DBOPackage -Name $packageName -ScriptPath "$scriptFolder\*", "$scriptFolder\..\transactional-failure\*"
+                $result = New-DBOPackage -Name $packageName -ScriptPath "$scriptFolder\*", "$scriptFolder\..\transactional-failure\*"
             }
             catch {
                 $errorResult = $_
             }
             $errorResult.Exception.Message -join ';' | Should BeLike '*File * already exists in*'
+            $result | Should Be $null
+        }
+        It "should throw error when package already exists" {
+            $result = $null
+            try {
+                $result = New-DBOPackage -Name $packageName -ScriptPath "$scriptFolder\*"
+            }
+            catch {
+                $errorResult = $_
+            }
+            $errorResult.Exception.Message -join ';' | Should BeLike '*The file * already exists*'
+            $result | Should Be $null
         }
         It "returns error when path does not exist" {
             try {
