@@ -259,6 +259,7 @@
 
         # Enable logging using dbopsConsoleLog class implementing a logging Interface
         $dbUpLog = [DBOpsLog]::new($config.Silent, $OutputFile, $Append, $status)
+        $dbUpLog.CallStack = (Get-PSCallStack)[1]
         $dbUp = [StandardExtensions]::LogTo($dbUp, $dbUpLog)
         $dbUp = [StandardExtensions]::LogScriptOutput($dbUp)
 
