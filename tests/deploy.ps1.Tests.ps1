@@ -25,6 +25,7 @@ $cleanupScript = "$here\etc\install-tests\Cleanup.sql"
 $v1scripts = "$here\etc\install-tests\success\1.sql"
 $verificationScript = "$here\etc\install-tests\verification\select.sql"
 $packageName = Join-Path $workFolder 'TempDeployment.zip'
+$newDbName = "_test_$commandName"
 
 Describe "deploy.ps1 integration tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
@@ -33,19 +34,23 @@ Describe "deploy.ps1 integration tests" -Tag $commandName, IntegrationTests {
         $null = New-Item $unpackedFolder -ItemType Directory -Force
         $packageName = New-DBOPackage -Path $packageName -ScriptPath $v1scripts -Build 1.0 -Force
         $null = Expand-Archive -Path $packageName -DestinationPath $workFolder -Force
+        $dropDatabaseScript = 'IF EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{0}]; END' -f $newDbName
+        $createDatabaseScript = 'IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN CREATE DATABASE [{0}]; END' -f $newDbName
+        $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database master -Query $dropDatabaseScript
+        $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database master -Query $createDatabaseScript
     }
     AfterAll {
-        $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
+        $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database master -Query $dropDatabaseScript
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
     }
     Context "testing deployment of extracted package" {
         BeforeEach {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
+            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy with a -Configuration parameter" {
             $deploymentConfig = @{
                 SqlInstance        = $script:instance1
-                Database           = $script:database1
+                Database           = $newDbName
                 SchemaVersionTable = $logTable
                 Silent             = $true
                 DeploymentMethod   = 'NoTransaction'
@@ -54,7 +59,7 @@ Describe "deploy.ps1 integration tests" -Tag $commandName, IntegrationTests {
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be ((Get-Item $v1scripts).Name | ForEach-Object {'1.0\' + $_})
             $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $script:database1
+            $results.Database | Should Be $newDbName
             $results.SourcePath | Should Be $workFolder
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
@@ -66,7 +71,7 @@ Describe "deploy.ps1 integration tests" -Tag $commandName, IntegrationTests {
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $results.name
             'a' | Should BeIn $results.name
             'b' | Should BeIn $results.name
@@ -74,11 +79,11 @@ Describe "deploy.ps1 integration tests" -Tag $commandName, IntegrationTests {
             'd' | Should Not BeIn $results.name
         }
         It "should deploy with a set of parameters" {
-            $results = & $workFolder\deploy.ps1 -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $results = & $workFolder\deploy.ps1 -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be ((Get-Item $v1scripts).Name | ForEach-Object {'1.0\' + $_})
             $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $script:database1
+            $results.Database | Should Be $newDbName
             $results.SourcePath | Should Be $workFolder
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
@@ -90,7 +95,7 @@ Describe "deploy.ps1 integration tests" -Tag $commandName, IntegrationTests {
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $results.name
             'a' | Should BeIn $results.name
             'b' | Should BeIn $results.name
@@ -100,16 +105,16 @@ Describe "deploy.ps1 integration tests" -Tag $commandName, IntegrationTests {
     }
     Context  "$commandName whatif tests" {
         BeforeAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
+            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
         }
         AfterAll {
         }
         It "should deploy nothing" {
-            $results = & $workFolder\deploy.ps1 -SqlInstance $script:instance1 -Database $script:database1 -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -WhatIf
+            $results = & $workFolder\deploy.ps1 -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -WhatIf
             $results.Successful | Should Be $true
             $results.Scripts | Should BeNullOrEmpty
             $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $script:database1
+            $results.Database | Should Be $newDbName
             $results.SourcePath | Should Be $workFolder
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
@@ -121,7 +126,7 @@ Describe "deploy.ps1 integration tests" -Tag $commandName, IntegrationTests {
             "Running in WhatIf mode - no deployment performed." | Should BeIn $results.DeploymentLog
 
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
             $logTable | Should Not BeIn $results.name
             'a' | Should Not BeIn $results.name
             'b' | Should Not BeIn $results.name

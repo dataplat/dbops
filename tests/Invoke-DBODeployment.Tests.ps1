@@ -29,7 +29,7 @@ $verificationScript = "$here\etc\install-tests\verification\select.sql"
 $packageFileName = Join-Path $workFolder ".\dbops.package.json"
 $cleanupPackageName = "$here\etc\TempCleanup.zip"
 $outFile = "$here\etc\outLog.txt"
-
+$newDbName = "_test_$commandName"
 
 Describe "Invoke-DBODeployment integration tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
@@ -38,23 +38,27 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
         $null = New-Item $unpackedFolder -ItemType Directory -Force
         $packageName = New-DBOPackage -Path (Join-Path $workFolder 'tmp.zip') -ScriptPath $tranFailScripts -Build 1.0 -Force
         $null = Expand-Archive -Path $packageName -DestinationPath $workFolder -Force
+        $dropDatabaseScript = 'IF EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{0}]; END' -f $newDbName
+        $createDatabaseScript = 'IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN CREATE DATABASE [{0}]; END' -f $newDbName
+        $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database master -Query $dropDatabaseScript
+        $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database master -Query $createDatabaseScript
     }
     BeforeEach {
         $deploymentConfig = @{
             SqlInstance        = $script:instance1
-            Database           = $script:database1
+            Database           = $newDbName
             SchemaVersionTable = $logTable
             Silent             = $true
             DeploymentMethod   = 'NoTransaction'
         }
     }
     AfterAll {
-        $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
+        $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database master -Query $dropDatabaseScript
     }
     Context "testing transactional deployment of extracted package" {
         BeforeEach {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
+            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
         }
         It "Should throw an error and not create any objects" {
             #Running package
@@ -67,7 +71,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             }
             $results.Exception.Message | Should Be "There is already an object named 'a' in the database."
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
             $logTable | Should Not BeIn $results.name
             'a' | Should Not BeIn $results.name
             'b' | Should Not BeIn $results.name
@@ -77,7 +81,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
     }
     Context "testing non transactional deployment of extracted package" {
         BeforeAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
+            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
         }
         It "Should throw an error and create one object" {
             #Running package
@@ -89,7 +93,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             }
             $results.Exception.Message | Should Be "There is already an object named 'a' in the database."
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $results.name
             'a' | Should BeIn $results.name
             'b' | Should Not BeIn $results.name
@@ -99,14 +103,14 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
     }
     Context "testing script deployment" {
         BeforeAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
+            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy version 1.0" {
             $results = Invoke-DBODeployment -ScriptPath $v1scripts -Configuration $deploymentConfig
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $script:database1
+            $results.Database | Should Be $newDbName
             $results.SourcePath | Should Be $v1scripts
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
@@ -118,7 +122,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $results.name
             'a' | Should BeIn $results.name
             'b' | Should BeIn $results.name
@@ -130,7 +134,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be (Resolve-Path $v2scripts).Path
             $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $script:database1
+            $results.Database | Should Be $newDbName
             $results.SourcePath | Should Be $v2scripts
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
@@ -142,7 +146,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $results.name
             'a' | Should BeIn $results.name
             'b' | Should BeIn $results.name
@@ -152,14 +156,14 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
     }
     Context "testing deployment order" {
         BeforeAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
+            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy 2.sql before 1.sql" {
             $results = Invoke-DBODeployment -ScriptPath $v2scripts, $v1scripts -Configuration $deploymentConfig
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be (Resolve-Path $v2scripts, $v1scripts).Path
             $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $script:database1
+            $results.Database | Should Be $newDbName
             $results.SourcePath | Should Be @($v2scripts, $v1scripts)
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
@@ -171,14 +175,14 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $results.name
             'a' | Should BeIn $results.name
             'b' | Should BeIn $results.name
             'c' | Should BeIn $results.name
             'd' | Should BeIn $results.name
             #Verifying order
-            $r1 = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -Query "SELECT ScriptName FROM $logtable ORDER BY Id"
+            $r1 = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -Query "SELECT ScriptName FROM $logtable ORDER BY Id"
             $r1.ScriptName | Should Be (Get-Item $v2scripts, $v1scripts).FullName
         }
     }
@@ -188,7 +192,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             "WAITFOR DELAY '00:00:03'; PRINT ('Successful!')" | Out-File $file
         }
         BeforeEach {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
+            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
         }
         It "should throw timeout error" {
             $deploymentConfig.ExecutionTimeout = 2
@@ -210,7 +214,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be "$workFolder\delay.sql"
             $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $script:database1
+            $results.Database | Should Be $newDbName
             $results.SourcePath | Should Be "$workFolder\delay.sql"
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
@@ -230,7 +234,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be "$workFolder\delay.sql"
             $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $script:database1
+            $results.Database | Should Be $newDbName
             $results.SourcePath | Should Be "$workFolder\delay.sql"
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
@@ -248,7 +252,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
     }
     Context  "$commandName whatif tests" {
         BeforeAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
+            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
         }
         AfterAll {
         }
@@ -257,7 +261,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results.Successful | Should Be $true
             $results.Scripts | Should BeNullOrEmpty
             $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $script:database1
+            $results.Database | Should Be $newDbName
             $results.SourcePath | Should Be $v1scripts
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
@@ -269,7 +273,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             "Running in WhatIf mode - no deployment performed." | Should BeIn $results.DeploymentLog
 
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
             $logTable | Should Not BeIn $results.name
             'a' | Should Not BeIn $results.name
             'b' | Should Not BeIn $results.name
@@ -279,20 +283,20 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
     }
     Context "testing deployment without specifying SchemaVersion table" {
         BeforeAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
+            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
         }
         AfterAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
+            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
         }
         It "should deploy version 1.0" {
             $deploymentConfig.Remove('SchemaVersionTable')
-            $before = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
+            $before = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
             $results = Invoke-DBODeployment -ScriptPath $v1scripts -Configuration $deploymentConfig
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $script:database1
+            $results.Database | Should Be $newDbName
             $results.SourcePath | Should Be $v1scripts
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
@@ -304,7 +308,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
             'SchemaVersions' | Should BeIn $results.name
             'a' | Should BeIn $results.name
             'b' | Should BeIn $results.name
@@ -314,13 +318,13 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
         }
         It "should deploy version 2.0" {
             $deploymentConfig.Remove('SchemaVersionTable')
-            $before = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
+            $before = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
             $results = Invoke-DBODeployment -ScriptPath $v2scripts -Configuration $deploymentConfig
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be (Resolve-Path $v2scripts).Path
             $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $script:database1
+            $results.Database | Should Be $newDbName
             $results.SourcePath | Should Be $v2scripts
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
@@ -332,7 +336,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
             'SchemaVersions' | Should BeIn $results.name
             'a' | Should BeIn $results.name
             'b' | Should BeIn $results.name
@@ -343,20 +347,20 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
     }
     Context "testing deployment with no history`: SchemaVersion is null" {
         BeforeEach {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
+            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
         }
         AfterEach {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
+            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
         }
         It "should deploy version 1.0 without creating SchemaVersions" {
             $deploymentConfig.SchemaVersionTable = $null
-            $before = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
+            $before = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
             $results = Invoke-DBODeployment -ScriptPath $v1scripts -Configuration $deploymentConfig
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $script:database1
+            $results.Database | Should Be $newDbName
             $results.SourcePath | Should Be $v1scripts
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should BeNullOrEmpty
@@ -369,7 +373,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             'Checking whether journal table exists..' | Should Not BeIn $results.DeploymentLog
 
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
             'SchemaVersions' | Should Not BeIn $results.name
             'a' | Should BeIn $results.name
             'b' | Should BeIn $results.name
@@ -380,7 +384,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
     }
     Context "deployments with errors should throw terminating errors" {
         BeforeAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
+            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
         }
         It "Should return terminating error when object exists" {
             # Deploy a non-logged script
@@ -413,7 +417,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $errorObject | Should Not BeNullOrEmpty
             $errorObject.Exception.Message | Should Be "There is already an object named 'a' in the database."
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
             'a' | Should BeIn $results.name
             'b' | Should BeIn $results.name
             'c' | Should Not BeIn $results.name
