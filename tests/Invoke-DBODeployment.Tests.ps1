@@ -199,9 +199,9 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
                 $results = $_
             }
             $results | Should Not Be $null
-            $results.Exception.Message | Should BeLike 'Execution Timeout Expired.*'
+            $results.Exception.Message | Should BeLike '*Timeout Expired.*'
             $output = Get-Content "$workFolder\log.txt" -Raw
-            $output | Should BeLike '*Execution Timeout Expired*'
+            $output | Should BeLike '*Timeout Expired*'
             $output | Should Not BeLike '*Successful!*'
         }
         It "should successfully run within specified timeout" {
@@ -221,7 +221,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results.EndTime | Should -BeGreaterThan $results.StartTime
 
             $output = Get-Content "$workFolder\log.txt" -Raw
-            $output | Should Not BeLike '*Execution Timeout Expired*'
+            $output | Should Not BeLike '*Timeout Expired*'
             $output | Should BeLike '*Successful!*'
         }
         It "should successfully run with infinite timeout" {
@@ -242,7 +242,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             'Upgrade successful' | Should BeIn $results.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" -Raw
-            $output | Should Not BeLike '*Execution Timeout Expired*'
+            $output | Should Not BeLike '*Timeout Expired*'
             $output | Should BeLike '*Successful!*'
         }
     }
