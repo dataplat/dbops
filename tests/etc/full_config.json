@@ -14,5 +14,6 @@
     "SchemaVersionTable":  "test.Table",
     "Silent":  true,
     "Variables":  null,
-    "Schema": "testschema"
+    "Schema": "testschema",
+    "CreateDatabase": false
 }

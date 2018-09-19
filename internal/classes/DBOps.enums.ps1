@@ -18,4 +18,5 @@ enum DBOpsConfigProperty {
     Variables
     Schema
     ConnectionString
+    CreateDatabase
 }

@@ -87,6 +87,9 @@
 
     .PARAMETER Schema
         Deploy into a specific schema (if supported by RDBMS)
+        
+    .PARAMETER CreateDatabase
+        Will create an empty database if missing on supported RDMBS
     
     .PARAMETER ConnectionType
         Defines the driver to use when connecting to the database server.
@@ -155,6 +158,7 @@
         [Alias('Config')]
         [object]$Configuration,
         [string]$Schema,
+        [switch]$CreateDatabase,
         [AllowNull()]
         [string]$ConnectionString,
         [ValidateSet('SQLServer', 'Oracle')]
@@ -193,7 +197,7 @@
         
         #Prepare deployment function call parameters
         $params = @{
-            ScriptPath = $scripts
+            ScriptPath    = $scripts
             Configuration = $config
         }
         foreach ($key in ($PSBoundParameters.Keys)) {

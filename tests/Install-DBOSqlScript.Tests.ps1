@@ -29,18 +29,50 @@ $verificationScript = "$here\etc\install-tests\verification\select.sql"
 $packageFileName = Join-Path $workFolder ".\dbops.package.json"
 $cleanupPackageName = "$here\etc\TempCleanup.zip"
 $outFile = "$here\etc\outLog.txt"
-
+$newDbName = "_test_$commandName"
 
 Describe "Install-DBOSqlScript integration tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = New-Item $workFolder -ItemType Directory -Force
+        $dropDatabaseScript = 'IF EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{0}]; END' -f $newDbName
+        $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database master -Query $dropDatabaseScript
     }
     AfterAll {
         $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
+        $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database master -Query $dropDatabaseScript
     }
-    Context "testing transactional deployment of extracted package" {
+    Context "testing regular deployment with CreateDatabase specified" {
+        It "should deploy version 1.0 to a new database using -CreateDatabase switch" {
+            $results = Install-DBOSqlScript -ScriptPath $v1scripts -CreateDatabase -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $results.Successful | Should Be $true
+            $results.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
+            $results.SqlInstance | Should Be $script:instance1
+            $results.Database | Should Be $newDbName
+            $results.SourcePath | Should Be $v1scripts
+            $results.ConnectionType | Should Be 'SQLServer'
+            $results.Configuration.SchemaVersionTable | Should Be $logTable
+            $results.Configuration.CreateDatabase | Should Be $true
+            $results.Error | Should BeNullOrEmpty
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $results.StartTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
+            'Upgrade successful' | Should BeIn $results.DeploymentLog
+            "Created database $newDbName" | Should BeIn $results.DeploymentLog
+
+            #Verifying objects
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
+            $logTable | Should BeIn $results.name
+            'a' | Should BeIn $results.name
+            'b' | Should BeIn $results.name
+            'c' | Should Not BeIn $results.name
+            'd' | Should Not BeIn $results.name
+            ($results | Measure-Object).Count | Should Be ($rowsBefore + 3)
+        }
+    }
+    Context "testing transactional deployment of scripts" {
         BeforeEach {
             $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
         }
@@ -62,7 +94,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             'd' | Should Not BeIn $results.name
         }
     }
-    Context "testing non transactional deployment of extracted package" {
+    Context "testing non transactional deployment of scripts" {
         BeforeAll {
             $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $cleanupScript
         }

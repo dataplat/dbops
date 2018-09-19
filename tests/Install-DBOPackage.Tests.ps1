@@ -32,6 +32,7 @@ $fullConfig = "$here\etc\tmp_full_config.json"
 $fullConfigSource = "$here\etc\full_config.json"
 $testPassword = 'TestPassword'
 $fromSecureString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertFrom-SecureString
+$newDbName = "_test_$commandName"
 
 Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
@@ -611,6 +612,42 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $output | Should Be (Get-Content "$here\etc\log1.txt")
             #Verifying objects
             $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $script:database1 -InputFile $verificationScript
+            $logTable | Should BeIn $results.name
+            'a' | Should BeIn $results.name
+            'b' | Should BeIn $results.name
+            'c' | Should Not BeIn $results.name
+            'd' | Should Not BeIn $results.name
+        }
+    }
+    Context "testing regular deployment with CreateDatabase specified" {
+        BeforeAll {
+            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
+            $dropDatabaseScript = 'IF EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{0}]; END' -f $newDbName
+            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database master -Query $dropDatabaseScript
+        }
+        AfterEach {
+            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database master -Query $dropDatabaseScript
+        }
+        It "should deploy version 1.0 to a new database using -CreateDatabase switch" {
+            $results = Install-DBOPackage $p1 -CreateDatabase -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $results.Successful | Should Be $true
+            $results.Scripts.Name | Should Be ((Get-Item $v1scripts).Name | ForEach-Object {'1.0\' + $_})
+            $results.SqlInstance | Should Be $script:instance1
+            $results.Database | Should Be $newDbName
+            $results.SourcePath | Should Be "$workFolder\pv1.zip"
+            $results.ConnectionType | Should Be 'SQLServer'
+            $results.Configuration.SchemaVersionTable | Should Be $logTable
+            $results.Configuration.CreateDatabase | Should Be $true
+            $results.Error | Should BeNullOrEmpty
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $results.StartTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
+            'Upgrade successful' | Should BeIn $results.DeploymentLog
+            "Created database $newDbName" | Should BeIn $results.DeploymentLog
+
+            #Verifying objects
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $results.name
             'a' | Should BeIn $results.name
             'b' | Should BeIn $results.name

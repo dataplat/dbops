@@ -107,6 +107,8 @@ Set-PSFConfig -FullName dbops.Encrypt -Value $false -Initialize -Validation bool
 Set-PSFConfig -FullName dbops.Silent -Value $false -Initialize -Validation bool -Description "Silent execution with no output to the console."
 Set-PSFConfig -FullName dbops.Credential -Value $null -Initialize -Description "Database credentials to authenticate with."
 Set-PSFConfig -FullName dbops.Variables -Value $null -Initialize -Validation hashtable -Description "A hashtable with key/value pairs representing #{variables} that will be swapped during execution."
+Set-PSFConfig -FullName dbops.ConnectionString -Value $null -Initialize -Description "Connection string to the target database. If specified, overrides SqlInstance and Database parameters."
+Set-PSFConfig -FullName dbops.CreateDatabase -Value $false -Validation bool -Initialize -Description "Determines whether to create an empty database upon deployment if it haven't been created yet."
 
 # defining aliases
 
