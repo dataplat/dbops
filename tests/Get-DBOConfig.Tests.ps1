@@ -36,18 +36,6 @@ Describe "Get-DBOConfig tests" -Tag $commandName, UnitTests {
         foreach ($prop in $result.psobject.properties.name) {
             $result.$prop | Should Be (Get-PSFConfigValue -FullName dbops.$prop)
         }
-        # $result.ApplicationName | Should Be $null
-        # $result.SqlInstance | Should Be $null
-        # $result.Database | Should Be $null
-        # $result.DeploymentMethod | Should Be $null
-        # $result.ConnectionTimeout | Should Be $null
-        # $result.Encrypt | Should Be $null
-        # $result.Credential | Should Be $null
-        # $result.Username | Should Be $null
-        # $result.Password | Should Be $null
-        # $result.SchemaVersionTable | Should Be 'SchemaVersions'
-        # $result.Silent | Should Be $null
-        # $result.Variables | Should Be $null
     }
 
     It "Should override properties in an empty config" {
@@ -64,6 +52,7 @@ Describe "Get-DBOConfig tests" -Tag $commandName, UnitTests {
         $result.SchemaVersionTable | Should Be 'SchemaVersions'
         $result.Silent | Should Be $false
         $result.Variables | Should Be $null
+        $result.CreateDatabase | Should Be $false
     }
 
     It "Should return empty configuration from empty config file" {
@@ -80,6 +69,7 @@ Describe "Get-DBOConfig tests" -Tag $commandName, UnitTests {
         $result.SchemaVersionTable | Should Be $null
         $result.Silent | Should Be $null
         $result.Variables | Should Be $null
+        $result.CreateDatabase | Should Be $null
     }
 
     It "Should return all configurations from the config file" {
@@ -98,6 +88,7 @@ Describe "Get-DBOConfig tests" -Tag $commandName, UnitTests {
         $result.Silent | Should Be $true
         $result.Variables | Should Be $null
         $result.Schema | Should Be 'testschema'
+        $result.CreateDatabase | Should Be $false
     }
 
     It "Should override configurations of the config file" {
@@ -116,5 +107,6 @@ Describe "Get-DBOConfig tests" -Tag $commandName, UnitTests {
         $result.Silent | Should Be $true
         $result.Variables | Should Be $null
         $result.Schema | Should Be 'testschema'
+        $result.CreateDatabase | Should Be $false
     }
 }

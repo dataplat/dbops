@@ -1073,6 +1073,7 @@ class DBOpsConfig : DBOps {
     [System.Nullable[bool]]$Silent
     [psobject]$Variables
     [string]$Schema
+    [System.Nullable[bool]]$CreateDatabase
     [string]$ConnectionString
 
     hidden [DBOpsPackageBase]$Parent

@@ -10,5 +10,6 @@
     "Password":  null,
     "SchemaVersionTable":  null,
     "Silent":  null,
-    "Variables":  null
+    "Variables":  null,
+    "CreateDatabase": null
 }

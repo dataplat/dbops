@@ -91,6 +91,9 @@
     .PARAMETER Schema
         Deploy into a specific schema (if supported by RDBMS)
 
+    .PARAMETER CreateDatabase
+        Will create an empty database if missing on supported RDMBS
+
     .PARAMETER ConnectionType
         Defines the driver to use when connecting to the database server.
         Available options: SqlServer (default), Oracle
@@ -159,6 +162,7 @@
         [Alias('Config')]
         [object]$Configuration,
         [string]$Schema,
+        [switch]$CreateDatabase,
         [AllowNull()]
         [string]$ConnectionString,
         [ValidateSet('SQLServer', 'Oracle')]

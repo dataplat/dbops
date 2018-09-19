@@ -153,7 +153,7 @@
        
         #Build connection string
         if (!$config.ConnectionString) {
-            $CSBuilder = New-Object -TypeName System.Data.SqlClient.SqlConnectionStringBuilder
+            $CSBuilder = [System.Data.SqlClient.SqlConnectionStringBuilder]::new()
             $CSBuilder["Server"] = $config.SqlInstance
             if ($config.Database) { $CSBuilder["Database"] = $config.Database }
             if ($config.Encrypt) { $CSBuilder["Encrypt"] = $true }
@@ -305,6 +305,14 @@
         #Adding execution timeout - defaults to unlimited execution
         $dbUp = [StandardExtensions]::WithExecutionTimeout($dbUp, [timespan]::FromSeconds($config.ExecutionTimeout))
 
+        #Create database if necessary for supported platforms
+        if ($config.CreateDatabase) {
+            if ($PSCmdlet.ShouldProcess("Ensuring the target database exists")) {
+                switch ($ConnectionType) {
+                    SqlServer { [SqlServerExtensions]::SqlDatabase([DbUp.EnsureDatabase]::For, $connString, $dbUpLog, $config.ExecutionTimeout) }
+                }
+            }
+        }
         #Build and Upgrade
         if ($PSCmdlet.ShouldProcess($package, "Deploying the package")) {
             $dbUpBuild = $dbUp.Build()

@@ -21,6 +21,7 @@ Param (
     [Alias('Config')]
     [object]$Configuration,
     [string]$Schema,
+    [switch]$CreateDatabase,
     [AllowNull()]
     [string]$ConnectionString,
     [ValidateSet('SQLServer', 'Oracle')]
