@@ -71,9 +71,6 @@
         Can also be provided as a part of Configuration hashtable: -Configuration @{ Variables = @{ Var1 = ...; Var2 = ...}}
         Will augment and/or overwrite Variables defined inside the package.
     
-    .PARAMETER SkipValidation
-        Skip validation of the package that ensures the integrity of all the files and builds.
-    
     .PARAMETER OutputFile
         Log output into specified file.
     
@@ -156,7 +153,6 @@
         [switch]$Silent,
         [Alias('ArgumentList')]
         [hashtable]$Variables,
-        [switch]$SkipValidation,
         [string]$OutputFile,
         [switch]$Append,
         [Alias('Config')]
