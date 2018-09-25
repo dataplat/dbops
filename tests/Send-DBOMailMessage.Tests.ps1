@@ -39,10 +39,11 @@ Describe "Send-DBOMailMessage tests" -Tag $commandName, UnitTests {
         $status.DeploymentLog = @('1','2','3')
         $status.Scripts += [DbUp.Engine.SqlScript]::new('1', '')
         $status.Scripts += [DbUp.Engine.SqlScript]::new('2', '')
-
-        Mock -CommandName Send-MailMessage -MockWith { $mailParams }
     }
     Context "Testing parameters" {
+        BeforeAll {
+            Mock -CommandName Send-MailMessage -MockWith { $mailParams }
+        }
         It "Should run successfully with all parameters" {
             $mockedResult = $status | Send-DBOMailMessage @mailParams -Subject 'Test' -Template "<body>soHtml</body>"
             foreach ($key in $mailParams.Keys) {
@@ -82,6 +83,9 @@ Describe "Send-DBOMailMessage tests" -Tag $commandName, UnitTests {
         It "Should fail when From is empty" {
             Set-DBODefaultSetting -Temporary -Name mail.From -Value ''
             { $status | Send-DBOMailMessage } | Should throw
+        }
+        It "Should fail when InputObject is incorrect" {
+            { 'thisissowrong' | Send-DBOMailMessage } | Should throw
         }
     }
 }

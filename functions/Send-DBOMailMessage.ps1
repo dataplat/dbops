@@ -55,7 +55,7 @@ function Send-DBOMailMessage {
     [CmdletBinding()]
     param (
         [parameter(ValueFromPipeline, Mandatory)]
-        [DBOpsDeploymentStatus]$InputObject,
+        [object]$InputObject,
         [string[]]$To,
         [string]$From,
         [string]$Subject,
@@ -94,6 +94,9 @@ function Send-DBOMailMessage {
         }
         if ($null -eq $PSBoundParameters['from']) {
             Stop-PSFFunction -Message "No sender email address specified, exiting" -EnableException $true
+        }
+        if ($InputObject -and $InputObject -isnot [DBOpsDeploymentStatus]) {
+            Stop-PSFFunction -Message "Wrong object in the pipeline. Usable only with output from the deployment commands." -EnableException $true
         }
         #Get template from the parameter or read it from the default path
         if (Test-PSFParameterBinding -ParameterName Template) {
