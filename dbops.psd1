@@ -81,7 +81,8 @@
         'Get-DBOPackageArtifact',
         'Publish-DBOPackageArtifact',
         'Copy-DBOPackageArtifact',
-        'Install-DBOSqlScript'
+        'Install-DBOSqlScript',
+        'Register-DBOPackage'
     )
     
     # Cmdlets to export from this module
