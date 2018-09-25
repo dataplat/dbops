@@ -382,6 +382,76 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             ($results | Measure-Object).Count | Should Be ($rowsBefore + 2)
         }
     }
+    Context "testing registration of scripts" {
+        BeforeAll {
+            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
+        }
+        It "should register version 1.0 without creating any objects" {
+            $before = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
+            $rowsBefore = ($before | Measure-Object).Count
+            $results = Invoke-DBODeployment -ScriptPath $v1scripts -Configuration $deploymentConfig -RegisterOnly
+            $results.Successful | Should Be $true
+            $results.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
+            $results.SqlInstance | Should Be $script:instance1
+            $results.Database | Should Be $newDbName
+            $results.SourcePath | Should Be $v1scripts
+            $results.ConnectionType | Should Be 'SQLServer'
+            $results.Configuration.SchemaVersionTable | Should Be $logTable
+            $results.Error | Should BeNullOrEmpty
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $results.StartTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
+            (Resolve-Path $v1scripts).Path + " was registered in table $logtable" | Should BeIn $results.DeploymentLog
+
+            #Verifying objects
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
+            $logTable | Should BeIn $results.name
+            'a' | Should Not BeIn $results.name
+            'b' | Should Not BeIn $results.name
+            'c' | Should Not BeIn $results.name
+            'd' | Should Not BeIn $results.name
+            ($results | Measure-Object).Count | Should Be ($rowsBefore + 1)
+
+            #Verifying SchemaVersions table
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -Query "SELECT * FROM $logTable"
+            $results.ScriptName | Should Be (Resolve-Path $v1scripts).Path
+        }
+        It "should register version 1.0 + 2.0 without creating any objects" {
+            $before = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
+            $rowsBefore = ($before | Measure-Object).Count
+            $results = Invoke-DBODeployment -ScriptPath $v1scripts, $v2scripts -Configuration $deploymentConfig -RegisterOnly
+            $results.Successful | Should Be $true
+            $results.Scripts.Name | Should Be (Resolve-Path $v2scripts).Path
+            $results.SqlInstance | Should Be $script:instance1
+            $results.Database | Should Be $newDbName
+            $results.SourcePath | Should Be $v1scripts, $v2scripts
+            $results.ConnectionType | Should Be 'SQLServer'
+            $results.Configuration.SchemaVersionTable | Should Be $logTable
+            $results.Error | Should BeNullOrEmpty
+            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $results.StartTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should Not BeNullOrEmpty
+            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
+            (Resolve-Path $v2scripts).Path + " was registered in table $logtable" | Should BeIn $results.DeploymentLog
+
+            #Verifying objects
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
+            $logTable | Should BeIn $results.name
+            'a' | Should Not BeIn $results.name
+            'b' | Should Not BeIn $results.name
+            'c' | Should Not BeIn $results.name
+            'd' | Should Not BeIn $results.name
+            ($results | Measure-Object).Count | Should Be $rowsBefore
+
+            #Verifying SchemaVersions table
+            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -Query "SELECT * FROM $logTable"
+            $results.ScriptName | Should Be (Resolve-Path $v1scripts).Path, (Resolve-Path $v2scripts).Path
+            # (Resolve-Path $v1scripts).Path | Should BeIn $results.ScriptName
+            # (Resolve-Path $v2scripts).Path | Should BeIn $results.ScriptName
+            # $results.ScriptName | Group-Object | % Count | Group-Object | % Name | Should be 1
+        }
+    }
     Context "deployments with errors should throw terminating errors" {
         BeforeAll {
             $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript

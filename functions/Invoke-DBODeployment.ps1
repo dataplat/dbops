@@ -44,6 +44,9 @@
     .PARAMETER Append
         Append output to the -OutputFile instead of overwriting it.
 
+    .PARAMETER RegisterOnly
+        Store deployment script records in the SchemaVersions table without deploying anything.
+    
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -83,7 +86,8 @@
         [Alias('Type', 'ServerType')]
         [string]$ConnectionType = 'SQLServer',
         [object]$Configuration,
-        [hashtable]$Variables
+        [hashtable]$Variables,
+        [switch]$RegisterOnly
     )
     begin {}
     process {
@@ -313,17 +317,55 @@
                 }
             }
         }
-        #Build and Upgrade
-        if ($PSCmdlet.ShouldProcess($package, "Deploying the package")) {
-            $dbUpBuild = $dbUp.Build()
-            $upgradeResult = $dbUpBuild.PerformUpgrade()
-            $status.Successful = $upgradeResult.Successful
-            $status.Error = $upgradeResult.Error
-            $status.Scripts = $upgradeResult.Scripts
+        #Register only
+        if ($RegisterOnly) {
+            #Build and Upgrade
+            if ($PSCmdlet.ShouldProcess($package, "Deploying the package")) {
+                $registeredScripts = @()
+                $managedConnection = $dbUpConnection.OperationStarting($dbUpLog, $null)
+                $deployedScripts = $dbUpTableJournal.GetExecutedScripts()
+                try {
+                    foreach ($script in $scriptCollection) {
+                        if ($script.Name -notin $deployedScripts) {
+                            $dbUpConnection.ExecuteCommandsWithManagedConnection( {
+                                Param (
+                                    $dbCommandFactory
+                                )
+                                $dbUpTableJournal.StoreExecutedScript($script, $dbCommandFactory)
+                            })
+                            $registeredScripts += $script
+                            $dbUpLog.WriteInformation("{0} was registered in table {1}", @($script.Name,$config.SchemaVersionTable))
+                        }
+                    }
+                    $status.Successful = $true
+                }
+                catch {
+                    $status.Successful = $false
+                    Stop-PSFFunction -EnableException $true -Message 'Failed to register the script' -ErrorRecord $_
+                }
+                finally {
+                    $managedConnection.Dispose()
+                    $status.Scripts = $registeredScripts
+                }
+            }
+            else {
+                $status.Successful = $true
+                $status.DeploymentLog += "Running in WhatIf mode - no registration performed."
+            }
         }
         else {
-            $status.Successful = $true
-            $status.DeploymentLog += "Running in WhatIf mode - no deployment performed."
+            #Build and Upgrade
+            if ($PSCmdlet.ShouldProcess($package, "Deploying the package")) {
+                $dbUpBuild = $dbUp.Build()
+                $upgradeResult = $dbUpBuild.PerformUpgrade()
+                $status.Successful = $upgradeResult.Successful
+                $status.Error = $upgradeResult.Error
+                $status.Scripts = $upgradeResult.Scripts
+            }
+            else {
+                $status.Successful = $true
+                $status.DeploymentLog += "Running in WhatIf mode - no deployment performed."
+            }
         }
         $status.EndTime = [datetime]::Now
         $status
