@@ -18,19 +18,21 @@ else {
 . "$here\..\internal\classes\DBOpsDeploymentStatus.class.ps1"
 
 Describe "Send-DBOMailMessage tests" -Tag $commandName, UnitTests {
+    $mailParams = @{
+        SmtpServer = 'test.smtp'
+        From       = 'from@smtp.local'
+        To         = 'to@smtp.local'
+        CC         = 'CC@smtp.local'
+        Bcc         = 'Bcc@smtp.local'
+        DeliveryNotificationOption = 'Never'
+        Encoding                   = [System.Text.Encoding]::ASCII
+        Attachments = 'myNewfile.ext'
+        Port        = 23456
+        Priority    = 'Low'
+    }
+    Mock -CommandName Send-MailMessage -MockWith { $mailParams }
+    
     BeforeAll {
-        $mailParams = @{
-            SmtpServer = 'test.smtp'
-            From       = 'from@smtp.local'
-            To         = 'to@smtp.local'
-            CC         = 'CC@smtp.local'
-            Bcc         = 'Bcc@smtp.local'
-            DeliveryNotificationOption = 'Never'
-            Encoding                   = [System.Text.Encoding]::ASCII
-            Attachments = 'myNewfile.ext'
-            Port        = 23456
-            Priority    = 'Low'
-        }
         $status = [DBOpsDeploymentStatus]::new()
         $status.StartTime = [datetime]::Now
         $status.SqlInstance = 'TestInstance'
@@ -41,9 +43,6 @@ Describe "Send-DBOMailMessage tests" -Tag $commandName, UnitTests {
         $status.Scripts += [DbUp.Engine.SqlScript]::new('2', '')
     }
     Context "Testing parameters" {
-        BeforeAll {
-            Mock -CommandName Send-MailMessage -MockWith { $mailParams }
-        }
         It "Should run successfully with all parameters" {
             $mockedResult = $status | Send-DBOMailMessage @mailParams -Subject 'Test' -Template "<body>soHtml</body>"
             foreach ($key in $mailParams.Keys) {
