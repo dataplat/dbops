@@ -1,0 +1,123 @@
+<head>
+    <style type="text/css">
+        p {
+            font-family: verdana, arial, sans-serif;
+            font-size: 11px;
+            color: #333333;
+        }
+
+        p.Successful {
+            color: rgb(0, 90, 35);
+        }
+
+        p.Failed {
+            color: #FF3333;
+        }
+
+        p.Unknown {
+            color: rgb(209, 102, 1);
+        }
+
+        table {
+            font-family: verdana, arial, sans-serif;
+            font-size: 11px;
+            color: #333333;
+            border-width: 0px;
+            border-color: #666666;
+            border-collapse: collapse;
+        }
+
+        th {
+            font-family: verdana, arial, sans-serif;
+            font-size: 11px;
+            color: #4775AD;
+            border-width: 0px;
+            padding: 5px;
+            border-style: solid;
+            border-color: #95B9E4;
+            background-color: #95B9E4;
+        }
+
+        td {
+            font-family: verdana, arial, sans-serif;
+            font-size: 11px;
+            border-width: 0px;
+            padding: 5px;
+            border-style: none;
+            border-color: #666666;
+            background-color: #ffffff;
+        }
+
+        td.main {
+            font-family: verdana, arial, sans-serif;
+            font-size: 11px;
+            border-width: 0px;
+            padding: 5px;
+            border-style: none;
+            border-color: #666666;
+            background-color: #C3DAF5;
+        }
+        td.bordered {
+            font-family: verdana, arial, sans-serif;
+            font-size: 11px;
+            color: #666666;
+            border-width: 1px;
+            padding: 0px;
+            border-style: none;
+            border-color: #666666;
+            background-color: #ffffff;
+        }
+
+        td.indented {
+            font-family: verdana, arial, sans-serif;
+            font-size: 11px;
+            color: #666666;
+            border-width: 2px;
+            padding: 0px;
+            border-style: none;
+            border-right-style: solid;
+            border-color: #95B9E4;
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+
+<body>
+    <table>
+        <tr>
+            <th colspan=3 style="text-align:left">#{Subject}</th>
+        </tr>
+        <tr>
+            <td rowspan=8 style="width:2px" class=indented></td>
+            <td style="vertical-align:top" class=main>Server</td>
+            <td><p>#{Server}</p></td>
+        </tr>
+        <tr>
+            <td style="vertical-align:top" class=main>Database</td>
+            <td><p>#{Database}</p></td>
+        </tr>
+        <tr>
+            <td style="vertical-align:top" class=main>Result</td>
+            <td><p class=#{Result}><b>#{Result}</b></p></td>
+        </tr>
+        <tr>
+            <td style="vertical-align:top" class=main>Source file</td>
+            <td><p>#{SourcePath}</p></td>
+        </tr>
+        <tr>
+            <td style="vertical-align:top" class=main>Start time</td>
+            <td><p>#{StartTime}</p></td>
+        </tr>
+        <tr>
+            <td style="vertical-align:top" class=main>Duration</td>
+            <td><p>#{Duration}</p></td>
+        </tr>
+        <tr>
+            <td style="vertical-align:top" class=main>Scripts</td>
+            <td><p>#{Scripts}</p></td>
+        </tr>
+        <tr>
+            <td style="vertical-align:top" class=main>Log</td>
+            <td><p>#{DeploymentLog}</p></td>
+        </tr>
+</body>

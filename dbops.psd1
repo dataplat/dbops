@@ -82,7 +82,8 @@
         'Publish-DBOPackageArtifact',
         'Copy-DBOPackageArtifact',
         'Install-DBOSqlScript',
-        'Register-DBOPackage'
+        'Register-DBOPackage',
+        'Send-DBOMailMessage'
     )
     
     # Cmdlets to export from this module
