@@ -107,7 +107,13 @@
         $package = [DBOpsPackage]::new()
 
         #Get configuration object according to current config options
-        $package.SetConfiguration((Get-DBOConfig -Path $ConfigurationFile -Configuration $configTable))
+        if (Test-PSFParameterBinding -ParameterName ConfigurationFile -BoundParameters $PSBoundParameters) {
+            $config = Get-DBOConfig -Path $ConfigurationFile -Configuration $configTable
+        }
+        else {
+            $config = Get-DBOConfig -Configuration $configTable
+        }
+        $package.SetConfiguration($config)
         
         #Create new build
         if ($Build) {

@@ -104,7 +104,7 @@
             $config = $package.Configuration
         }
 
-        if ($Configuration) {
+        if (Test-PSFParameterBinding -ParameterName Configuration -BoundParameters $PSBoundParameters) {
             if ($Configuration -is [DBOpsConfig] -or $Configuration -is [hashtable]) {
                 Write-PSFMessage -Level Verbose -Message "Merging configuration from a $($Configuration.GetType().Name) object"
                 $config.Merge($Configuration)
@@ -114,8 +114,11 @@
                 Write-PSFMessage -Level Verbose -Message "Merging configuration from file $($Configuration)"
                 $config.Merge($configFromFile)
             }
+            elseif ($Configuration) {
+                Stop-PSFFunction -EnableException $true -Message "The following object type is not supported: $($Configuration.GetType().Name). The only supported types are DBOpsConfig, Hashtable, FileInfo and String"
+            }
             else {
-                Stop-PSFFunction -EnableException $true -Message "The following object type is not supported: $($InputObject.GetType().Name). The only supported types are DBOpsConfig, Hashtable, FileInfo and String"
+                Stop-PSFFunction -EnableException $true -Message "No configuration provided, aborting"
             }
         }
 
@@ -205,8 +208,13 @@
         }
         else {
             foreach ($scriptItem in (Get-ChildScriptItem $ScriptPath)) {
-                # Replace tokens in the scripts
-                $scriptContent = Resolve-VariableToken (Get-Content $scriptItem.FullName -Raw) $runtimeVariables
+                if (!$RegisterOnly) {
+                    # Replace tokens in the scripts
+                    $scriptContent = Resolve-VariableToken (Get-Content $scriptItem.FullName -Raw) $runtimeVariables
+                }
+                else {
+                    $scriptContent = ""
+                }
                 $scriptCollection += [DbUp.Engine.SqlScript]::new($scriptItem.SourcePath, $scriptContent)
             }
         }
@@ -319,8 +327,8 @@
         }
         #Register only
         if ($RegisterOnly) {
-            #Build and Upgrade
-            if ($PSCmdlet.ShouldProcess($package, "Deploying the package")) {
+            #Cycle through already registered files and register the ones that are missing
+            if ($PSCmdlet.ShouldProcess($package, "Registering the package")) {
                 $registeredScripts = @()
                 $managedConnection = $dbUpConnection.OperationStarting($dbUpLog, $null)
                 $deployedScripts = $dbUpTableJournal.GetExecutedScripts()
@@ -341,7 +349,7 @@
                 }
                 catch {
                     $status.Successful = $false
-                    Stop-PSFFunction -EnableException $true -Message 'Failed to register the script' -ErrorRecord $_
+                    Stop-PSFFunction -EnableException $true -Message "Failed to register the script $($script.Name)" -ErrorRecord $_
                 }
                 finally {
                     $managedConnection.Dispose()
