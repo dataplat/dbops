@@ -18,19 +18,6 @@ else {
 . "$here\..\internal\classes\DBOpsDeploymentStatus.class.ps1"
 
 Describe "Send-DBOMailMessage tests" -Tag $commandName, UnitTests {
-    $mailParams = @{
-        SmtpServer = 'test.smtp'
-        From       = 'from@smtp.local'
-        To         = 'to@smtp.local'
-        CC         = 'CC@smtp.local'
-        Bcc         = 'Bcc@smtp.local'
-        DeliveryNotificationOption = 'Never'
-        Encoding                   = [System.Text.Encoding]::ASCII
-        Attachments = 'myNewfile.ext'
-        Port        = 23456
-        Priority    = 'Low'
-    }
-    
     BeforeAll {
         $status = [DBOpsDeploymentStatus]::new()
         $status.StartTime = [datetime]::Now
@@ -40,12 +27,26 @@ Describe "Send-DBOMailMessage tests" -Tag $commandName, UnitTests {
         $status.DeploymentLog = @('1','2','3')
         $status.Scripts += [DbUp.Engine.SqlScript]::new('1', '')
         $status.Scripts += [DbUp.Engine.SqlScript]::new('2', '')
+
+        $mailParams = @{
+            SmtpServer                 = 'test.smtp'
+            From                       = 'from@smtp.local'
+            To                         = 'to@smtp.local'
+            CC                         = 'CC@smtp.local'
+            Bcc                        = 'Bcc@smtp.local'
+            DeliveryNotificationOption = 'Never'
+            Encoding                   = [System.Text.Encoding]::ASCII
+            Attachments                = 'myNewfile.ext'
+            Port                       = 23456
+            Priority                   = 'Low'
+        }
+
+        Mock -CommandName Send-MailMessage -MockWith { $null } -ModuleName dbops
     }
     Context "Testing parameters" {
         It "Should run successfully with all parameters" {
-            Mock -CommandName Send-MailMessage -MockWith { $null }
             $status | Send-DBOMailMessage @mailParams -Subject 'Test' -Template "<body>soHtml</body>"
-            Assert-MockCalled -CommandName Send-MailMessage -Exactly 1 -Scope It
+            Assert-MockCalled -CommandName Send-MailMessage -Exactly 1 -Scope It -ModuleName dbops
         }
         It "Should grab parameters from defaults" {
             Set-DBODefaultSetting -Temporary -Name mail.SmtpServer -Value 'test.local'
@@ -53,14 +54,11 @@ Describe "Send-DBOMailMessage tests" -Tag $commandName, UnitTests {
             Set-DBODefaultSetting -Temporary -Name mail.To -Value 'test@local'
             Set-DBODefaultSetting -Temporary -Name mail.From -Value 'test@local'
 
-            Mock -CommandName Send-MailMessage -MockWith { $null }
-
             $status | Send-DBOMailMessage
-            Assert-MockCalled -CommandName Send-MailMessage  -Exactly 1 -Scope It
+            Assert-MockCalled -CommandName Send-MailMessage  -Exactly 1 -Scope It -ModuleName dbops
         }
     }
     Context "Negative Testing parameters" {
-        Mock -CommandName Send-MailMessage -MockWith { $null }
         BeforeEach {
             Set-DBODefaultSetting -Temporary -Name mail.SmtpServer -Value 'test.local'
             Set-DBODefaultSetting -Temporary -Name mail.Subject -Value 'test'
@@ -87,7 +85,7 @@ Describe "Send-DBOMailMessage tests" -Tag $commandName, UnitTests {
             { 'thisissowrong' | Send-DBOMailMessage } | Should throw
         }
         It "Should not call Send-MailMessage" {
-            Assert-MockCalled -CommandName Send-MailMessage -Exactly 0 -Scope Context
+            Assert-MockCalled -CommandName Send-MailMessage -Exactly 0 -Scope Context -ModuleName dbops
         }
     }
 }
