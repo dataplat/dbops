@@ -30,7 +30,6 @@ Describe "Send-DBOMailMessage tests" -Tag $commandName, UnitTests {
         Port        = 23456
         Priority    = 'Low'
     }
-    Mock -CommandName Send-MailMessage -MockWith { $mailParams }
     
     BeforeAll {
         $status = [DBOpsDeploymentStatus]::new()
@@ -44,23 +43,24 @@ Describe "Send-DBOMailMessage tests" -Tag $commandName, UnitTests {
     }
     Context "Testing parameters" {
         It "Should run successfully with all parameters" {
-            $mockedResult = $status | Send-DBOMailMessage @mailParams -Subject 'Test' -Template "<body>soHtml</body>"
-            foreach ($key in $mailParams.Keys) {
-                $mockedResult[$key] | Should Be $mailParams[$key]
-            }
+            Mock -CommandName Send-MailMessage -MockWith { $null }
+            $status | Send-DBOMailMessage @mailParams -Subject 'Test' -Template "<body>soHtml</body>"
+            Assert-MockCalled -CommandName Send-MailMessage -Exactly 1 -Scope It
         }
         It "Should grab parameters from defaults" {
             Set-DBODefaultSetting -Temporary -Name mail.SmtpServer -Value 'test.local'
             Set-DBODefaultSetting -Temporary -Name mail.Subject -Value 'test'
             Set-DBODefaultSetting -Temporary -Name mail.To -Value 'test@local'
             Set-DBODefaultSetting -Temporary -Name mail.From -Value 'test@local'
-            $mockedResult = $status | Send-DBOMailMessage # -To 'whatever@wherever.plz'
-            foreach ($key in $mailParams.Keys) {
-                $mockedResult[$key] | Should Be $mailParams[$key]
-            }
+
+            Mock -CommandName Send-MailMessage -MockWith { $null }
+
+            $status | Send-DBOMailMessage
+            Assert-MockCalled -CommandName Send-MailMessage  -Exactly 1 -Scope It
         }
     }
     Context "Negative Testing parameters" {
+        Mock -CommandName Send-MailMessage -MockWith { $null }
         BeforeEach {
             Set-DBODefaultSetting -Temporary -Name mail.SmtpServer -Value 'test.local'
             Set-DBODefaultSetting -Temporary -Name mail.Subject -Value 'test'
@@ -85,6 +85,9 @@ Describe "Send-DBOMailMessage tests" -Tag $commandName, UnitTests {
         }
         It "Should fail when InputObject is incorrect" {
             { 'thisissowrong' | Send-DBOMailMessage } | Should throw
+        }
+        It "Should not call Send-MailMessage" {
+            Assert-MockCalled -CommandName Send-MailMessage -Exactly 0 -Scope Context
         }
     }
 }
