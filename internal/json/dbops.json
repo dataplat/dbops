@@ -5,7 +5,8 @@
         "bin\\dbup-oracle.dll"
     ],
     "Misc": [
-        "bin\\deploy.ps1"
+        "bin\\deploy.ps1",
+        "bin\\mail_template.htm"
     ],
     "Functions": [
         "functions\\Add-DBOBuild.ps1",
@@ -25,7 +26,9 @@
         "functions\\Get-DBOPackageArtifact.ps1",
         "functions\\Publish-DBOPackageArtifact.ps1",
         "functions\\Copy-DBOPackageArtifact.ps1",
-        "functions\\Install-DBOSqlScript.ps1"
+        "functions\\Install-DBOSqlScript.ps1",
+        "functions\\Register-DBOPackage.ps1",
+        "functions\\Send-DBOMailMessage.ps1"
     ],
     "Internal": [
         "internal\\classes\\DBOps.enums.ps1",

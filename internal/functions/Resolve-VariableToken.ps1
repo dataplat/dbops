@@ -30,7 +30,7 @@
                 $tokenRegEx = "\#\{$token\}"
                 if ($Runtime) {
                     if ($Runtime.Keys -contains $token) {
-                        $output = $obj -replace $tokenRegEx, $Runtime.$token
+                        $output = $output -replace $tokenRegEx, $Runtime.$token
                     }
                 }
                 Write-PSFMessage -Level Debug -Message "String after replace: $obj"

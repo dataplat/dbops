@@ -104,12 +104,15 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
         }
         It "Should test GetBuild method" {
             $null = $pkg.NewBuild('1.0')
+            $null = $pkg.NewBuild('2.0')
             $b = $pkg.GetBuild('1.0')
             $b.Build | Should Be '1.0'
             $b.PackagePath | Should Be '1.0'
             $b.Parent.GetType().Name | Should Be 'DBOpsPackage'
             $b.Scripts | Should BeNullOrEmpty
             ([datetime]$b.CreatedDate).Date | Should Be ([datetime]::Now).Date
+            $b2 = $pkg.GetBuild(@('1.0', '2.0'))
+            $b2.Build | Should Be @('1.0','2.0')
         }
         It "Should test AddBuild method" {
             $pkg.AddBuild('2.0')

@@ -44,6 +44,12 @@
     .PARAMETER Append
         Append output to the -OutputFile instead of overwriting it.
 
+    .PARAMETER RegisterOnly
+        Store deployment script records in the SchemaVersions table without deploying anything.
+    
+    .PARAMETER Build
+        Only deploy certain builds from the package.
+    
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -74,16 +80,19 @@
         [parameter(ParameterSetName = 'Script')]
         [Alias('SourcePath')]
         [string[]]$ScriptPath,
-        [parameter(ParameterSetName = 'Pipeline')]
+        [parameter(ParameterSetName = 'PackageObject')]
         [Alias('Package')]
         [object]$InputObject,
+        [parameter(ParameterSetName = 'PackageObject')]
+        [string[]]$Build,
         [string]$OutputFile,
         [switch]$Append,
         [ValidateSet('SQLServer', 'Oracle')]
         [Alias('Type', 'ServerType')]
         [string]$ConnectionType = 'SQLServer',
         [object]$Configuration,
-        [hashtable]$Variables
+        [hashtable]$Variables,
+        [switch]$RegisterOnly
     )
     begin {}
     process {
@@ -95,12 +104,12 @@
         elseif ($PsCmdlet.ParameterSetName -eq 'Script') {
             $config = Get-DBOConfig
         }
-        elseif ($PsCmdlet.ParameterSetName -eq 'Pipeline') {
+        elseif ($PsCmdlet.ParameterSetName -eq 'PackageObject') {
             $package = Get-DBOPackage -InputObject $InputObject
             $config = $package.Configuration
         }
 
-        if ($Configuration) {
+        if (Test-PSFParameterBinding -ParameterName Configuration -BoundParameters $PSBoundParameters) {
             if ($Configuration -is [DBOpsConfig] -or $Configuration -is [hashtable]) {
                 Write-PSFMessage -Level Verbose -Message "Merging configuration from a $($Configuration.GetType().Name) object"
                 $config.Merge($Configuration)
@@ -110,8 +119,11 @@
                 Write-PSFMessage -Level Verbose -Message "Merging configuration from file $($Configuration)"
                 $config.Merge($configFromFile)
             }
+            elseif ($Configuration) {
+                Stop-PSFFunction -EnableException $true -Message "The following object type is not supported: $($Configuration.GetType().Name). The only supported types are DBOpsConfig, Hashtable, FileInfo and String"
+            }
             else {
-                Stop-PSFFunction -EnableException $true -Message "The following object type is not supported: $($InputObject.GetType().Name). The only supported types are DBOpsConfig, Hashtable, FileInfo and String"
+                Stop-PSFFunction -EnableException $true -Message "No configuration provided, aborting"
             }
         }
 
@@ -190,8 +202,18 @@
         $scriptCollection = @()
         if ($PsCmdlet.ParameterSetName -ne 'Script') {
             # Get contents of the script files
-            foreach ($build in $package.builds) {
-                foreach ($script in $build.scripts) {
+            if ($Build) {
+                $buildCollection = $package.GetBuild($Build)
+            }
+            else {
+                $buildCollection = $package.GetBuilds()
+            }
+            if (!$buildCollection) {
+                Stop-PSFFunction -Message "No builds selected for deployment, no deployment will be performed." -EnableException $false
+                return
+            }
+            foreach ($buildItem in $buildCollection) {
+                foreach ($script in $buildItem.scripts) {
                     # Replace tokens in the scripts
                     $scriptPackagePath = ($script.GetPackagePath() -replace ('^' + [regex]::Escape($package.GetPackagePath())), '').TrimStart('\')
                     $scriptContent = Resolve-VariableToken $script.GetContent() $runtimeVariables
@@ -201,8 +223,13 @@
         }
         else {
             foreach ($scriptItem in (Get-ChildScriptItem $ScriptPath)) {
-                # Replace tokens in the scripts
-                $scriptContent = Resolve-VariableToken (Get-Content $scriptItem.FullName -Raw) $runtimeVariables
+                if (!$RegisterOnly) {
+                    # Replace tokens in the scripts
+                    $scriptContent = Resolve-VariableToken (Get-Content $scriptItem.FullName -Raw) $runtimeVariables
+                }
+                else {
+                    $scriptContent = ""
+                }
                 $scriptCollection += [DbUp.Engine.SqlScript]::new($scriptItem.SourcePath, $scriptContent)
             }
         }
@@ -313,17 +340,55 @@
                 }
             }
         }
-        #Build and Upgrade
-        if ($PSCmdlet.ShouldProcess($package, "Deploying the package")) {
-            $dbUpBuild = $dbUp.Build()
-            $upgradeResult = $dbUpBuild.PerformUpgrade()
-            $status.Successful = $upgradeResult.Successful
-            $status.Error = $upgradeResult.Error
-            $status.Scripts = $upgradeResult.Scripts
+        #Register only
+        if ($RegisterOnly) {
+            #Cycle through already registered files and register the ones that are missing
+            if ($PSCmdlet.ShouldProcess($package, "Registering the package")) {
+                $registeredScripts = @()
+                $managedConnection = $dbUpConnection.OperationStarting($dbUpLog, $null)
+                $deployedScripts = $dbUpTableJournal.GetExecutedScripts()
+                try {
+                    foreach ($script in $scriptCollection) {
+                        if ($script.Name -notin $deployedScripts) {
+                            $dbUpConnection.ExecuteCommandsWithManagedConnection( {
+                                    Param (
+                                        $dbCommandFactory
+                                    )
+                                    $dbUpTableJournal.StoreExecutedScript($script, $dbCommandFactory)
+                                })
+                            $registeredScripts += $script
+                            $dbUpLog.WriteInformation("{0} was registered in table {1}", @($script.Name, $config.SchemaVersionTable))
+                        }
+                    }
+                    $status.Successful = $true
+                }
+                catch {
+                    $status.Successful = $false
+                    Stop-PSFFunction -EnableException $true -Message "Failed to register the script $($script.Name)" -ErrorRecord $_
+                }
+                finally {
+                    $managedConnection.Dispose()
+                    $status.Scripts = $registeredScripts
+                }
+            }
+            else {
+                $status.Successful = $true
+                $status.DeploymentLog += "Running in WhatIf mode - no registration performed."
+            }
         }
         else {
-            $status.Successful = $true
-            $status.DeploymentLog += "Running in WhatIf mode - no deployment performed."
+            #Build and Upgrade
+            if ($PSCmdlet.ShouldProcess($package, "Deploying the package")) {
+                $dbUpBuild = $dbUp.Build()
+                $upgradeResult = $dbUpBuild.PerformUpgrade()
+                $status.Successful = $upgradeResult.Successful
+                $status.Error = $upgradeResult.Error
+                $status.Scripts = $upgradeResult.Scripts
+            }
+            else {
+                $status.Successful = $true
+                $status.DeploymentLog += "Running in WhatIf mode - no deployment performed."
+            }
         }
         $status.EndTime = [datetime]::Now
         $status

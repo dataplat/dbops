@@ -38,7 +38,7 @@
         [string]$Path,
         [object]$Configuration
     )
-    if ($Path) {
+    if (Test-PSFParameterBinding -ParameterName Path -BoundParameters $PSBoundParameters) {
         Write-PSFMessage -Level Verbose -Message "Reading configuration from $Path"
         $config = [DBOpsConfig]::FromFile($Path)
     }

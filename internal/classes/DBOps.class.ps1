@@ -243,12 +243,12 @@ class DBOpsPackageBase : DBOps {
         return $this.Version
     }
 
-    [DBOpsBuild] GetBuild ([string]$build) {
-        if ($currentBuild = $this.builds | Where-Object { $_.build -eq $build }) {
+    [System.Collections.Generic.List[DBOpsBuild]] GetBuild ([string[]]$build) {
+        if ($currentBuild = $this.builds | Where-Object { $_.build -in $build }) {
             return $currentBuild
         }
         else {
-            return $null
+            return [System.Collections.Generic.List[DBOpsBuild]]::new()
         }
     }
     [void] AddBuild ([DBOpsBuild]$build) {
@@ -262,21 +262,18 @@ class DBOpsPackageBase : DBOps {
         }
     }
 
-    [void] RemoveBuild ([DBOpsBuild]$build) {
-        if ($this.builds | Where-Object { $_.build -eq $build.build }) {
-            $this.builds = $this.builds | Where-Object { $_.build -ne $build.build }
+    [void] RemoveBuild ([System.Collections.Generic.List[DBOpsBuild]]$build) {
+        foreach ($buildItem in $build) {
+            $this.builds.Remove($buildItem)
         }
-        else {
-            $this.ThrowArgumentException($this, "Build $build not found.")
-        }
-        if ($this.Builds) {
+        if ($this.Builds.Count -gt 0) {
             $this.Version = $this.Builds[-1].Build
         }
         else {
             $this.Version = [NullString]::Value
         }
     }
-    [void] RemoveBuild ([string]$build) {
+    [void] RemoveBuild ([string[]]$build) {
         $this.RemoveBuild($this.GetBuild($build))
     }
     [bool] ScriptExists([string]$fileName) {

@@ -1,12 +1,10 @@
-﻿function Install-DBOPackage {
+function Register-DBOPackage {
     <#
     .SYNOPSIS
-        Deploys an existing DBOps package
+        Registers scripts of the existing DBOps package as 'already deployed' in the target database without executing them
     
     .DESCRIPTION
-        Deploys an existing DBOps package with optional parameters.
-        Uses a table specified in SchemaVersionTable parameter to determine scripts to run.
-        Will deploy all the builds from the package that previously have not been deployed.
+        Registers scripts of the existing DBOps package in a schema verion table with optional parameters.
     
     .PARAMETER Path
         Path to the existing DBOpsPackage.
@@ -21,14 +19,6 @@
     
     .PARAMETER Database
         Name of the database to execute the scripts in. Optional - will use default database if not specified.
-    
-    .PARAMETER DeploymentMethod
-        Choose one of the following deployment methods:
-        - SingleTransaction: wrap all the deployment scripts into a single transaction and rollback whole deployment on error
-        - TransactionPerScript: wrap each script into a separate transaction; rollback single script deployment in case of error
-        - NoTransaction: deploy as is
-        
-        Default: NoTransaction
     
     .PARAMETER ConnectionTimeout
         Database server connection timeout in seconds. Only affects connection attempts. Does not affect execution timeout.
@@ -88,9 +78,6 @@
     .PARAMETER Schema
         Deploy into a specific schema (if supported by RDBMS)
 
-    .PARAMETER Build
-        Only deploy certain builds from the package.
-    
     .PARAMETER CreateDatabase
         Will create an empty database if missing on supported RDMBS
 
@@ -98,6 +85,9 @@
         Defines the driver to use when connecting to the database server.
         Available options: SqlServer (default), Oracle
     
+    .PARAMETER Build
+        Only register certain builds from the package.
+        
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -105,24 +95,24 @@
         Shows what would happen if the command would execute, but does not actually perform the command
 
     .EXAMPLE
-        # Installs package with predefined configuration inside the package
-        Install-DBOPackage .\MyPackage.zip
+        # Register package scripts in a target database with predefined configuration inside the package
+        Register-DBOPackage .\MyPackage.zip
     
     .EXAMPLE
-        # Installs package using specific connection parameters
-        .\MyPackage.zip | Install-DBOPackage -SqlInstance 'myserver\instance1' -Database 'MyDb' -ExecutionTimeout 3600
+        # Register package scripts in a target database using specific connection parameters
+        .\MyPackage.zip | Register-DBOPackage -SqlInstance 'myserver\instance1' -Database 'MyDb' -ExecutionTimeout 3600
         
     .EXAMPLE
-        # Installs package using custom logging parameters and schema tracking table
-        .\MyPackage.zip | Install-DBOPackage -SchemaVersionTable dbo.SchemaHistory -OutputFile .\out.log -Append
+        # Register package scripts in a target database using custom logging parameters and schema tracking table
+        .\MyPackage.zip | Register-DBOPackage -SchemaVersionTable dbo.SchemaHistory -OutputFile .\out.log -Append
 
     .EXAMPLE
-        # Installs package using custom configuration file
-        .\MyPackage.zip | Install-DBOPackage -ConfigurationFile .\localconfig.json
+        # Register package scripts in a target database using custom configuration file
+        .\MyPackage.zip | Register-DBOPackage -ConfigurationFile .\localconfig.json
 
     .EXAMPLE
-        # Installs package using variables instead of specifying values directly
-        .\MyPackage.zip | Install-DBOPackage -SqlInstance '#{server}' -Database '#{db}' -Variables @{server = 'myserver\instance1'; db = 'MyDb'}
+        # Register package scripts in a target database using variables instead of specifying values directly
+        .\MyPackage.zip | Register-DBOPackage -SqlInstance '#{server}' -Database '#{db}' -Variables @{server = 'myserver\instance1'; db = 'MyDb'}
 #>
     
     [CmdletBinding(SupportsShouldProcess = $true, DefaultParameterSetName = 'Default')]
@@ -144,8 +134,6 @@
         [string]$SqlInstance,
         [Parameter(Position = 3)]
         [string]$Database,
-        [ValidateSet('SingleTransaction', 'TransactionPerScript', 'NoTransaction')]
-        [string]$DeploymentMethod = 'NoTransaction',
         [int]$ConnectionTimeout,
         [int]$ExecutionTimeout,
         [switch]$Encrypt,
@@ -189,15 +177,18 @@
         }
         
         #Prepare deployment function call parameters
-        $params = @{ InputObject = $package }
+        $params = @{
+            InputObject  = $package
+            RegisterOnly = $true
+        }
         foreach ($key in ($PSBoundParameters.Keys)) {
             #If any custom properties were specified
             if ($key -in @('OutputFile', 'Append', 'Configuration', 'Variables', 'ConnectionType', 'Build')) {
                 $params += @{ $key = $PSBoundParameters[$key] }
             }
         }
-        Write-PSFMessage -Level Verbose -Message "Preparing to start the deployment with custom parameters: $($params.Keys -join ', ')"
-        if ($PSCmdlet.ShouldProcess($package, "Initiating the deployment of the package")) {
+        Write-PSFMessage -Level Verbose -Message "Preparing to register with custom parameters: $($params.Keys -join ', ')"
+        if ($PSCmdlet.ShouldProcess($package, "Registering the package")) {
             Invoke-DBODeployment @params
         }
         else {
