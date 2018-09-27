@@ -77,7 +77,6 @@ Describe "Register-DBOPackage integration tests" -Tag $commandName, IntegrationT
     }
     Context "testing registration of scripts" {
         BeforeAll {
-            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
             $p2 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv2" -Build 1.0 -Force
             $p2 = Add-DBOBuild -ScriptPath $v2scripts -Package $p2 -Build 2.0
             $outputFile = "$workFolder\log.txt"
@@ -86,12 +85,12 @@ Describe "Register-DBOPackage integration tests" -Tag $commandName, IntegrationT
         It "should register version 1.0 without creating any objects" {
             $before = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $results = Register-DBOPackage -Package $p1 -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -Silent
+            $results = Register-DBOPackage -Package $p2 -Build 1.0 -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -Silent
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be ((Get-Item $v1scripts).Name | ForEach-Object {'1.0\' + $_})
             $results.SqlInstance | Should Be $script:instance1
             $results.Database | Should Be $newDbName
-            $results.SourcePath | Should Be "$workFolder\pv1.zip"
+            $results.SourcePath | Should Be "$workFolder\pv2.zip"
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty

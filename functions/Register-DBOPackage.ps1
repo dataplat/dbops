@@ -85,6 +85,9 @@ function Register-DBOPackage {
         Defines the driver to use when connecting to the database server.
         Available options: SqlServer (default), Oracle
     
+    .PARAMETER Build
+        Only register certain builds from the package.
+        
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -125,6 +128,7 @@ function Register-DBOPackage {
             ValueFromPipeline = $true,
             ParameterSetName = 'Pipeline')]
         [object]$InputObject,
+        [string[]]$Build,
         [Parameter(Position = 2)]
         [Alias('Server', 'SqlServer', 'DBServer', 'Instance')]
         [string]$SqlInstance,
@@ -174,12 +178,12 @@ function Register-DBOPackage {
         
         #Prepare deployment function call parameters
         $params = @{
-            InputObject = $package
+            InputObject  = $package
             RegisterOnly = $true
         }
         foreach ($key in ($PSBoundParameters.Keys)) {
             #If any custom properties were specified
-            if ($key -in @('OutputFile', 'Append', 'Configuration', 'Variables', 'ConnectionType')) {
+            if ($key -in @('OutputFile', 'Append', 'Configuration', 'Variables', 'ConnectionType', 'Build')) {
                 $params += @{ $key = $PSBoundParameters[$key] }
             }
         }

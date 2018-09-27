@@ -136,7 +136,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
     Context "testing regular deployment" {
         BeforeAll {
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
-            $p2 = New-DBOPackage -ScriptPath $v2scripts -Name "$workFolder\pv2" -Build 2.0 -Force
+            $p1 = Add-DBOBuild -ScriptPath $v2scripts -Name $p1 -Build 2.0
             #versions should not be sorted by default - creating a package where 1.0 is the second build
             $p3 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv3" -Build 2.0 -Force
             $null = Add-DBOBuild -ScriptPath $v2scripts -Name $p3 -Build 1.0
@@ -144,7 +144,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy version 1.0" {
-            $results = Install-DBOPackage "$workFolder\pv1.zip" -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $results = Install-DBOPackage $p1 -Build '1.0' -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be ((Get-Item $v1scripts).Name | ForEach-Object {'1.0\' + $_})
             $results.SqlInstance | Should Be $script:instance1
@@ -170,7 +170,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             'd' | Should Not BeIn $results.name
         }
         It "should re-deploy version 1.0 pipelining a string" {
-            $results = "$workFolder\pv1.zip" | Install-DBOPackage -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $results = "$workFolder\pv1.zip" | Install-DBOPackage -Build '1.0' -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should BeNullOrEmpty
             $results.SqlInstance | Should Be $script:instance1
@@ -195,12 +195,12 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             'd' | Should Not BeIn $results.name
         }
         It "should deploy version 2.0 using pipelined Get-DBOPackage" {
-            $results = Get-DBOPackage "$workFolder\pv2.zip" | Install-DBOPackage -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $results = Get-DBOPackage "$workFolder\pv1.zip" | Install-DBOPackage -Build '1.0','2.0' -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should Be ((Get-Item $v2scripts).Name | ForEach-Object { '2.0\' + $_ })
             $results.SqlInstance | Should Be $script:instance1
             $results.Database | Should Be $newDbName
-            $results.SourcePath | Should Be "$workFolder\pv2.zip"
+            $results.SourcePath | Should Be "$workFolder\pv1.zip"
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty
@@ -221,12 +221,12 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             'd' | Should BeIn $results.name
         }
         It "should re-deploy version 2.0 using pipelined FileSystemObject" {
-            $results = Get-Item "$workFolder\pv2.zip" | Install-DBOPackage -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $results = Get-Item "$workFolder\pv1.zip" | Install-DBOPackage -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             $results.Successful | Should Be $true
             $results.Scripts.Name | Should BeNullOrEmpty
             $results.SqlInstance | Should Be $script:instance1
             $results.Database | Should Be $newDbName
-            $results.SourcePath | Should Be "$workFolder\pv2.zip"
+            $results.SourcePath | Should Be "$workFolder\pv1.zip"
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
             $results.Error | Should BeNullOrEmpty

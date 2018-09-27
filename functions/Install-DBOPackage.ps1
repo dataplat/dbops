@@ -88,6 +88,9 @@
     .PARAMETER Schema
         Deploy into a specific schema (if supported by RDBMS)
 
+    .PARAMETER Build
+        Only deploy certain builds from the package.
+    
     .PARAMETER CreateDatabase
         Will create an empty database if missing on supported RDMBS
 
@@ -135,6 +138,7 @@
             ValueFromPipeline = $true,
             ParameterSetName = 'Pipeline')]
         [object]$InputObject,
+        [string[]]$Build,
         [Parameter(Position = 2)]
         [Alias('Server', 'SqlServer', 'DBServer', 'Instance')]
         [string]$SqlInstance,
@@ -188,7 +192,7 @@
         $params = @{ InputObject = $package }
         foreach ($key in ($PSBoundParameters.Keys)) {
             #If any custom properties were specified
-            if ($key -in @('OutputFile', 'Append', 'Configuration', 'Variables', 'ConnectionType')) {
+            if ($key -in @('OutputFile', 'Append', 'Configuration', 'Variables', 'ConnectionType', 'Build')) {
                 $params += @{ $key = $PSBoundParameters[$key] }
             }
         }

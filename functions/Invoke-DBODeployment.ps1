@@ -47,6 +47,9 @@
     .PARAMETER RegisterOnly
         Store deployment script records in the SchemaVersions table without deploying anything.
     
+    .PARAMETER Build
+        Only deploy certain builds from the package.
+    
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -77,9 +80,11 @@
         [parameter(ParameterSetName = 'Script')]
         [Alias('SourcePath')]
         [string[]]$ScriptPath,
-        [parameter(ParameterSetName = 'Pipeline')]
+        [parameter(ParameterSetName = 'PackageObject')]
         [Alias('Package')]
         [object]$InputObject,
+        [parameter(ParameterSetName = 'PackageObject')]
+        [string[]]$Build,
         [string]$OutputFile,
         [switch]$Append,
         [ValidateSet('SQLServer', 'Oracle')]
@@ -99,7 +104,7 @@
         elseif ($PsCmdlet.ParameterSetName -eq 'Script') {
             $config = Get-DBOConfig
         }
-        elseif ($PsCmdlet.ParameterSetName -eq 'Pipeline') {
+        elseif ($PsCmdlet.ParameterSetName -eq 'PackageObject') {
             $package = Get-DBOPackage -InputObject $InputObject
             $config = $package.Configuration
         }
@@ -197,8 +202,18 @@
         $scriptCollection = @()
         if ($PsCmdlet.ParameterSetName -ne 'Script') {
             # Get contents of the script files
-            foreach ($build in $package.builds) {
-                foreach ($script in $build.scripts) {
+            if ($Build) {
+                $buildCollection = $package.GetBuild($Build)
+            }
+            else {
+                $buildCollection = $package.GetBuilds()
+            }
+            if (!$buildCollection) {
+                Stop-PSFFunction -Message "No builds selected for deployment, no deployment will be performed." -EnableException $false
+                return
+            }
+            foreach ($buildItem in $buildCollection) {
+                foreach ($script in $buildItem.scripts) {
                     # Replace tokens in the scripts
                     $scriptPackagePath = ($script.GetPackagePath() -replace ('^' + [regex]::Escape($package.GetPackagePath())), '').TrimStart('\')
                     $scriptContent = Resolve-VariableToken $script.GetContent() $runtimeVariables
@@ -336,13 +351,13 @@
                     foreach ($script in $scriptCollection) {
                         if ($script.Name -notin $deployedScripts) {
                             $dbUpConnection.ExecuteCommandsWithManagedConnection( {
-                                Param (
-                                    $dbCommandFactory
-                                )
-                                $dbUpTableJournal.StoreExecutedScript($script, $dbCommandFactory)
-                            })
+                                    Param (
+                                        $dbCommandFactory
+                                    )
+                                    $dbUpTableJournal.StoreExecutedScript($script, $dbCommandFactory)
+                                })
                             $registeredScripts += $script
-                            $dbUpLog.WriteInformation("{0} was registered in table {1}", @($script.Name,$config.SchemaVersionTable))
+                            $dbUpLog.WriteInformation("{0} was registered in table {1}", @($script.Name, $config.SchemaVersionTable))
                         }
                     }
                     $status.Successful = $true
