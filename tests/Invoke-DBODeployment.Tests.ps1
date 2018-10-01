@@ -259,7 +259,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
         It "should deploy nothing" {
             $results = Invoke-DBODeployment -ScriptPath $v1scripts -Configuration $deploymentConfig -WhatIf
             $results.Successful | Should Be $true
-            $results.Scripts | Should BeNullOrEmpty
+            $results.Scripts.Name | Should Be $v1scripts
             $results.SqlInstance | Should Be $script:instance1
             $results.Database | Should Be $newDbName
             $results.SourcePath | Should Be $v1scripts
@@ -270,7 +270,8 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
             $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
-            "Running in WhatIf mode - no deployment performed." | Should BeIn $results.DeploymentLog
+            "No deployment performed - WhatIf mode." | Should BeIn $results.DeploymentLog
+            "$v1scripts would have been executed - WhatIf mode." | Should BeIn $results.DeploymentLog
 
             #Verifying objects
             $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript

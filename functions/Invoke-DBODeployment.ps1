@@ -384,8 +384,19 @@
                 $status.Scripts = $upgradeResult.Scripts
             }
             else {
+                $missingScripts = @()
+                $managedConnection = $dbUpConnection.OperationStarting($dbUpLog, $null)
+                $deployedScripts = $dbUpTableJournal.GetExecutedScripts()
+                foreach ($script in $scriptCollection) {
+                    if ($script.Name -notin $deployedScripts) {
+                        $missingScripts += $script
+                        $dbUpLog.WriteInformation("{0} would have been executed - WhatIf mode.", $script.Name)
+                    }
+                }
+                $managedConnection.Dispose()
+                $status.Scripts = $missingScripts
                 $status.Successful = $true
-                $status.DeploymentLog += "Running in WhatIf mode - no deployment performed."
+                $dbUpLog.WriteInformation("No deployment performed - WhatIf mode.", $null)
             }
         }
         $status.EndTime = [datetime]::Now

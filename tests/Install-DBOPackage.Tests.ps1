@@ -346,6 +346,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results = Install-DBOPackage $packageNamev1 -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -Silent -WhatIf
             $results.SqlInstance | Should Be $script:instance1
             $results.Database | Should Be $newDbName
+            $results.Scripts.Name | Should Be ((Get-Item $v1scripts).Name | ForEach-Object { '1.0\' + $_ })
             $results.SourcePath | Should Be $packageNamev1
             $results.ConnectionType | Should Be 'SQLServer'
             $results.Configuration.SchemaVersionTable | Should Be $logTable
@@ -354,7 +355,8 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $results.StartTime | Should Not BeNullOrEmpty
             $results.EndTime | Should Not BeNullOrEmpty
             $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
-            "Running in WhatIf mode - no deployment performed." | Should BeIn $results.DeploymentLog
+            "No deployment performed - WhatIf mode." | Should BeIn $results.DeploymentLog
+            ((Get-Item $v1scripts).Name | ForEach-Object { '1.0\' + $_ }) + " would have been executed - WhatIf mode." | Should BeIn $results.DeploymentLog
 
             #Verifying objects
             $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
