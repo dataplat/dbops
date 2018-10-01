@@ -96,17 +96,15 @@
     )
     begin {}
     process {
+        $config = Get-DBOConfig
         if ($PsCmdlet.ParameterSetName -eq 'PackageFile') {
             #Get package object from the json file
             $package = Get-DBOPackage $PackageFile -Unpacked
-            $config = $package.Configuration
-        }
-        elseif ($PsCmdlet.ParameterSetName -eq 'Script') {
-            $config = Get-DBOConfig
+            $config.Merge($package.Configuration)
         }
         elseif ($PsCmdlet.ParameterSetName -eq 'PackageObject') {
             $package = Get-DBOPackage -InputObject $InputObject
-            $config = $package.Configuration
+            $config.Merge($package.Configuration)
         }
 
         if (Test-PSFParameterBinding -ParameterName Configuration -BoundParameters $PSBoundParameters) {
