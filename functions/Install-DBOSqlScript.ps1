@@ -185,7 +185,7 @@
         }
 
         #Getting new config with current defaults
-        $config = Get-DBOConfig -Configuration $Configuration
+        $config = New-DBOConfig -Configuration $Configuration
 
         #Convert custom parameters into a package configuration, excluding variables
         foreach ($key in ($PSBoundParameters.Keys)) {

@@ -96,7 +96,7 @@
     )
     begin {}
     process {
-        $config = Get-DBOConfig
+        $config = New-DBOConfig
         if ($PsCmdlet.ParameterSetName -eq 'PackageFile') {
             #Get package object from the json file
             $package = Get-DBOPackage $PackageFile -Unpacked

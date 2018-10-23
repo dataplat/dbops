@@ -20,32 +20,23 @@
         Shows what would happen if the command would execute, but does not actually perform the command
 
     .EXAMPLE
-    # Returns empty configuration
-    Get-DBOConfig
-    
-    .EXAMPLE
     # Returns configuration from existing file
     Get-DBOConfig c:\package\dbops.config.json
 
     .EXAMPLE
-    # Saves empty configuration to a file
-    (Get-DBOConfig).SaveToFile('c:\package\dbops.config.json')
+    # Returns configuration overriding ConnectionTimeout
+    Get-DBOConfig c:\package\dbops.config.json -Configuration @{ ConnectionTimeout = 5 }
 
     #>
     [CmdletBinding()]
     param
     (
+        [parameter(Mandatory)]
         [string]$Path,
         [object]$Configuration
     )
-    if (Test-PSFParameterBinding -ParameterName Path -BoundParameters $PSBoundParameters) {
-        Write-PSFMessage -Level Verbose -Message "Reading configuration from $Path"
-        $config = [DBOpsConfig]::FromFile($Path)
-    }
-    else {
-        Write-PSFMessage -Level Verbose -Message "Generating blank configuration object"
-        $config = [DBOpsConfig]::new()
-    }
+
+    $config = [DBOpsConfig]::FromFile($Path)
     if ($Configuration) {
         if ($Configuration -is [DBOpsConfig] -or $Configuration -is [hashtable]) {
             Write-PSFMessage -Level Verbose -Message "Merging configuration"

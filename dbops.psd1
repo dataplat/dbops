@@ -84,7 +84,8 @@
         'Install-DBOSqlScript',
         'Register-DBOPackage',
         'Send-DBOMailMessage',
-        'Reset-DBODefaultSetting'
+        'Reset-DBODefaultSetting',
+        'New-DBOConfig'
     )
     
     # Cmdlets to export from this module

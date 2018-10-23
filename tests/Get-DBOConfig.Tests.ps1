@@ -31,30 +31,6 @@ Describe "Get-DBOConfig tests" -Tag $commandName, UnitTests {
         { Get-DBOConfig 'asdqweqsdfwer' } | Should throw
     }
 
-    It "Should return a default config by default" {
-        $result = Get-DBOConfig
-        foreach ($prop in $result.psobject.properties.name) {
-            $result.$prop | Should Be (Get-PSFConfigValue -FullName dbops.$prop)
-        }
-    }
-
-    It "Should override properties in an empty config" {
-        $result = Get-DBOConfig -Configuration @{ApplicationName = 'MyNewApp'; ConnectionTimeout = 3}
-        $result.ApplicationName | Should Be 'MyNewApp'
-        $result.SqlInstance | Should Be 'localhost'
-        $result.Database | Should Be $null
-        $result.DeploymentMethod | Should Be 'NoTransaction'
-        $result.ConnectionTimeout | Should Be 3
-        $result.Encrypt | Should Be $false
-        $result.Credential | Should Be $null
-        $result.Username | Should Be $null
-        $result.Password | Should Be $null
-        $result.SchemaVersionTable | Should Be 'SchemaVersions'
-        $result.Silent | Should Be $false
-        $result.Variables | Should Be $null
-        $result.CreateDatabase | Should Be $false
-    }
-
     It "Should return empty configuration from empty config file" {
         $result = Get-DBOConfig "$here\etc\empty_config.json"
         $result.ApplicationName | Should Be $null
