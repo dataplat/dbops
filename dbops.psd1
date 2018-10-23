@@ -85,7 +85,8 @@
         'Register-DBOPackage',
         'Send-DBOMailMessage',
         'Reset-DBODefaultSetting',
-        'New-DBOConfig'
+        'New-DBOConfig',
+        'Export-DBOConfig'
     )
     
     # Cmdlets to export from this module
