@@ -77,6 +77,22 @@ Describe "Update-DBOConfig tests" -Tag $commandName, UnitTests {
             { Update-DBOConfig -Path $packageName -Configuration @{NonexistingItem = '123' } } | Should throw
         }
     }
+    Context "Updating config items using DBOpsConfig and a pipeline" {
+        It "updates config items with new values" {
+            $config = New-DBOConfig -Configuration @{ApplicationName = 'MyHashApplication'; Database = 'MyNewDb'}
+            Get-DBOPackage $packageName | Update-DBOConfig -Configuration $config
+            $results = (Get-DBOPackage -Path $packageName).Configuration
+            $results.ApplicationName | Should Be 'MyHashApplication'
+            $results.Database | Should Be 'MyNewDb'
+        }
+        It "updates config items with a null value" {
+            $config = New-DBOConfig -Configuration @{ApplicationName = $null; Database = $null}
+            $packageName | Update-DBOConfig -Configuration $config
+            $results = (Get-DBOPackage -Path $packageName).Configuration
+            $results.ApplicationName | Should Be $null
+            $results.Database | Should Be $null
+        }
+    }
     Context "Updating config items using a file template" {
         It "updates config items with an empty config file" {
             Update-DBOConfig -Path $packageName -ConfigurationFile "$here\etc\empty_config.json"
