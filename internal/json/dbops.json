@@ -28,7 +28,10 @@
         "functions\\Copy-DBOPackageArtifact.ps1",
         "functions\\Install-DBOSqlScript.ps1",
         "functions\\Register-DBOPackage.ps1",
-        "functions\\Send-DBOMailMessage.ps1"
+        "functions\\Send-DBOMailMessage.ps1",
+        "functions\\Reset-DBODefaultSetting.ps1",
+        "functions\\New-DBOConfig.ps1",
+        "functions\\Export-DBOConfig.ps1"
     ],
     "Internal": [
         "internal\\classes\\DBOps.enums.ps1",

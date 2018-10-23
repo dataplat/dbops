@@ -48,6 +48,12 @@ Describe "Send-DBOMailMessage tests" -Tag $commandName, UnitTests {
             $status | Send-DBOMailMessage @mailParams -Subject 'Test' -Template "<body>soHtml</body>"
             Assert-MockCalled -CommandName Send-MailMessage -Exactly 1 -Scope It -ModuleName dbops
         }
+        It "Should run return an object when used with -passthru" {
+            $result = $status | Send-DBOMailMessage @mailParams -Passthru
+            $result.SqlInstance | Should Be $status.SqlInstance
+            $result.Database | Should Be $status.Database
+            Assert-MockCalled -CommandName Send-MailMessage -Exactly 1 -Scope It -ModuleName dbops
+        }
         It "Should grab parameters from defaults" {
             Set-DBODefaultSetting -Temporary -Name mail.SmtpServer -Value 'test.local'
             Set-DBODefaultSetting -Temporary -Name mail.Subject -Value 'test'

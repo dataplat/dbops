@@ -17,7 +17,7 @@ else {
 
 Describe "Get-DBODefaultSetting tests" -Tag $commandName, UnitTests {
     BeforeAll {
-        Set-PSFConfig -FullName dbops.TestConfig -Value 1
+        Set-PSFConfig -FullName dbops.tc1 -Value 1
         Set-PSFConfig -FullName dbops.tc2 -Value 'string'
         Set-PSFConfig -FullName dbops.tc3 -Value 'another'
         Set-PSFConfig -FullName dbops.secret -Value (ConvertTo-SecureString -AsPlainText 'foo' -Force)
@@ -27,15 +27,15 @@ Describe "Get-DBODefaultSetting tests" -Tag $commandName, UnitTests {
     }
     Context "Getting various configs" {
         It "returns plain values" {
-            Get-DBODefaultSetting -Name TestConfig -Value | Should Be 1
-            $result = Get-DBODefaultSetting -Name TestConfig
+            Get-DBODefaultSetting -Name tc1 -Value | Should Be 1
+            $result = Get-DBODefaultSetting -Name tc1
             $result.Value | Should Be 1
-            $result.Name | Should Be 'TestConfig'
+            $result.Name | Should Be 'tc1'
         }
         It "returns wildcarded values" {
             $result = Get-DBODefaultSetting -Name tc* | Sort-Object Name
-            $result.Value | Should Be @('string', 'another')
-            $result.Name | Should Be @('tc2', 'tc3')
+            $result.Value | Should Be @(1, 'string', 'another')
+            $result.Name | Should Be @('tc1', 'tc2', 'tc3')
         }
         It "returns values from an array of configs" {
             $result = Get-DBODefaultSetting -Name tc2, tc3

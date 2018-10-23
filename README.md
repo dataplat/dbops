@@ -111,8 +111,8 @@ Update-DBOConfig Deploy.zip -Configuration @{ DeploymentMethod = 'SingleTransact
 Install-DBOPackage Deploy.zip
 
 # Generating config files and using it later as a deployment template
-(Get-DBOConfig -Configuration @{ DeploymentMethod = 'SingleTransaction'; SqlInstance = 'devInstance'; Database = 'MyDB' }).SaveToFile('.\dev.json')
-(Get-DBOConfig -Path '.\dev.json' -Configuration @{ SqlInstance = 'prodInstance' }).SaveToFile('.\prod.json')
+New-DBOConfig -Configuration @{ DeploymentMethod = 'SingleTransaction'; SqlInstance = 'devInstance'; Database = 'MyDB' } | Export-DBOConfig '.\dev.json'
+Get-DBOConfig -Path '.\dev.json' -Configuration @{ SqlInstance = 'prodInstance' } | Export-DBOConfig '.\prod.json'
 Install-DBOPackage Deploy.zip -ConfigurationFile .\dev.json
 
 # Invoke package deployment using custom connection string
@@ -126,6 +126,9 @@ Get-DBODefaultSetting
 
 # Change the default SchemaVersionTable setting to null, disabling the deployment journalling by default
 Set-DBODefaultSetting -Name SchemaVersionTable -Value $null
+
+# Reset SchemaVersionTable setting back to its default value
+Reset-DBODefaultSetting -Name SchemaVersionTable
 ```
 ### CI/CD features
 

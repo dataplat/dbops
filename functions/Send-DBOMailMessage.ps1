@@ -47,6 +47,8 @@ function Send-DBOMailMessage {
     .PARAMETER UseSsl
     Uses the Secure Sockets Layer (SSL) protocol to establish a connection to the remote computer to send mail. By
     default, SSL is not used.
+    .PARAMETER PassThru
+    Returns an deployment result object that was passed as InputObject after execution.
     .EXAMPLE
     #Runs package deployment and sends a mail message
     Install-DBOPackage -SqlInstance MyInstance -Database MyDB |
@@ -71,7 +73,8 @@ function Send-DBOMailMessage {
         [ValidateSet('None', 'OnSuccess', 'OnFailure', 'Delay', 'Never')]
         [string]$DeliveryNotificationOption,
         [System.Text.Encoding]$Encoding,
-        [switch]$UseSsl
+        [switch]$UseSsl,
+        [switch]$PassThru
     )
     begin {
     }
@@ -139,6 +142,7 @@ function Send-DBOMailMessage {
         # Modify the params as required
         $null = $PSBoundParameters.Remove("InputObject")
         $null = $PSBoundParameters.Remove("Template")
+        $null = $PSBoundParameters.Remove("PassThru")
         foreach ($p in (@('Subject', 'From', 'To', 'CC') | Where-Object { $_ -in $PSBoundParameters.Keys })) {
             $PSBoundParameters[$p] = Resolve-VariableToken $PSBoundParameters[$p] $tokens
         }
@@ -148,6 +152,9 @@ function Send-DBOMailMessage {
         }
         catch {
             Stop-PSFFunction -Message "Failure in Send-MailMessage" -ErrorRecord $_ -EnableException $true
+        }
+        if ($PassThru) {
+            $InputObject
         }
     }
     end {

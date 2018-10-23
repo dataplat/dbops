@@ -83,7 +83,10 @@
         'Copy-DBOPackageArtifact',
         'Install-DBOSqlScript',
         'Register-DBOPackage',
-        'Send-DBOMailMessage'
+        'Send-DBOMailMessage',
+        'Reset-DBODefaultSetting',
+        'New-DBOConfig',
+        'Export-DBOConfig'
     )
     
     # Cmdlets to export from this module

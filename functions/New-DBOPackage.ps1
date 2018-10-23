@@ -111,7 +111,7 @@
             $config = Get-DBOConfig -Path $ConfigurationFile -Configuration $configTable
         }
         else {
-            $config = Get-DBOConfig -Configuration $configTable
+            $config = New-DBOConfig -Configuration $configTable
         }
         $package.SetConfiguration($config)
         
