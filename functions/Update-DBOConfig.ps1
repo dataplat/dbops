@@ -15,7 +15,7 @@
     Alias: ConfigFile
     
     .PARAMETER Configuration
-    Hashtable containing several configuration items at once
+    Object containing several configuration items at once
     Alias: Config
     
     .PARAMETER ConfigName
@@ -27,7 +27,7 @@
     .PARAMETER Variables
     Hashtable with variables that can be used inside the scripts and deployment parameters.
     Proper format of the variable tokens is #{MyVariableName}
-    Can also be provided as a part of Configuration hashtable: -Configuration @{ Variables = @{ Var1 = ...; Var2 = ...}}
+    Can also be provided as a part of Configuration Object: -Configuration @{ Variables = @{ Var1 = ...; Var2 = ...}}
     
     .PARAMETER Confirm
         Prompts to confirm certain actions
@@ -72,11 +72,11 @@
             Mandatory = $true,
             Position = 3 )]
         [AllowNull()][object]$Value,
-        [Parameter(ParameterSetName = 'Hashtable',
+        [Parameter(ParameterSetName = 'Object',
             Mandatory = $true,
             Position = 2 )]
         [Alias('Config')]
-        [hashtable]$Configuration,
+        [object]$Configuration,
         [Parameter(ParameterSetName = 'File',
             Mandatory = $true,
             Position = 2 )]
@@ -85,7 +85,7 @@
         [Parameter(ParameterSetName = 'Variables',
             Mandatory = $true,
             Position = 2 )]
-        [Parameter(ParameterSetName = 'Hashtable')]
+        [Parameter(ParameterSetName = 'Object')]
         [Parameter(ParameterSetName = 'File')]
         [AllowNull()][hashtable]$Variables
     )
@@ -93,31 +93,28 @@
 
     }
     process {
-        foreach ($pFile in (Get-Item $Path)) {
-            if ($package = [DBOpsPackage]::new($pFile.FullName)) {
-                $config = $package.Configuration
-                Write-PSFMessage -Level Verbose -Message "Assigning new values to the config"
-                if ($PSCmdlet.ParameterSetName -eq 'Value') {
-                    $newConfig = @{ $ConfigName = $Value }
-                }
-                elseif ($PSCmdlet.ParameterSetName -eq 'Hashtable') {
-                    $newConfig = $Configuration
-                }
-                elseif ($PSCmdlet.ParameterSetName -eq 'File') {
-                    $newConfig = (Get-DBOConfig -Path $ConfigurationFile).AsHashtable()
+        foreach ($package in (Get-DBOPackage $Path)) {
+            #preparing an object for a merge
+            $config = $package | Get-DBOConfig
+            Write-PSFMessage -Level Verbose -Message "Assigning new values to the config"
+            if ($PSCmdlet.ParameterSetName -eq 'Value') {
+                $newConfig = New-DBOConfig -Configuration @{ $ConfigName = $Value }
+            }
+            elseif ($PSCmdlet.ParameterSetName -eq 'Object') {
+                $newConfig = New-DBOConfig -Configuration $Configuration
+            }
+            elseif ($PSCmdlet.ParameterSetName -eq 'File') {
+                $newConfig = Get-DBOConfig -Path $ConfigurationFile
+            }
+            if ($pscmdlet.ShouldProcess($package, "Updating the package file/object")) {
+                if ($newConfig) {
+                    $config.Merge($newConfig)
                 }
                 #Overriding Variables
                 if ($Variables) {
-                    if ($PSCmdlet.ParameterSetName -ne 'Variables') { $newConfig.Remove('Variables') }
-                    $newConfig += @{ Variables = $Variables}
+                    $config.Variables = $Variables
                 }
-
-                Write-PSFMessage -Level Verbose -Message "Saving configuration in the DBOpsPackage object"
-                $config.Merge($newConfig)
-
-                if ($pscmdlet.ShouldProcess($package, "Updating the package file")) {
-                    $config.Alter()
-                }
+                $config.Alter()
             }
         }
     }
