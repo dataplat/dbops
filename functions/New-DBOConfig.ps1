@@ -29,22 +29,20 @@
     (New-DBOConfig).SaveToFile('c:\package\dbops.config.json')
 
     #>
-    [CmdletBinding(SupportsShouldProcess = 'True')]
+    [CmdletBinding()]
     param
     (
         [object]$Configuration
     )
-    if ($pscmdlet.ShouldProcess("Generating blank configuration object")) {
-        $config = [DBOpsConfig]::new()
-        if ($Configuration) {
-            if ($Configuration -is [DBOpsConfig] -or $Configuration -is [hashtable]) {
-                Write-PSFMessage -Level Verbose -Message "Merging configuration"
-                $config.Merge($Configuration)
-            }
-            else {
-                Stop-PSFFunction -EnableException $true -Message "The following object type is not supported: $($InputObject.GetType().Name). The only supported types are DBOpsConfig and Hashtable."
-            }
+    $config = [DBOpsConfig]::new()
+    if ($Configuration) {
+        if ($Configuration -is [DBOpsConfig] -or $Configuration -is [hashtable]) {
+            Write-PSFMessage -Level Verbose -Message "Merging configuration"
+            $config.Merge($Configuration)
         }
-        $config
+        else {
+            Stop-PSFFunction -EnableException $true -Message "The following object type is not supported: $($InputObject.GetType().Name). The only supported types are DBOpsConfig and Hashtable."
+        }
     }
+    $config
 }

@@ -40,9 +40,14 @@ Describe "$ModuleName indentation" -Tag 'Compliance' {
 }
 
 Describe "$ModuleName ScriptAnalyzerErrors" -Tag 'Compliance' {
-    $functionErrors = Invoke-ScriptAnalyzer -Path "$ModulePath\functions" -Severity Warning
-    $internalErrors = Invoke-ScriptAnalyzer -Path "$ModulePath\internal\functions" -Severity Error
-    $moduleErrors = Invoke-ScriptAnalyzer -Path "$ModulePath\$ModuleName.psm1" -Severity Error
+    $settings = @{
+        ExcludeRules = @(
+            'PSUseShouldProcessForStateChangingFunctions'
+        )
+    }
+    $functionErrors = Invoke-ScriptAnalyzer -Path "$ModulePath\functions" -Severity Warning -Settings $settings
+    $internalErrors = Invoke-ScriptAnalyzer -Path "$ModulePath\internal\functions" -Severity Error -Settings $settings
+    $moduleErrors = Invoke-ScriptAnalyzer -Path "$ModulePath\$ModuleName.psm1" -Severity Error -Settings $settings
     foreach ($scriptAnalyzerErrors in @($functionErrors, $internalErrors, $moduleErrors)) {
         foreach ($err in $scriptAnalyzerErrors) {
             It "$($err.scriptName) has Error(s) : $($err.RuleName)" {
