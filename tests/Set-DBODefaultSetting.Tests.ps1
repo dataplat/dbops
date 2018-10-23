@@ -17,22 +17,22 @@ else {
 
 Describe "Set-DBODefaultSetting tests" -Tag $commandName, UnitTests {
     BeforeAll {
-        Set-PSFConfig -FullName dbops.TestConfig -Value 1
+        Set-PSFConfig -FullName dbops.tc1 -Value 1
         Set-PSFConfig -FullName dbops.tc2 -Value 'string'
         Set-PSFConfig -FullName dbops.tc3 -Value 'another'
         Set-PSFConfig -FullName dbops.secret -Value (ConvertTo-SecureString -AsPlainText 'foo' -Force)
     }
     AfterAll {
-        Unregister-PSFConfig -Module dbops -Name testconfig
+        Unregister-PSFConfig -Module dbops -Name tc1
         Unregister-PSFConfig -Module dbops -Name tc2
         Unregister-PSFConfig -Module dbops -Name tc3
         Unregister-PSFConfig -Module dbops -Name secret
     }
     Context "Setting various configs" {
         It "sets plain value" {
-            $result = Set-DBODefaultSetting -Name TestConfig -Value 1
+            $result = Set-DBODefaultSetting -Name tc1 -Value 1
             $result.Value | Should Be 1
-            $result.Name | Should Be 'testconfig'
+            $result.Name | Should Be 'tc1'
         }
         It "sets temporary value" {
             $result = Set-DBODefaultSetting -Name tc2 -Value 2 -Temporary

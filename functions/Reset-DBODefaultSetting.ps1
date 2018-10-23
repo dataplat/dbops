@@ -52,7 +52,12 @@ function Reset-DBODefaultSetting {
         elseif ($All) {
             foreach ($config in Get-PSFConfig -Module dbops ) {
                 if ($PSCmdlet.ShouldProcess($config, "Resetting the setting back to its default value")) {
-                    $config.ResetValue()
+                    if ($config.Initialized) {
+                        $config.ResetValue()
+                    }
+                    else {
+                        Write-PSFMessage -Level Warning -Message "Setting $($config.fullName -replace '^dbops\.','')) was not initialized and has no default value as such"
+                    }
                 }
             }
         }
