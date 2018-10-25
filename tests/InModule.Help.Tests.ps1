@@ -8,7 +8,7 @@ $here = if ($PSScriptRoot) { $PSScriptRoot } else {	(Get-Item . ).FullName }
 if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force
+    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness

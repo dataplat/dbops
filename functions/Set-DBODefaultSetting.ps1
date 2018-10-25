@@ -47,7 +47,7 @@ function Set-DBODefaultSetting {
         
             Change the default SchemaVersionTable setting to null, disabling the deployment logging by default
     #>
-    [CmdletBinding(DefaultParameterSetName = "FullName", SupportsShouldProcess = $true)]
+    [CmdletBinding(DefaultParameterSetName = "FullName", SupportsShouldProcess)]
     param (
         [string]$Name,
         [AllowNull()]
@@ -82,11 +82,11 @@ function Set-DBODefaultSetting {
         if (!$Temporary) {
             if ($PSCmdlet.ShouldProcess($Name, "Registering the value in the $newScope scope")) {
                 try {
-                    Register-PSFConfig -FullName dbops.$name -EnableException -WarningAction SilentlyContinue -Scope $newScope
+                    Register-PSFConfig -FullName dbops.$Name -EnableException -WarningAction SilentlyContinue -Scope $newScope
                 }
                 catch {
-                    Set-PSFConfig -Module dbops -Name $name -Value ($Value -join ", ") -EnableException
-                    Register-PSFConfig -FullName dbops.$name -Scope $newScope -EnableException
+                    Set-PSFConfig -Module dbops -Name $Name -Value ($Value -join ", ") -EnableException
+                    Register-PSFConfig -FullName dbops.$Name -Scope $newScope -EnableException
                 }
             }
         }

@@ -2,16 +2,16 @@ Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $moduleCatalog = Get-Content "$PSScriptRoot\internal\json\dbops.json" -Raw | ConvertFrom-Json
 foreach ($bin in $moduleCatalog.Libraries) {
-    Unblock-File -Path "$PSScriptRoot\$bin" -ErrorAction SilentlyContinue
+    if ($PSVersionTable.Platform -eq 'Win32NT') {
+        Unblock-File -Path "$PSScriptRoot\$bin" -ErrorAction SilentlyContinue
+    }
     Add-Type -Path "$PSScriptRoot\$bin"
 }
 
-foreach ($function in $moduleCatalog.Functions) {
-    . "$PSScriptRoot\$function"
-}
-
-foreach ($function in $moduleCatalog.Internal) {
-    . "$PSScriptRoot\$function"
+'Functions', 'Internal' | ForEach-Object {
+    foreach ($function in $moduleCatalog.$_) {
+        . "$PSScriptRoot\$function"
+    }
 }
 
 # defining validations
@@ -114,11 +114,8 @@ Set-PSFConfig -FullName dbops.mail.SmtpServer -Value "" -Initialize -Description
 Set-PSFConfig -FullName dbops.mail.From -Value "" -Initialize -Description "'From' field in the outgoing emails."
 Set-PSFConfig -FullName dbops.mail.To -Value "" -Initialize -Description "'To' field in the outgoing emails."
 Set-PSFConfig -FullName dbops.mail.Subject -Value "DBOps deployment status" -Initialize -Description "'Subject' field in the outgoing emails."
-
-# defining aliases
-
-New-Alias -Name Write-Message -Value Write-PSFMessage
-New-Alias -Name Stop-Function -Value Stop-PSFFunction
+Set-PSFConfig -FullName dbops.security.encryptionkey -Value "~/.dbops.key" -Initialize -Description "Path to a custom encryption key used to encrypt/decrypt passwords. The key should be a binary file with a length of 128, 192 or 256 bits. Key will be generated automatically if not exists."
+Set-PSFConfig -FullName dbops.security.usecustomencryptionkey -Value ($PSVersionTable.Platform -eq 'Unix') -Validation bool -Initialize -Description "Determines whether to use a custom encryption key for storing passwords. Enabled by default only on Unix platforms."
 
 # extensions for SMO
 $typeData = Get-TypeData -TypeName 'Microsoft.SqlServer.Management.Smo.Database'

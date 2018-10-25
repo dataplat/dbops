@@ -8,7 +8,7 @@ else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
 if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force
+    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
@@ -37,15 +37,15 @@ Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
         }
         It "resets one config" {
             Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 2
-            $result = Reset-DBODefaultSetting -Name tc1
-            $result | Should -BeNullOrEmpty
+            $testResult = Reset-DBODefaultSetting -Name tc1
+            $testResult | Should -BeNullOrEmpty
             Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 1
         }
         It "resets two configs" {
             Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 2
             Get-PSFConfigValue -FullName dbops.tc2 | Should -Be 'string2'
-            $result = Reset-DBODefaultSetting -Name tc1, tc2
-            $result | Should -BeNullOrEmpty
+            $testResult = Reset-DBODefaultSetting -Name tc1, tc2
+            $testResult | Should -BeNullOrEmpty
             Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 1
             Get-PSFConfigValue -FullName dbops.tc2 | Should -Be 'string'
         }
@@ -53,19 +53,17 @@ Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
             Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 2
             Get-PSFConfigValue -FullName dbops.tc2 | Should -Be 'string2'
             Get-PSFConfigValue -FullName dbops.tc3 | Should -Be 'another2'
-            $result = Get-PSFConfigValue -FullName dbops.secret
-            $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($result)
-            $secret = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-            $secret | Should -Be 'bar'
-            $result = Reset-DBODefaultSetting -All
-            $result | Should -BeNullOrEmpty
+            $testResult = Get-PSFConfigValue -FullName dbops.secret
+            $cred = [pscredential]::new('test',$testResult)
+            $cred.GetNetworkCredential().Password | Should Be 'bar'
+            $testResult = Reset-DBODefaultSetting -All
+            $testResult | Should -BeNullOrEmpty
             Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 1
             Get-PSFConfigValue -FullName dbops.tc2 | Should -Be 'string'
             Get-PSFConfigValue -FullName dbops.tc3 | Should -Be 'another'
-            $result = Get-PSFConfigValue -FullName dbops.secret
-            $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($result)
-            $secret = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-            $secret | Should -Be 'foo'
+            $testResult = Get-PSFConfigValue -FullName dbops.secret
+            $cred = [pscredential]::new('test',$testResult)
+            $cred.GetNetworkCredential().Password | Should Be 'foo'
         }
     }
     Context "Negative tests" {
@@ -73,8 +71,8 @@ Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
             try {
                 $null = Reset-DBODefaultSetting -Name nonexistent
             }
-            catch { $result = $_ }
-            $result.Exception.Message | Should -Be 'Unable to find setting nonexistent'
+            catch { $testResult = $_ }
+            $testResult.Exception.Message | Should -Be 'Unable to find setting nonexistent'
         }
     }
 }

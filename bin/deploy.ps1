@@ -1,4 +1,5 @@
-[CmdletBinding(SupportsShouldProcess = $true)]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSShouldProcess", "")]
+[CmdletBinding(SupportsShouldProcess)]
 Param (
     [Alias('Server', 'SqlServer', 'DBServer', 'Instance')]
     [string]$SqlInstance,
@@ -20,6 +21,7 @@ Param (
     [switch]$Append,
     [Alias('Config')]
     [object]$Configuration,
+    [string[]]$Build,
     [string]$Schema,
     [switch]$CreateDatabase,
     [AllowNull()]
@@ -52,7 +54,7 @@ $params = @{
 }
 foreach ($key in ($PSBoundParameters.Keys)) {
     #If any custom properties were specified
-    if ($key -in @('OutputFile', 'Append', 'Variables', 'ConnectionType')) {
+    if ($key -in @('OutputFile', 'Append', 'Variables', 'ConnectionType', 'Build')) {
         $params += @{ $key = $PSBoundParameters[$key] }
     }
 }

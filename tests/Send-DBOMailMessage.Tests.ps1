@@ -8,7 +8,7 @@ else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
 if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force
+    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
@@ -49,9 +49,9 @@ Describe "Send-DBOMailMessage tests" -Tag $commandName, UnitTests {
             Assert-MockCalled -CommandName Send-MailMessage -Exactly 1 -Scope It -ModuleName dbops
         }
         It "Should run return an object when used with -passthru" {
-            $result = $status | Send-DBOMailMessage @mailParams -Passthru
-            $result.SqlInstance | Should Be $status.SqlInstance
-            $result.Database | Should Be $status.Database
+            $testResult = $status | Send-DBOMailMessage @mailParams -Passthru
+            $testResult.SqlInstance | Should Be $status.SqlInstance
+            $testResult.Database | Should Be $status.Database
             Assert-MockCalled -CommandName Send-MailMessage -Exactly 1 -Scope It -ModuleName dbops
         }
         It "Should grab parameters from defaults" {

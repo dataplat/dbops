@@ -65,7 +65,7 @@ function Invoke-DBOPackageCI {
     .NOTES
         See 'Get-Help New-DBOPackage' for additional info about packages.
 #>
-    [CmdletBinding(SupportsShouldProcess = $true)]
+    [CmdletBinding(SupportsShouldProcess)]
     param
     (
         [Parameter(Mandatory = $true,
@@ -93,7 +93,7 @@ function Invoke-DBOPackageCI {
         catch [System.Management.Automation.ItemNotFoundException] {
             $pkgVersion = [Version]'1.0'
             $pkg = $null
-            Write-Message -Message "Assuming a new version $pkgVersion for the build" -Level Verbose
+            Write-PSFMessage -Message "Assuming a new version $pkgVersion for the build" -Level Verbose
         }
         catch {
             Stop-PSFFunction -ErrorRecord $_ -EnableException $true -Message $_.Exception.Message
@@ -102,7 +102,7 @@ function Invoke-DBOPackageCI {
 
         if ($Version) {
             if ($Version.CompareTo([version]::new($pkgVersion.Major, $pkgVersion.Minor)) -ne 0) {
-                Write-Message -Message "Assuming a new version $Version for the build instead of $pkgVersion" -Level Verbose
+                Write-PSFMessage -Message "Assuming a new version $Version for the build instead of $pkgVersion" -Level Verbose
                 $pkgVersion = $Version
             }
         }
@@ -112,7 +112,7 @@ function Invoke-DBOPackageCI {
         }
         #Increasing build version
         $pkgVersion = [Version]::new($pkgVersion.Major, $pkgVersion.Minor, $pkgVersion.Build + 1)
-        Write-Message -Message "Building version $pkgVersion" -Level Verbose
+        Write-PSFMessage -Message "Building version $pkgVersion" -Level Verbose
 
         
         if ($pkg) {

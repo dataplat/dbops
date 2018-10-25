@@ -121,8 +121,9 @@
         # Deploys two scripts from the current folder using variables instead of specifying values directly
         '.\Script1.sql','.\Script2.sql' | Install-DBOSqlScript -SqlInstance '#{server}' -Database '#{db}' -Variables @{server = 'Srv1'; db = 'MyDb'}
 #>
-    
-    [CmdletBinding(SupportsShouldProcess = $true, DefaultParameterSetName = 'Default')]
+    # ShouldProcess is handled in the underlying command
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSShouldProcess", "")]
+    [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'Default')]
     param
     (
         [Parameter(Mandatory = $true,
@@ -184,7 +185,7 @@
             Stop-PSFFunction -Message "No scripts found in provided path, aborting execution." -EnableException $true
         }
 
-        #Getting new config with current defaults
+        #Getting new config with provided defaults
         $config = New-DBOConfig -Configuration $Configuration
 
         #Convert custom parameters into a package configuration, excluding variables
@@ -206,12 +207,7 @@
                 $params += @{ $key = $PSBoundParameters[$key] }
             }
         }
-        Write-PSFMessage -Level Verbose -Message "Preparing to start the deployment with custom parameters: $($params.Keys -join ', ')"
-        if ($PSCmdlet.ShouldProcess($params.PackageFile, "Initiating the deployment of the scripts")) {
-            Invoke-DBODeployment @params
-        }
-        else {
-            Invoke-DBODeployment @params -WhatIf
-        }
+        Write-PSFMessage -Level Verbose -Message "Preparing to start the deployment of $($Path.Count) file(s)"
+        Invoke-DBODeployment @params
     }
 }

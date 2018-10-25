@@ -58,7 +58,7 @@ function Add-DBOBuild {
     .NOTES
         See 'Get-Help New-DBOPackage' for additional info about packages.
 #>
-    [CmdletBinding(SupportsShouldProcess = $true)]
+    [CmdletBinding(SupportsShouldProcess)]
     param
     (
         [Parameter(Mandatory = $true,

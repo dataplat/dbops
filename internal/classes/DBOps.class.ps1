@@ -6,6 +6,8 @@ using namespace System.IO.Compression
 ######################
 
 class DBOps {
+    hidden [array]$PropertiesToExport = @('*')
+
     hidden [void] ThrowException ([string]$Message, [object]$Target, [string]$Category) {
         $callStack = (Get-PSCallStack)[1]
         $splatParam = @{
@@ -165,6 +167,7 @@ class DBOpsPackageBase : DBOps {
     #hidden properties
     hidden [string]$FileName
     hidden [string]$PackagePath
+    hidden [array]$PropertiesToExport = @('ScriptDirectory', 'DeployFile', 'PreDeployFile', 'PostDeployFile', 'ConfigurationFile', 'Builds')
 
     DBOpsPackageBase () {
         $this.Builds = [System.Collections.Generic.List[DBOpsBuild]]::new()
@@ -328,7 +331,7 @@ class DBOpsPackageBase : DBOps {
     # 	return $false
     # }
     [string] ExportToJson() {
-        $exportObject = @{} | Select-Object 'ScriptDirectory', 'DeployFile', 'PreDeployFile', 'PostDeployFile', 'ConfigurationFile', 'Builds'
+        $exportObject = @{} | Select-Object -Property $this.PropertiesToExport
         foreach ($type in $exportObject.psobject.Properties.name) {
             $property = $this.PsObject.Properties | Where-Object Name -eq $type
             if ($this.$type -is [DBOps]) {
@@ -424,7 +427,7 @@ class DBOpsPackageBase : DBOps {
 
     hidden [void] SaveModuleToFile([ZipArchive]$zipArchive) {
         foreach ($file in (Get-DBOModuleFileList)) {
-            [DBOpsHelper]::WriteZipFile($zipArchive, (Join-Path "Modules\dbops" $file.Path), [DBOpsHelper]::GetBinaryFile($file.FullName))
+            [DBOpsHelper]::WriteZipFile($zipArchive, (Join-PSFPath -Normalize "Modules\dbops" $file.Path), [DBOpsHelper]::GetBinaryFile($file.FullName))
         }
     }
     #Returns content folder for scripts
@@ -435,7 +438,7 @@ class DBOpsPackageBase : DBOps {
     #Refresh module version from the module file inside the package
     [void] RefreshModuleVersion() {
         if ($this.FileName) {
-            $manifestPackagePath = 'Modules\dbops\dbops.psd1'
+            $manifestPackagePath = Join-PSFPath -Normalize 'Modules\dbops\dbops.psd1'
             $contents = ([DBOpsHelper]::GetArchiveItem($this.FileName, $manifestPackagePath)).ByteArray
             $scriptBlock = [scriptblock]::Create([DBOpsHelper]::DecodeBinaryText($contents))
             $moduleFile = Invoke-Command -ScriptBlock $scriptBlock
@@ -459,6 +462,16 @@ class DBOpsPackageBase : DBOps {
         $config.Parent = $this
     }
 
+    #Read json and adjust paths appropriately to the environment (Win/Linux)
+    [object] ReadMetadata([string]$jsonString) {
+        $jsonObject = ConvertFrom-Json $jsonString -ErrorAction Stop
+        foreach ($build in $jsonObject.Builds) {
+            foreach ($script in $build.Scripts) {
+                $script.PackagePath = Join-PSFPath -Normalize $script.PackagePath
+            }
+        }
+        return $jsonObject
+    }
 }
 ########################
 # DBOpsPackage class #
@@ -498,14 +511,14 @@ class DBOpsPackage : DBOpsPackageBase {
             $pkgFile = $zip.Entries | Where-Object FullName -eq ([DBOpsConfig]::GetPackageFileName())
             if ($pkgFile) {
                 $pkgFileBin = [DBOpsHelper]::ReadDeflateStream($pkgFile.Open()).ToArray()
-                $jsonObject = ConvertFrom-Json ([DBOpsHelper]::DecodeBinaryText($pkgFileBin)) -ErrorAction Stop
+                $jsonObject = $this.ReadMetadata([DBOpsHelper]::DecodeBinaryText($pkgFileBin))
                 $this.Init($jsonObject)
                 # Processing builds
                 foreach ($build in $jsonObject.builds) {
                     $newBuild = $this.NewBuild($build.build)
                     foreach ($script in $build.Scripts) {
                         $filePackagePath = Join-Path $newBuild.GetPackagePath() $script.packagePath
-                        $scriptFile = $zip.Entries | Where-Object FullName -eq $filePackagePath
+                        $scriptFile = $zip.Entries | Where-Object { (Join-PSFPath -Normalize $_.FullName) -eq $filePackagePath }
                         if (!$scriptFile) {
                             $this.ThrowArgumentException($this, "File not found inside the package: $filePackagePath")
                         }
@@ -517,7 +530,7 @@ class DBOpsPackage : DBOpsPackageBase {
                 foreach ($file in @('DeployFile', 'PreDeployFile', 'PostDeployFile', 'ConfigurationFile')) {
                     $jsonFileObject = $jsonObject.$file
                     if ($jsonFileObject) {
-                        $fileBinary = $zip.Entries | Where-Object FullName -eq $jsonFileObject.packagePath
+                        $fileBinary = $zip.Entries | Where-Object { (Join-PSFPath -Normalize $_.FullName) -eq $jsonFileObject.packagePath }
                         if ($fileBinary) {
                             $newFile = [DBOpsRootFile]::new($jsonFileObject, $fileBinary)
                             $this.AddFile($newFile, $file)
@@ -565,7 +578,7 @@ class DBOpsPackageFile : DBOpsPackageBase {
         # Processing package file
         $pkgFileBin = [DBOpsHelper]::GetBinaryFile($fileName)
         if ($pkgFileBin) {
-            $jsonObject = ConvertFrom-Json ([DBOpsHelper]::DecodeBinaryText($pkgFileBin)) -ErrorAction Stop
+            $jsonObject = $this.ReadMetadata([DBOpsHelper]::DecodeBinaryText($pkgFileBin))
             $this.Init($jsonObject)
             #Defining package path as a parent folder of the package file
             $folderPath = Split-Path $fileName -Parent
@@ -623,7 +636,7 @@ class DBOpsPackageFile : DBOpsPackageBase {
     #Overload to read module file from the folder
     [void] RefreshModuleVersion() {
         if ($this.FileName) {
-            $manifestPackagePath = Join-Path $this.FileName 'Modules\dbops\dbops.psd1'
+            $manifestPackagePath = Join-PSFPath -Normalize $this.FileName 'Modules\dbops\dbops.psd1'
             $contents = ([DBOpsHelper]::GetBinaryFile($manifestPackagePath))
             $scriptBlock = [scriptblock]::Create([DBOpsHelper]::DecodeBinaryText($contents))
             $moduleFile = Invoke-Command -ScriptBlock $scriptBlock
@@ -645,23 +658,24 @@ class DBOpsBuild : DBOps {
 
     hidden [DBOpsPackageBase]$Parent
     hidden [string]$PackagePath
+    hidden [array]$PropertiesToExport = @('Build', 'CreatedDate', 'PackagePath')
 
     #Constructors
     DBOpsBuild ([string]$build) {
         if (!$build) {
             $this.ThrowArgumentException($this, 'Build name cannot be empty');
         }
-        $this.build = $build
+        $this.Build = $build
         $this.PackagePath = $build
         $this.CreatedDate = (Get-Date).Datetime
         $this.Scripts = [System.Collections.Generic.List[DBOpsFile]]::new()
     }
 
     hidden DBOpsBuild ([psobject]$object) {
-        if (!$object.build) {
+        if (!$object.Build) {
             $this.ThrowArgumentException($this, 'Build name cannot be empty');
         }
-        $this.build = $object.build
+        $this.Build = $object.Build
         $this.PackagePath = $object.PackagePath
         $this.CreatedDate = $object.CreatedDate
     }
@@ -782,12 +796,7 @@ class DBOpsBuild : DBOps {
         foreach ($script in $this.Scripts) {
             $scriptCollection += $script.ExportToJson() | ConvertFrom-Json
         }
-        $fields = @(
-            'Build'
-            'CreatedDate'
-            'PackagePath'
-        )
-        $output = $this | Select-Object -Property $fields
+        $output = $this | Select-Object -Property $this.PropertiesToExport
         $output | Add-Member -MemberType NoteProperty -Name Scripts -Value $scriptCollection
         return $output | ConvertTo-Json -Depth 2
     }
@@ -849,6 +858,7 @@ class DBOpsFile : DBOps {
     #Hidden properties
     hidden [string]$Hash
     hidden [DBOps]$Parent
+    hidden [array]$PropertiesToExport = @('SourcePath', 'Hash', 'PackagePath')
 
     #Constructors
     DBOpsFile () {}
@@ -924,12 +934,7 @@ class DBOpsFile : DBOps {
         return Join-Path $this.Parent.GetPackagePath() $this.PackagePath
     }
     [string] ExportToJson() {
-        $fields = @(
-            'SourcePath'
-            'Hash'
-            'PackagePath'
-        )
-        return $this | Select-Object -Property $fields | ConvertTo-Json -Depth 1
+        return $this | Select-Object -Property $this.PropertiesToExport | ConvertTo-Json -Depth 1
     }
     #Writes current script into the archive file
     [void] Save([ZipArchive]$zipFile) {
@@ -1048,6 +1053,16 @@ class DBOpsScriptFile : DBOpsFile {
             $this.ThrowArgumentException($this, "File cannot be loaded, hash mismatch: $($this.Name)")
         }
     }
+    [string] GetDeploymentPath () {
+        $dPath = $this.GetPackagePath()
+        #Recursively check parents and remove the top-level folder
+        $lastParent = $this
+        while ($lastParent.Parent) {
+            $lastParent = $lastParent.Parent
+        }
+        $dPath = $dPath -replace ('^' + [regex]::Escape($lastParent.GetPackagePath() + ([IO.Path]::DirectorySeparatorChar))), ''
+        return $dPath.Replace('/','\')
+    }
 }
 
 #######################
@@ -1081,7 +1096,7 @@ class DBOpsConfig : DBOps {
     }
     DBOpsConfig ([string]$jsonString) {
         if (!$jsonString) {
-            $this.ThrowArgumentException($this, "Input string has not been defined")
+            Stop-PSFFunction -Message "Input string has not been defined" -EnableException $true -ModuleName dbops -FunctionName $this.GetType().Name
         }
         $this.Init()
 
@@ -1092,7 +1107,7 @@ class DBOpsConfig : DBOps {
                 $this.SetValue($property, $jsonConfig.$property)
             }
             else {
-                $this.ThrowArgumentException($this, "$property is not a valid configuration item")
+                Stop-PSFFunction -Message "$property is not a valid configuration item" -EnableException $true -ModuleName dbops -FunctionName $this.GetType().Name
             }
         }
     }
@@ -1116,26 +1131,26 @@ class DBOpsConfig : DBOps {
 
     [void] SetValue ([string]$Property, [object]$Value) {
         if ([DBOpsConfig]::EnumProperties() -notcontains $Property) {
-            $this.ThrowArgumentException($this, "$Property is not a valid configuration item")
+            Stop-PSFFunction -Message "$property is not a valid configuration item" -EnableException $true -ModuleName dbops -FunctionName $this.GetType().Name
         }
         #set proper NullString for String properties
-        if ($Value -eq $null -and $Property -in ($this.PsObject.Properties | Where-Object TypeNameOfValue -like 'System.String*').Name) {
+        if ($null -eq $Value -and $Property -in ($this.PsObject.Properties | Where-Object TypeNameOfValue -like 'System.String*').Name) {
             $this.$Property = [NullString]::Value
         }
-        elseif ($Value -ne $null -and $Property -eq 'Password') {
+        elseif ($null -ne $Value -and $Property -eq 'Password') {
             if ($Value -is [SecureString]) {
                 $this.$Property = $Value
             }
             else {
-                $this.$Property = ConvertTo-SecureString -String $Value -ErrorAction Stop
+                $this.$Property = ConvertFrom-EncryptedString -String $Value
             }
         }
-        elseif ($Value -ne $null -and $Property -eq 'Credential') {
+        elseif ($null -ne $Value -and $Property -eq 'Credential') {
             if ($Value -is [pscredential]) {
                 $this.$Property = $Value
             }
             else {
-                $this.$Property = [pscredential]::new($Value.UserName, (ConvertTo-SecureString -String $Value.Password -ErrorAction Stop))
+                $this.$Property = [pscredential]::new($Value.UserName, (ConvertFrom-EncryptedString -String $Value.Password))
             }
         }
         else {
@@ -1147,13 +1162,13 @@ class DBOpsConfig : DBOps {
         $outObject = @{}
         foreach ($prop in [DBOpsConfig]::EnumProperties()) {
             if ($this.$prop -is [securestring]) {
-                $outObject += @{ $prop = $this.$prop | ConvertFrom-SecureString }
+                $outObject += @{ $prop = $this.$prop | ConvertTo-EncryptedString }
             }
             elseif ($this.$prop -is [pscredential]) {
                 $outObject += @{
                     $prop = @{
                         UserName = $this.$prop.UserName
-                        Password = $this.$prop.Password | ConvertFrom-SecureString
+                        Password = $this.$prop.Password | ConvertTo-EncryptedString
                     }
                 }
             }

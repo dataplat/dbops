@@ -8,7 +8,7 @@ else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
 if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force
+    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
@@ -20,46 +20,46 @@ else {
 Describe "DBOpsDeploymentStatus class tests" -Tag $commandName, UnitTests, DBOpsDeploymentStatus, DBOpsClass {
     Context "tests DBOpsConfig constructors" {
         It "Should return an empty status by default" {
-            $results = [DBOpsDeploymentStatus]::new()
-            $results.SqlInstance | Should BeNullOrEmpty
-            $results.Database | Should BeNullOrEmpty
-            $results.Scripts | Should BeNullOrEmpty
-            $results.Successful | Should Be $null
-            $results.SourcePath | Should BeNullOrEmpty
-            $results.ConnectionType | Should BeNullOrEmpty
-            $results.Configuration | Should BeNullOrEmpty
-            $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -Be 0
-            $results.StartTime | Should BeNullOrEmpty
-            $results.EndTime | Should BeNullOrEmpty
-            $results.DeploymentLog | Should BeNullOrEmpty
+            $testResults = [DBOpsDeploymentStatus]::new()
+            $testResults.SqlInstance | Should BeNullOrEmpty
+            $testResults.Database | Should BeNullOrEmpty
+            $testResults.Scripts | Should BeNullOrEmpty
+            $testResults.Successful | Should Be $null
+            $testResults.SourcePath | Should BeNullOrEmpty
+            $testResults.ConnectionType | Should BeNullOrEmpty
+            $testResults.Configuration | Should BeNullOrEmpty
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -Be 0
+            $testResults.StartTime | Should BeNullOrEmpty
+            $testResults.EndTime | Should BeNullOrEmpty
+            $testResults.DeploymentLog | Should BeNullOrEmpty
         }
         It "Should test ToString Method" {
-            $results = [DBOpsDeploymentStatus]::new()
-            $results.ToString() | Should Be "Deployment status`: Not deployed. Duration`: Not run yet. Script count`: 0"
-            $results.Successful = $true
-            $results.ToString() | Should Be "Deployment status`: Successful. Duration`: Not run yet. Script count`: 0"
-            $results.StartTime = [datetime]'00:00:01'
-            $results.EndTime = [datetime]'00:00:02'
-            $results.ToString() | Should Be "Deployment status`: Successful. Duration`: 00:00:01. Script count`: 0"
+            $testResults = [DBOpsDeploymentStatus]::new()
+            $testResults.ToString() | Should Be "Deployment status`: Not deployed. Duration`: Not run yet. Script count`: 0"
+            $testResults.Successful = $true
+            $testResults.ToString() | Should Be "Deployment status`: Successful. Duration`: Not run yet. Script count`: 0"
+            $testResults.StartTime = [datetime]'00:00:01'
+            $testResults.EndTime = [datetime]'00:00:02'
+            $testResults.ToString() | Should Be "Deployment status`: Successful. Duration`: 00:00:01. Script count`: 0"
             $numScripts = 10
             for ($i = 0; $i -lt $numScripts; $i++ ) {
-                $results.Scripts += [DbUp.Engine.SqlScript]::new("script$i.sql", "SELECT 1")
+                $testResults.Scripts += [DbUp.Engine.SqlScript]::new("script$i.sql", "SELECT 1")
             }
-            $results.ToString() | Should Be "Deployment status`: Successful. Duration`: 00:00:01. Script count`: $numScripts"
-            $results.Successful = $false
-            $results.ToString() | Should Be "Deployment status`: Failed. Duration`: 00:00:01. Script count`: $numScripts"
+            $testResults.ToString() | Should Be "Deployment status`: Successful. Duration`: 00:00:01. Script count`: $numScripts"
+            $testResults.Successful = $false
+            $testResults.ToString() | Should Be "Deployment status`: Failed. Duration`: 00:00:01. Script count`: $numScripts"
 
         }
         It "Should test Duration scriptproperty" {
-            $results = [DBOpsDeploymentStatus]::new()
-            $results.Duration.TotalMilliseconds | Should -Be 0
-            $results.StartTime = [datetime]'00:00:01'
-            $results.Duration.TotalMilliseconds | Should -Be 0
-            $results.EndTime = [datetime]'00:00:02'
-            $results.Duration.TotalMilliseconds | Should -Be 1000
-            $results.EndTime = $null
-            $results.Duration.TotalMilliseconds | Should -Be 0
+            $testResults = [DBOpsDeploymentStatus]::new()
+            $testResults.Duration.TotalMilliseconds | Should -Be 0
+            $testResults.StartTime = [datetime]'00:00:01'
+            $testResults.Duration.TotalMilliseconds | Should -Be 0
+            $testResults.EndTime = [datetime]'00:00:02'
+            $testResults.Duration.TotalMilliseconds | Should -Be 1000
+            $testResults.EndTime = $null
+            $testResults.Duration.TotalMilliseconds | Should -Be 0
         }
     }
 }

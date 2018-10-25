@@ -8,7 +8,7 @@ else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
 if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force
+    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
@@ -21,26 +21,26 @@ Describe "New-DBOConfig tests" -Tag $commandName, UnitTests {
     }
 
     It "Should return a default config by default" {
-        $result = New-DBOConfig
-        foreach ($prop in $result.psobject.properties.name) {
-            $result.$prop | Should Be (Get-PSFConfigValue -FullName dbops.$prop)
+        $testResult = New-DBOConfig
+        foreach ($prop in $testResult.psobject.properties.name) {
+            $testResult.$prop | Should Be (Get-PSFConfigValue -FullName dbops.$prop)
         }
     }
 
     It "Should override properties in an empty config" {
-        $result = New-DBOConfig -Configuration @{ApplicationName = 'MyNewApp'; ConnectionTimeout = 3}
-        $result.ApplicationName | Should Be 'MyNewApp'
-        $result.SqlInstance | Should Be 'localhost'
-        $result.Database | Should Be $null
-        $result.DeploymentMethod | Should Be 'NoTransaction'
-        $result.ConnectionTimeout | Should Be 3
-        $result.Encrypt | Should Be $false
-        $result.Credential | Should Be $null
-        $result.Username | Should Be $null
-        $result.Password | Should Be $null
-        $result.SchemaVersionTable | Should Be 'SchemaVersions'
-        $result.Silent | Should Be $false
-        $result.Variables | Should Be $null
-        $result.CreateDatabase | Should Be $false
+        $testResult = New-DBOConfig -Configuration @{ApplicationName = 'MyNewApp'; ConnectionTimeout = 3}
+        $testResult.ApplicationName | Should Be 'MyNewApp'
+        $testResult.SqlInstance | Should Be 'localhost'
+        $testResult.Database | Should Be $null
+        $testResult.DeploymentMethod | Should Be 'NoTransaction'
+        $testResult.ConnectionTimeout | Should Be 3
+        $testResult.Encrypt | Should Be $false
+        $testResult.Credential | Should Be $null
+        $testResult.Username | Should Be $null
+        $testResult.Password | Should Be $null
+        $testResult.SchemaVersionTable | Should Be 'SchemaVersions'
+        $testResult.Silent | Should Be $false
+        $testResult.Variables | Should Be $null
+        $testResult.CreateDatabase | Should Be $false
     }
 }

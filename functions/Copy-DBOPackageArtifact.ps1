@@ -42,7 +42,7 @@ Function Copy-DBOPackageArtifact {
     .NOTES
     
     #>
-    [CmdletBinding(SupportsShouldProcess = $true)]
+    [CmdletBinding(SupportsShouldProcess)]
     Param(
         [Parameter(Mandatory = $true)]
         [Alias('RepositoryPath')]

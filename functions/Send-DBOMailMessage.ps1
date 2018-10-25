@@ -108,7 +108,7 @@ function Send-DBOMailMessage {
         else {
             $htmlPath = $htmlFullPath = Get-DBODefaultSetting -Name mail.Template -Value
             if (!(Test-Path $htmlPath)) {
-                $htmlFullPath = Join-Path "$PSScriptRoot\.." $htmlPath
+                $htmlFullPath = Join-Path (Get-Item $PSScriptRoot).Parent.FullName $htmlPath
             }
             if (!(Test-Path $htmlFullPath)) {
                 Stop-PSFFunction -Message "Could not find the template file $htmlPath, exiting" -EnableException $true

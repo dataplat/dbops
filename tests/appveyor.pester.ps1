@@ -46,6 +46,11 @@ Set-Location $ModuleBase
 Remove-Module dbops -ErrorAction Ignore
 #imports the module making sure DLL is loaded ok
 Import-Module "$ModuleBase\dbops.psd1"
+$error[0]| select *
+$error[0].Exception|select *
+#import module internal functions
+Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
+
 
 
 function Get-CoverageIndications($Path, $ModuleBase) {
@@ -75,8 +80,6 @@ function Get-CoverageIndications($Path, $ModuleBase) {
     $testpaths = @()
     $allfiles = Get-ChildItem -File -Path "$ModuleBase\internal", "$ModuleBase\functions" -Filter '*.ps1'
     foreach ($f in $funcs) {
-        # exclude always used functions ?!
-        if ($f -in ('Connect-SqlInstance', 'Select-DefaultView', 'Stop-Function', 'Write-Message')) { continue }
         # can I find a correspondence to a physical file (again, on the convenience of having Get-DbaFoo.ps1 actually defining Get-DbaFoo)?
         $res = $allfiles | Where-Object { $_.Name.Replace('.ps1', '') -eq $f }
         if ($res.count -gt 0) {
@@ -203,8 +206,8 @@ if (-not $Finalize) {
     foreach ($f in $AllTestsWithinScenario) {
         $Counter += 1
         $PesterSplat = @{
-            'Script'   =  @{
-                Path = $f.FullName
+            'Script'   = @{
+                Path       = $f.FullName
                 Parameters = @{
                     Batch = $true
                 }
@@ -222,10 +225,28 @@ if (-not $Finalize) {
         # executions for each test script (i.e. Executing Get-DbaFoo .... Done (40 seconds))
         Invoke-Pester @PesterSplat | Export-Clixml -Path "$ModuleBase\PesterResults$PSVersion$Counter.xml"
     }
+    # Gather support package as an artifact
+    try {
+        $msgFile = "$ModuleBase\dbops_log_messages.xml"
+        Write-Host -ForegroundColor DarkGreen "Dumping message log into $msgFile"
+        Get-PSFMessage -ModuleName dbops | Select-Object FunctionName, Level, TimeStamp, Message | Export-Clixml -Path $msgFile -ErrorAction Stop
+    } catch {
+        Write-Host -ForegroundColor Red "Message collection failed: $($_.Exception.Message)"
+    }
+    # Gather errors
+    try {
+        $msgFile = "$ModuleBase\dbops_log_errors.xml"
+        Write-Host -ForegroundColor DarkGreen "Dumping error log into $msgFile"
+        $error | Export-Clixml -Path $msgFile -ErrorAction Stop
+    } catch {
+        Write-Host -ForegroundColor Red "Error collection failed: $($_.Exception.Message)"
+    }
 }
 else {
     #What failed? How many tests did we run ?
     $results = @(Get-ChildItem -Path "$ModuleBase\PesterResults*.xml" | Import-Clixml)
+    #Publish the support package regardless of the outcome
+    Get-ChildItem $ModuleBase\dbops_log_*.xml | ForEach-Object { Push-AppveyorArtifact $_.FullName -FileName $_.Name }
     #$totalcount = $results | Select-Object -ExpandProperty TotalCount | Measure-Object -Sum | Select-Object -ExpandProperty Sum
     $failedcount = $results | Select-Object -ExpandProperty FailedCount | Measure-Object -Sum | Select-Object -ExpandProperty Sum
     if ($failedcount -gt 0) {

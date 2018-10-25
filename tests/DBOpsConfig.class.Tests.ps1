@@ -8,7 +8,7 @@ else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
 if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force
+    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
@@ -20,21 +20,21 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 . "$here\..\internal\classes\DBOpsHelper.class.ps1"
 . "$here\..\internal\classes\DBOps.class.ps1"
 
-$packageName = "$here\etc\$commandName.zip"
+$packageName = Join-PSFPath -Normalize "$here\etc\$commandName.zip"
 
-$script1 = "$here\etc\install-tests\success\1.sql"
-$script2 = "$here\etc\install-tests\success\2.sql"
-$script3 = "$here\etc\install-tests\success\3.sql"
-$outConfig = "$here\etc\out_full_config.json"
-$fullConfig = "$here\etc\tmp_full_config.json"
-$fullConfigSource = "$here\etc\full_config.json"
+$script1 = Join-PSFPath -Normalize "$here\etc\install-tests\success\1.sql"
+$script2 = Join-PSFPath -Normalize "$here\etc\install-tests\success\2.sql"
+$script3 = Join-PSFPath -Normalize "$here\etc\install-tests\success\3.sql"
+$outConfig = Join-PSFPath -Normalize "$here\etc\out_full_config.json"
+$fullConfig = Join-PSFPath -Normalize "$here\etc\tmp_full_config.json"
+$fullConfigSource = Join-PSFPath -Normalize "$here\etc\full_config.json"
 $testPassword = 'TestPassword'
 $securePassword = $testPassword | ConvertTo-SecureString -Force -AsPlainText
-$fromSecureString = $securePassword|  ConvertFrom-SecureString
+$encryptedString = $securePassword | ConvertTo-EncryptedString 3>$null
 
 Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
     BeforeAll {
-        (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $fromSecureString | Out-File $fullConfig -Force
+        (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $encryptedString | Out-File $fullConfig -Force
     }
     AfterAll {
         if (Test-Path $fullConfig) { Remove-Item $fullConfig }
@@ -42,66 +42,66 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
     }
     Context "tests DBOpsConfig constructors" {
         It "Should return an empty config by default" {
-            $result = [DBOpsConfig]::new()
-            foreach ($prop in $result.psobject.properties.name) {
-                $result.$prop | Should Be (Get-PSFConfigValue -FullName dbops.$prop)
+            $testResult = [DBOpsConfig]::new()
+            foreach ($prop in $testResult.psobject.properties.name) {
+                $testResult.$prop | Should Be (Get-PSFConfigValue -FullName dbops.$prop)
             }
         }
         It "Should return empty configuration from empty config file" {
-            $result = [DBOpsConfig]::new((Get-Content "$here\etc\empty_config.json" -Raw))
-            $result.ApplicationName | Should Be $null
-            $result.SqlInstance | Should Be $null
-            $result.Database | Should Be $null
-            $result.DeploymentMethod | Should Be $null
-            $result.ConnectionTimeout | Should Be $null
-            $result.ExecutionTimeout | Should Be 0
-            $result.Encrypt | Should Be $null
-            $result.Credential | Should Be $null
-            $result.Username | Should Be $null
-            $result.Password | Should Be $null
-            $result.SchemaVersionTable | Should Be $null
-            $result.Silent | Should Be $null
-            $result.Variables | Should Be $null
-            $result.Schema | Should BeNullOrEmpty
+            $testResult = [DBOpsConfig]::new((Get-Content "$here\etc\empty_config.json" -Raw))
+            $testResult.ApplicationName | Should Be $null
+            $testResult.SqlInstance | Should Be $null
+            $testResult.Database | Should Be $null
+            $testResult.DeploymentMethod | Should Be $null
+            $testResult.ConnectionTimeout | Should Be $null
+            $testResult.ExecutionTimeout | Should Be 0
+            $testResult.Encrypt | Should Be $null
+            $testResult.Credential | Should Be $null
+            $testResult.Username | Should Be $null
+            $testResult.Password | Should Be $null
+            $testResult.SchemaVersionTable | Should Be $null
+            $testResult.Silent | Should Be $null
+            $testResult.Variables | Should Be $null
+            $testResult.Schema | Should BeNullOrEmpty
         }
         It "Should return all configurations from the config file" {
-            $result = [DBOpsConfig]::new((Get-Content $fullConfig -Raw))
-            $result.ApplicationName | Should Be "MyTestApp"
-            $result.SqlInstance | Should Be "TestServer"
-            $result.Database | Should Be "MyTestDB"
-            $result.DeploymentMethod | Should Be "SingleTransaction"
-            $result.ConnectionTimeout | Should Be 40
-            $result.ExecutionTimeout | Should Be 0
-            $result.Encrypt | Should Be $null
-            $result.Credential.UserName | Should Be 'CredentialUser'
-            $result.Credential.GetNetworkCredential().Password  | Should Be $testPassword
-            $result.Username | Should Be "TestUser"
-            [PSCredential]::new('test', $result.Password).GetNetworkCredential().Password | Should Be "TestPassword"
-            $result.SchemaVersionTable | Should Be "test.Table"
-            $result.Silent | Should Be $true
-            $result.Variables | Should Be $null
-            $result.Schema | Should Be "testschema"
+            $testResult = [DBOpsConfig]::new((Get-Content $fullConfig -Raw))
+            $testResult.ApplicationName | Should Be "MyTestApp"
+            $testResult.SqlInstance | Should Be "TestServer"
+            $testResult.Database | Should Be "MyTestDB"
+            $testResult.DeploymentMethod | Should Be "SingleTransaction"
+            $testResult.ConnectionTimeout | Should Be 40
+            $testResult.ExecutionTimeout | Should Be 0
+            $testResult.Encrypt | Should Be $null
+            $testResult.Credential.UserName | Should Be 'CredentialUser'
+            $testResult.Credential.GetNetworkCredential().Password  | Should Be $testPassword
+            $testResult.Username | Should Be "TestUser"
+            [PSCredential]::new('test', $testResult.Password).GetNetworkCredential().Password | Should Be "TestPassword"
+            $testResult.SchemaVersionTable | Should Be "test.Table"
+            $testResult.Silent | Should Be $true
+            $testResult.Variables | Should Be $null
+            $testResult.Schema | Should Be "testschema"
         }
     }
     Context "tests other methods of DBOpsConfig" {
         It "should test AsHashtable method" {
-            $result = [DBOpsConfig]::new((Get-Content $fullConfig -Raw)).AsHashtable()
-            $result.GetType().Name | Should Be 'hashtable'
-            $result.ApplicationName | Should Be "MyTestApp"
-            $result.SqlInstance | Should Be "TestServer"
-            $result.Database | Should Be "MyTestDB"
-            $result.DeploymentMethod | Should Be "SingleTransaction"
-            $result.ConnectionTimeout | Should Be 40
-            $result.ExecutionTimeout | Should Be 0
-            $result.Encrypt | Should Be $null
-            $result.Credential.UserName | Should Be 'CredentialUser'
-            $result.Credential.GetNetworkCredential().Password  | Should Be $testPassword
-            $result.Username | Should Be "TestUser"
-            [PSCredential]::new('test', $result.Password).GetNetworkCredential().Password | Should Be "TestPassword"
-            $result.SchemaVersionTable | Should Be "test.Table"
-            $result.Silent | Should Be $true
-            $result.Variables | Should Be $null
-            $result.Schema | Should Be "testschema"
+            $testResult = [DBOpsConfig]::new((Get-Content $fullConfig -Raw)).AsHashtable()
+            $testResult.GetType().Name | Should Be 'hashtable'
+            $testResult.ApplicationName | Should Be "MyTestApp"
+            $testResult.SqlInstance | Should Be "TestServer"
+            $testResult.Database | Should Be "MyTestDB"
+            $testResult.DeploymentMethod | Should Be "SingleTransaction"
+            $testResult.ConnectionTimeout | Should Be 40
+            $testResult.ExecutionTimeout | Should Be 0
+            $testResult.Encrypt | Should Be $null
+            $testResult.Credential.UserName | Should Be 'CredentialUser'
+            $testResult.Credential.GetNetworkCredential().Password  | Should Be $testPassword
+            $testResult.Username | Should Be "TestUser"
+            [PSCredential]::new('test', $testResult.Password).GetNetworkCredential().Password | Should Be "TestPassword"
+            $testResult.SchemaVersionTable | Should Be "test.Table"
+            $testResult.Silent | Should Be $true
+            $testResult.Variables | Should Be $null
+            $testResult.Schema | Should Be "testschema"
         }
         It "should test SetValue method" {
             $config = [DBOpsConfig]::new((Get-Content $fullConfig -Raw))
@@ -132,7 +132,7 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             $config.SetValue('Silent', 'string')
             $config.Silent | Should Be $true
             #SecureString property
-            $config.SetValue('Password', $fromSecureString)
+            $config.SetValue('Password', $encryptedString)
             [PSCredential]::new('test', $config.Password).GetNetworkCredential().Password | Should Be $testPassword
             $config.SetValue('Password', $null)
             $config.Password | Should Be $null
@@ -146,22 +146,22 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             { $config.SetValue('AppplicationName', 'MyApp3') } | Should Throw
         }
         It "should test ExportToJson method" {
-            $result = [DBOpsConfig]::new((Get-Content $fullConfig -Raw)).ExportToJson() | ConvertFrom-Json -ErrorAction Stop
-            $result.ApplicationName | Should Be "MyTestApp"
-            $result.SqlInstance | Should Be "TestServer"
-            $result.Database | Should Be "MyTestDB"
-            $result.DeploymentMethod | Should Be "SingleTransaction"
-            $result.ConnectionTimeout | Should Be 40
-            $result.ExecutionTimeout | Should Be 0
-            $result.Encrypt | Should Be $null
-            $result.Credential.UserName | Should Be 'CredentialUser'
-            [PSCredential]::new('test', ($result.Credential.Password | ConvertTo-SecureString)).GetNetworkCredential().Password | Should Be $testPassword
-            $result.Username | Should Be "TestUser"
-            [PSCredential]::new('test', ($result.Password | ConvertTo-SecureString)).GetNetworkCredential().Password | Should Be "TestPassword"
-            $result.SchemaVersionTable | Should Be "test.Table"
-            $result.Silent | Should Be $true
-            $result.Variables | Should Be $null
-            $result.Schema | Should Be "testschema"
+            $testResult = [DBOpsConfig]::new((Get-Content $fullConfig -Raw)).ExportToJson() | ConvertFrom-Json -ErrorAction Stop
+            $testResult.ApplicationName | Should Be "MyTestApp"
+            $testResult.SqlInstance | Should Be "TestServer"
+            $testResult.Database | Should Be "MyTestDB"
+            $testResult.DeploymentMethod | Should Be "SingleTransaction"
+            $testResult.ConnectionTimeout | Should Be 40
+            $testResult.ExecutionTimeout | Should Be 0
+            $testResult.Encrypt | Should Be $null
+            $testResult.Credential.UserName | Should Be 'CredentialUser'
+            [PSCredential]::new('test', ($testResult.Credential.Password | ConvertFrom-EncryptedString)).GetNetworkCredential().Password | Should Be $testPassword
+            $testResult.Username | Should Be "TestUser"
+            [PSCredential]::new('test', ($testResult.Password | ConvertFrom-EncryptedString)).GetNetworkCredential().Password | Should Be "TestPassword"
+            $testResult.SchemaVersionTable | Should Be "test.Table"
+            $testResult.Silent | Should Be $true
+            $testResult.Variables | Should Be $null
+            $testResult.Schema | Should Be "testschema"
         }
         It "should test Merge method into full config" {
             $config = [DBOpsConfig]::new((Get-Content $fullConfig -Raw))
@@ -253,13 +253,13 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
                 #Close archive
                 $stream.Dispose()
             }
-            $results = Get-ArchiveItem $packageName
+            $testResults = Get-ArchiveItem $packageName
             foreach ($file in (Get-DBOModuleFileList)) {
-                Join-Path 'Modules\dbops' $file.Path | Should BeIn $results.Path
+                Join-PSFPath -Normalize 'Modules\dbops' $file.Path | Should BeIn $testResults.Path
             }
-            'dbops.config.json' | Should BeIn $results.Path
-            'dbops.package.json' | Should BeIn $results.Path
-            'Deploy.ps1' | Should BeIn $results.Path
+            'dbops.config.json' | Should BeIn $testResults.Path
+            'dbops.package.json' | Should BeIn $testResults.Path
+            'Deploy.ps1' | Should BeIn $testResults.Path
         }
         It "Should load package successfully after saving it" {
             $pkg = [DBOpsPackage]::new($packageName)
@@ -269,13 +269,13 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             $pkg = [DBOpsPackage]::new($packageName)
             $pkg.Configuration.ApplicationName = 'TestApp3'
             $pkg.Configuration.Alter()
-            $results = Get-ArchiveItem "$packageName"
+            $testResults = Get-ArchiveItem "$packageName"
             foreach ($file in (Get-DBOModuleFileList)) {
-                Join-Path 'Modules\dbops' $file.Path | Should BeIn $results.Path
+                Join-PSFPath -Normalize 'Modules\dbops' $file.Path | Should BeIn $testResults.Path
             }
-            'dbops.config.json' | Should BeIn $results.Path
-            'dbops.package.json' | Should BeIn $results.Path
-            'Deploy.ps1' | Should BeIn $results.Path
+            'dbops.config.json' | Should BeIn $testResults.Path
+            'dbops.package.json' | Should BeIn $testResults.Path
+            'Deploy.ps1' | Should BeIn $testResults.Path
         }
         It "Should load package successfully after saving it" {
             $p = [DBOpsPackage]::new($packageName)
@@ -283,70 +283,70 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
         }
         It "should test SaveToFile method" {
             [DBOpsConfig]::new((Get-Content $fullConfig -Raw)).SaveToFile($outConfig)
-            $result = Get-Content $outConfig -Raw | ConvertFrom-Json -ErrorAction Stop
-            $result.ApplicationName | Should Be "MyTestApp"
-            $result.SqlInstance | Should Be "TestServer"
-            $result.Database | Should Be "MyTestDB"
-            $result.DeploymentMethod | Should Be "SingleTransaction"
-            $result.ConnectionTimeout | Should Be 40
-            $result.ExecutionTimeout | Should Be 0
-            $result.Encrypt | Should Be $null
-            $result.Credential.UserName | Should Be 'CredentialUser'
-            [PSCredential]::new('test', ($result.Credential.Password | ConvertTo-SecureString)).GetNetworkCredential().Password | Should Be $testPassword
-            $result.Username | Should Be "TestUser"
-            [PSCredential]::new('test', ($result.Password | ConvertTo-SecureString)).GetNetworkCredential().Password | Should Be "TestPassword"
-            $result.SchemaVersionTable | Should Be "test.Table"
-            $result.Silent | Should Be $true
-            $result.Variables | Should Be $null
-            $result.Schema | Should Be "testschema"
+            $testResult = Get-Content $outConfig -Raw | ConvertFrom-Json -ErrorAction Stop
+            $testResult.ApplicationName | Should Be "MyTestApp"
+            $testResult.SqlInstance | Should Be "TestServer"
+            $testResult.Database | Should Be "MyTestDB"
+            $testResult.DeploymentMethod | Should Be "SingleTransaction"
+            $testResult.ConnectionTimeout | Should Be 40
+            $testResult.ExecutionTimeout | Should Be 0
+            $testResult.Encrypt | Should Be $null
+            $testResult.Credential.UserName | Should Be 'CredentialUser'
+            [PSCredential]::new('test', ($testResult.Credential.Password | ConvertFrom-EncryptedString)).GetNetworkCredential().Password | Should Be $testPassword
+            $testResult.Username | Should Be "TestUser"
+            [PSCredential]::new('test', ($testResult.Password | ConvertFrom-EncryptedString)).GetNetworkCredential().Password | Should Be "TestPassword"
+            $testResult.SchemaVersionTable | Should Be "test.Table"
+            $testResult.Silent | Should Be $true
+            $testResult.Variables | Should Be $null
+            $testResult.Schema | Should Be "testschema"
         }
     }
     Context "tests static methods of DBOpsConfig" {
         It "should test static GetDeployFile method" {
             $f = [DBOpsConfig]::GetDeployFile()
             $f.Type | Should Be 'Misc'
-            $f.Path | Should BeLike '*\Deploy.ps1'
+            $f.Path | Should BeLike (Join-PSFPath -Normalize '*\Deploy.ps1')
             $f.Name | Should Be 'Deploy.ps1'
         }
         It "should test static FromFile method" {
-            $result = [DBOpsConfig]::FromFile($fullConfig)
-            $result.ApplicationName | Should Be "MyTestApp"
-            $result.SqlInstance | Should Be "TestServer"
-            $result.Database | Should Be "MyTestDB"
-            $result.DeploymentMethod | Should Be "SingleTransaction"
-            $result.ConnectionTimeout | Should Be 40
-            $result.ExecutionTimeout | Should Be 0
-            $result.Encrypt | Should Be $null
-            $result.Credential.UserName | Should Be 'CredentialUser'
-            $result.Credential.GetNetworkCredential().Password  | Should Be $testPassword
-            $result.Username | Should Be "TestUser"
-            [PSCredential]::new('test', $result.Password).GetNetworkCredential().Password | Should Be "TestPassword"
-            $result.SchemaVersionTable | Should Be "test.Table"
-            $result.Silent | Should Be $true
-            $result.Variables | Should Be $null
-            $result.Schema | Should Be "testschema"
+            $testResult = [DBOpsConfig]::FromFile($fullConfig)
+            $testResult.ApplicationName | Should Be "MyTestApp"
+            $testResult.SqlInstance | Should Be "TestServer"
+            $testResult.Database | Should Be "MyTestDB"
+            $testResult.DeploymentMethod | Should Be "SingleTransaction"
+            $testResult.ConnectionTimeout | Should Be 40
+            $testResult.ExecutionTimeout | Should Be 0
+            $testResult.Encrypt | Should Be $null
+            $testResult.Credential.UserName | Should Be 'CredentialUser'
+            $testResult.Credential.GetNetworkCredential().Password  | Should Be $testPassword
+            $testResult.Username | Should Be "TestUser"
+            [PSCredential]::new('test', $testResult.Password).GetNetworkCredential().Password | Should Be "TestPassword"
+            $testResult.SchemaVersionTable | Should Be "test.Table"
+            $testResult.Silent | Should Be $true
+            $testResult.Variables | Should Be $null
+            $testResult.Schema | Should Be "testschema"
             #negatives
-            { [DBOpsConfig]::FromFile("$here\etc\notajsonfile.json") } | Should Throw
-            { [DBOpsConfig]::FromFile("nonexisting\file") } | Should Throw
+            { [DBOpsConfig]::FromFile((Join-PSFPath -Normalize "$here\etc\notajsonfile.json")) } | Should Throw
+            { [DBOpsConfig]::FromFile((Join-PSFPath -Normalize "nonexisting\file")) } | Should Throw
             { [DBOpsConfig]::FromFile($null) } | Should Throw
         }
         It "should test static FromJsonString method" {
-            $result = [DBOpsConfig]::FromJsonString((Get-Content $fullConfig -Raw))
-            $result.ApplicationName | Should Be "MyTestApp"
-            $result.SqlInstance | Should Be "TestServer"
-            $result.Database | Should Be "MyTestDB"
-            $result.DeploymentMethod | Should Be "SingleTransaction"
-            $result.ConnectionTimeout | Should Be 40
-            $result.ExecutionTimeout | Should Be 0
-            $result.Encrypt | Should Be $null
-            $result.Credential.UserName | Should Be 'CredentialUser'
-            $result.Credential.GetNetworkCredential().Password  | Should Be $testPassword
-            $result.Username | Should Be "TestUser"
-            [PSCredential]::new('test', $result.Password).GetNetworkCredential().Password | Should Be "TestPassword"
-            $result.SchemaVersionTable | Should Be "test.Table"
-            $result.Silent | Should Be $true
-            $result.Variables | Should Be $null
-            $result.Schema | Should Be "testschema"
+            $testResult = [DBOpsConfig]::FromJsonString((Get-Content $fullConfig -Raw))
+            $testResult.ApplicationName | Should Be "MyTestApp"
+            $testResult.SqlInstance | Should Be "TestServer"
+            $testResult.Database | Should Be "MyTestDB"
+            $testResult.DeploymentMethod | Should Be "SingleTransaction"
+            $testResult.ConnectionTimeout | Should Be 40
+            $testResult.ExecutionTimeout | Should Be 0
+            $testResult.Encrypt | Should Be $null
+            $testResult.Credential.UserName | Should Be 'CredentialUser'
+            $testResult.Credential.GetNetworkCredential().Password  | Should Be $testPassword
+            $testResult.Username | Should Be "TestUser"
+            [PSCredential]::new('test', $testResult.Password).GetNetworkCredential().Password | Should Be "TestPassword"
+            $testResult.SchemaVersionTable | Should Be "test.Table"
+            $testResult.Silent | Should Be $true
+            $testResult.Variables | Should Be $null
+            $testResult.Schema | Should Be "testschema"
             #negatives
             { [DBOpsConfig]::FromJsonString((Get-Content "$here\etc\notajsonfile.json" -Raw)) } | Should Throw
             { [DBOpsConfig]::FromJsonString($null) } | Should Throw

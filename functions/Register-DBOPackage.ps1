@@ -114,8 +114,8 @@ function Register-DBOPackage {
         # Register package scripts in a target database using variables instead of specifying values directly
         .\MyPackage.zip | Register-DBOPackage -SqlInstance '#{server}' -Database '#{db}' -Variables @{server = 'myserver\instance1'; db = 'MyDb'}
 #>
-    
-    [CmdletBinding(SupportsShouldProcess = $true, DefaultParameterSetName = 'Default')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSShouldProcess", "")]
+    [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'Default')]
     param
     (
         [Parameter(Mandatory = $true,
@@ -167,33 +167,34 @@ function Register-DBOPackage {
         elseif ($PsCmdlet.ParameterSetName -eq 'Pipeline') {
             $package = Get-DBOPackage -InputObject $InputObject
         }
+        #Getting new config with package defaults
+        $config = New-DBOConfig -Configuration $package.Configuration
 
-        #Convert custom parameters into a package configuration, excluding variables
+        #Merging the custom configuration provided
+        $config = $config | Get-DBOConfig -Configuration $Configuration
+
+        #Merge custom parameters into the configuration, excluding variables
         foreach ($key in ($PSBoundParameters.Keys)) {
             if ($key -in [DBOpsConfig]::EnumProperties() -and $key -ne 'Variables') {
                 Write-PSFMessage -Level Debug -Message "Overriding parameter $key with $($PSBoundParameters[$key])"
-                $package.Configuration.SetValue($key, $PSBoundParameters[$key])
+                $config.SetValue($key, $PSBoundParameters[$key])
             }
         }
         
         #Prepare deployment function call parameters
         $params = @{
             InputObject  = $package
+            Configuration = $config
             RegisterOnly = $true
         }
         foreach ($key in ($PSBoundParameters.Keys)) {
             #If any custom properties were specified
-            if ($key -in @('OutputFile', 'Append', 'Configuration', 'Variables', 'ConnectionType', 'Build')) {
+            if ($key -in @('OutputFile', 'Append', 'Variables', 'ConnectionType', 'Build')) {
                 $params += @{ $key = $PSBoundParameters[$key] }
             }
         }
-        Write-PSFMessage -Level Verbose -Message "Preparing to register with custom parameters: $($params.Keys -join ', ')"
-        if ($PSCmdlet.ShouldProcess($package, "Registering the package")) {
-            Invoke-DBODeployment @params
-        }
-        else {
-            Invoke-DBODeployment @params -WhatIf
-        }
+        Write-PSFMessage -Level Verbose -Message "Preparing to register the package $($package.FileName)"
+        Invoke-DBODeployment @params
     }
     end {
         

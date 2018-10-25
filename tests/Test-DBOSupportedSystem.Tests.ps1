@@ -7,7 +7,7 @@ else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
 
 if (!$Batch) {
     # Is not a part of the global batch => import module
-    Import-Module "$here\..\dbops.psd1" -Force
+    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
@@ -21,8 +21,8 @@ Describe "Test-DBOSupportedSystem tests" -Tag $commandName, UnitTests {
         }
         It "should test Oracle support" {
             $expectedResult = [bool](Get-Package Oracle.ManagedDataAccess -MinimumVersion 12.2.1100 -ErrorAction SilentlyContinue)
-            $result = Test-DBOSupportedSystem -Type Oracle 3>$null
-            $result | Should Be $expectedResult
+            $testResult = Test-DBOSupportedSystem -Type Oracle 3>$null
+            $testResult | Should Be $expectedResult
         }
     }
 }
