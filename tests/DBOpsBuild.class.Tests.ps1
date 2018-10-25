@@ -108,10 +108,10 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
     Context "tests other methods" {
         BeforeEach {
             $pkg = [DBOpsPackage]::new()
-            $pkg.SaveToFile($packageName, $true)
             $build = $pkg.NewBuild('1.0')
             $f = [DBOpsScriptFile]::new($script1, 'success\1.sql')
             $build.AddScript($f)
+            $pkg.SaveToFile($packageName, $true)
         }
         AfterAll {
             if (Test-Path $packageName) { Remove-Item $packageName }
@@ -161,6 +161,10 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             $j.Build | Should Be '1.0'
             $j.PackagePath | Should Be '1.0'
             $j.CreatedDate | Should Not BeNullOrEmpty
+            $j.psobject.properties.name | Should -BeIn @('Scripts', 'Build', 'PackagePath', 'CreatedDate')
+            foreach ($script in $j.Scripts) {
+                $script.psobject.properties.name | Should -BeIn @('SourcePath', 'Hash', 'PackagePath')
+            }
         }
     }
     Context "tests Save/Alter methods" {

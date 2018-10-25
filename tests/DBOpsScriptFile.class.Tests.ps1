@@ -158,6 +158,7 @@ Describe "dbopsScriptFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
             $j.PackagePath | Should Be 'success\1.sql'
             $j.Hash | Should Be ([DBOpsHelper]::ToHexString([Security.Cryptography.HashAlgorithm]::Create( "MD5" ).ComputeHash([DBOpsHelper]::GetBinaryFile($script1))))
             $j.SourcePath | Should Be $script1
+            $j.psobject.properties.name | Should -BeIn @('SourcePath', 'Hash', 'PackagePath')
         }
         It "should test Save method" {
             #Save old file parameters
