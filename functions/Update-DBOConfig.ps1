@@ -93,7 +93,8 @@
 
     }
     process {
-        foreach ($package in (Get-DBOPackage $Path)) {
+        foreach ($p in $Path) {
+            $package = Get-DBOPackage -Path $p
             #preparing an object for a merge
             $config = $package | Get-DBOConfig
             Write-PSFMessage -Level Verbose -Message "Assigning new values to the config"

@@ -193,6 +193,14 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
             $j.ConfigurationFile | Should Not BeNullOrEmpty
             $j.DeployFile | Should Not BeNullOrEmpty
             $j.ScriptDirectory | Should Not BeNullOrEmpty
+            $j.psobject.properties.name | Should -BeIn @('ScriptDirectory', 'DeployFile', 'PreDeployFile', 'PostDeployFile', 'ConfigurationFile', 'Builds')
+            foreach ($build in $j.Builds) {
+                $build.psobject.properties.name | Should -BeIn @('Scripts', 'Build', 'PackagePath', 'CreatedDate')
+                foreach ($script in $build.Scripts) {
+                    $script.psobject.properties.name | Should -BeIn @('SourcePath', 'Hash', 'PackagePath')
+                }
+            }
+
         }
         It "Should test GetPackagePath method" {
             $pkg.GetPackagePath() | Should Be 'content'
