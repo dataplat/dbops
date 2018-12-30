@@ -112,7 +112,8 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
             [PSCredential]::new('test', ($config.Password | ConvertFrom-EncryptedString)).GetNetworkCredential().Password | Should Be "TestPassword"
             $config.SchemaVersionTable | Should Be "test.Table"
             $config.Silent | Should Be $true
-            $config.Variables | Should Be $null
+            $config.Variables.foo | Should -Be 'bar'
+            $config.Variables.boo | Should -Be 'far'
             $config.Schema | Should Be 'testschema'
         }
         It "should be able to apply custom config" {

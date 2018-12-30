@@ -13,7 +13,10 @@
     "Password":  "replaceMe",
     "SchemaVersionTable":  "test.Table",
     "Silent":  true,
-    "Variables":  null,
+    "Variables":  {
+        "foo": "bar",
+        "boo": "far"
+    },
     "Schema": "testschema",
     "CreateDatabase": false
 }

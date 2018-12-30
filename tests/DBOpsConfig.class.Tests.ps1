@@ -79,7 +79,8 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             [PSCredential]::new('test', $testResult.Password).GetNetworkCredential().Password | Should Be "TestPassword"
             $testResult.SchemaVersionTable | Should Be "test.Table"
             $testResult.Silent | Should Be $true
-            $testResult.Variables | Should Be $null
+            $testResult.Variables.foo | Should -Be 'bar'
+            $testResult.Variables.boo | Should -Be 'far'
             $testResult.Schema | Should Be "testschema"
         }
     }
@@ -100,7 +101,8 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             [PSCredential]::new('test', $testResult.Password).GetNetworkCredential().Password | Should Be "TestPassword"
             $testResult.SchemaVersionTable | Should Be "test.Table"
             $testResult.Silent | Should Be $true
-            $testResult.Variables | Should Be $null
+            $testResult.Variables.foo | Should -Be 'bar'
+            $testResult.Variables.boo | Should -Be 'far'
             $testResult.Schema | Should Be "testschema"
         }
         It "should test SetValue method" {
@@ -160,7 +162,8 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             [PSCredential]::new('test', ($testResult.Password | ConvertFrom-EncryptedString)).GetNetworkCredential().Password | Should Be "TestPassword"
             $testResult.SchemaVersionTable | Should Be "test.Table"
             $testResult.Silent | Should Be $true
-            $testResult.Variables | Should Be $null
+            $testResult.Variables.foo | Should -Be 'bar'
+            $testResult.Variables.boo | Should -Be 'far'
             $testResult.Schema | Should Be "testschema"
         }
         It "should test Merge method into full config" {
@@ -174,6 +177,10 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
                 Schema            = "test3"
                 Password          = $null
                 Credential        = $null
+                Variables         = @{
+                    foo = "bar2"
+                    goo = "yarr"
+                }
             }
             $config.Merge($hashtable)
             $config.ApplicationName | Should Be "MyTestApp2"
@@ -188,7 +195,9 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             $config.Password | Should Be $null
             $config.SchemaVersionTable | Should Be "test.Table"
             $config.Silent | Should Be $false
-            $config.Variables | Should Be $null
+            $config.Variables.foo | Should Be "bar2"
+            $config.Variables.boo | Should Be "far"
+            $config.Variables.goo | Should Be "yarr"
             $config.Schema | Should Be "test3"
             #negative
             { $config.Merge(@{foo = 'bar'}) } | Should Throw
@@ -211,7 +220,8 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             [PSCredential]::new('test', $config.Password).GetNetworkCredential().Password | Should Be "TestPassword"
             $config.SchemaVersionTable | Should Be "test.Table"
             $config.Silent | Should Be $true
-            $config.Variables | Should Be $null
+            $config.Variables.foo | Should -Be 'bar'
+            $config.Variables.boo | Should -Be 'far'
             $config.Schema | Should Be "testschema"
             #negative
             { $config.Merge(@{foo = 'bar'}) } | Should Throw
@@ -297,7 +307,7 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             [PSCredential]::new('test', ($testResult.Password | ConvertFrom-EncryptedString)).GetNetworkCredential().Password | Should Be "TestPassword"
             $testResult.SchemaVersionTable | Should Be "test.Table"
             $testResult.Silent | Should Be $true
-            $testResult.Variables | Should Be $null
+            $testResult.Variables | Should -Not -BeNullOrEmpty
             $testResult.Schema | Should Be "testschema"
         }
     }
@@ -323,7 +333,7 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             [PSCredential]::new('test', $testResult.Password).GetNetworkCredential().Password | Should Be "TestPassword"
             $testResult.SchemaVersionTable | Should Be "test.Table"
             $testResult.Silent | Should Be $true
-            $testResult.Variables | Should Be $null
+            $testResult.Variables | Should -Not -BeNullOrEmpty
             $testResult.Schema | Should Be "testschema"
             #negatives
             { [DBOpsConfig]::FromFile((Join-PSFPath -Normalize "$here\etc\notajsonfile.json")) } | Should Throw
@@ -345,7 +355,7 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             [PSCredential]::new('test', $testResult.Password).GetNetworkCredential().Password | Should Be "TestPassword"
             $testResult.SchemaVersionTable | Should Be "test.Table"
             $testResult.Silent | Should Be $true
-            $testResult.Variables | Should Be $null
+            $testResult.Variables | Should -Not -BeNullOrEmpty
             $testResult.Schema | Should Be "testschema"
             #negatives
             { [DBOpsConfig]::FromJsonString((Get-Content "$here\etc\notajsonfile.json" -Raw)) } | Should Throw

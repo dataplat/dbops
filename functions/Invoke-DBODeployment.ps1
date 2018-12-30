@@ -151,38 +151,7 @@
         }
        
         #Build connection string
-        if (!$config.ConnectionString) {
-            $CSBuilder = [System.Data.SqlClient.SqlConnectionStringBuilder]::new()
-            $CSBuilder["Server"] = $config.SqlInstance
-            if ($config.Database) { $CSBuilder["Database"] = $config.Database }
-            if ($config.Encrypt) { $CSBuilder["Encrypt"] = $true }
-            $CSBuilder["Connection Timeout"] = $config.ConnectionTimeout
-        
-            if ($config.Credential) {
-                $CSBuilder["User ID"] = $config.Credential.UserName
-                $CSBuilder["Password"] = $config.Credential.GetNetworkCredential().Password
-            }
-            elseif ($config.Username) {
-                if ($Password) {
-                    $currentCred = [pscredential]::new($config.Username, $Password)
-                }
-                else {
-                    $currentCred = [pscredential]::new($config.Username, $config.Password)
-                }
-                $CSBuilder["User ID"] = $currentCred.UserName
-                $CSBuilder["Password"] = $currentCred.GetNetworkCredential().Password
-            }
-            else {
-                $CSBuilder["Integrated Security"] = $true
-            }
-            if ($ConnectionType -eq 'SQLServer') {
-                $CSBuilder["Application Name"] = $config.ApplicationName
-            }
-            $connString = $CSBuilder.ToString()
-        }
-        else {
-            $connString = $config.ConnectionString
-        }
+        $connString = Get-ConnectionString -Configuration $config -Type $ConnectionType
     
         $scriptCollection = @()
         if ($PsCmdlet.ParameterSetName -ne 'Script') {
@@ -220,8 +189,8 @@
 
         #Build dbUp object
         $dbUp = [DbUp.DeployChanges]::To
+        $dbUpConnection = Get-ConnectionManager -ConnectionString $connString -Type $ConnectionType
         if ($ConnectionType -eq 'SqlServer') {
-            $dbUpConnection = [DbUp.SqlServer.SqlConnectionManager]::new($connString)
             if ($config.Schema) {
                 $dbUp = [SqlServerExtensions]::SqlDatabase($dbUp, $dbUpConnection, $config.Schema)
             }
@@ -230,7 +199,6 @@
             }
         }
         elseif ($ConnectionType -eq 'Oracle') {
-            $dbUpConnection = [DbUp.Oracle.OracleConnectionManager]::new($connString)
             if ($config.Schema) {
                 $dbUp = [DbUp.Oracle.OracleExtensions]::OracleDatabase($dbUpConnection, $config.Schema)
             }

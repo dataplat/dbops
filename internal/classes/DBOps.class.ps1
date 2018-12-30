@@ -1228,7 +1228,28 @@ class DBOpsConfig : DBOps {
     }
     [void] Merge([hashtable]$config) {
         foreach ($key in $config.Keys) {
-            $this.SetValue($key, $config.$key)
+            if ($key -eq 'Variables') {
+                # create new hashtable with all the existing variables
+                $hashVar = @{}
+                foreach ($variable in $this.Variables.psobject.Properties.Name) {
+                    $hashVar += @{
+                        $variable = $this.Variables.$variable
+                    }
+                }
+                # now merge in each incoming value
+                if ($config.$key) {
+                    if ($config.$key -is [hashtable]) { $variableList = $config.$key.Keys }
+                    else { $variableList = $config.$key.psobject.Properties.Name }
+                    foreach ($variable in $variableList) {
+                        $hashVar.$variable = $config.$key.$variable
+                    }
+                }
+                # lastly, convert back to psobject and re-assign
+                $this.SetValue($key, ([psobject]$hashVar))
+            }
+            else {
+                $this.SetValue($key, $config.$key)
+            }
         }
     }
     
