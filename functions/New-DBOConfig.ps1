@@ -26,7 +26,7 @@
 
     .EXAMPLE
     # Saves empty configuration to a file
-    (New-DBOConfig).SaveToFile('c:\package\dbops.config.json')
+    New-DBOConfig | Export-DBOConfig c:\package\dbops.config.json
 
     #>
     [CmdletBinding()]
@@ -34,15 +34,5 @@
     (
         [object]$Configuration
     )
-    $config = [DBOpsConfig]::new()
-    if ($Configuration) {
-        if ($Configuration -is [DBOpsConfig] -or $Configuration -is [hashtable]) {
-            Write-PSFMessage -Level Verbose -Message "Merging configuration"
-            $config.Merge($Configuration)
-        }
-        else {
-            Stop-PSFFunction -EnableException $true -Message "The following object type is not supported: $($InputObject.GetType().Name). The only supported types are DBOpsConfig and Hashtable."
-        }
-    }
-    $config
+    return [DBOpsConfig]::new() | Get-DBOConfig -Configuration $Configuration
 }

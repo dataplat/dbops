@@ -31,7 +31,7 @@ Function Remove-DBOBuild {
     .NOTES
     
     #>
-    [CmdletBinding(SupportsShouldProcess = $true)]
+    [CmdletBinding(SupportsShouldProcess)]
     Param(
         [Parameter(Mandatory = $true,
             ValueFromPipeline = $true,

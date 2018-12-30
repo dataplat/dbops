@@ -31,7 +31,9 @@
         "functions\\Send-DBOMailMessage.ps1",
         "functions\\Reset-DBODefaultSetting.ps1",
         "functions\\New-DBOConfig.ps1",
-        "functions\\Export-DBOConfig.ps1"
+        "functions\\Export-DBOConfig.ps1",
+        "functions\\ConvertTo-EncryptedString.ps1",
+        "functions\\ConvertFrom-EncryptedString.ps1"
     ],
     "Internal": [
         "internal\\classes\\DBOps.enums.ps1",
@@ -40,6 +42,9 @@
         "internal\\functions\\Resolve-VariableToken.ps1",
         "internal\\functions\\Get-NewBuildNumber.ps1",
         "internal\\functions\\Get-ExternalLibrary.ps1",
+        "internal\\functions\\Get-EncryptionKey.ps1",
+        "internal\\functions\\New-EncryptionKey.ps1",
+        "internal\\functions\\Test-Windows.ps1",
         "internal\\classes\\DBOpsHelper.class.ps1",
         "internal\\classes\\DBOps.class.ps1",
         "internal\\classes\\DBOpsDeploymentStatus.class.ps1",

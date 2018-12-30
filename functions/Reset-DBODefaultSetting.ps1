@@ -29,7 +29,7 @@ function Reset-DBODefaultSetting {
         
             Reset all settings.
     #>
-    [CmdletBinding(DefaultParameterSetName = "Named", SupportsShouldProcess = $true)]
+    [CmdletBinding(DefaultParameterSetName = "Named", SupportsShouldProcess)]
     param (
         [parameter(Mandatory, ParameterSetName = 'Named')]
         [string[]]$Name,

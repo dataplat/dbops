@@ -7,17 +7,17 @@ else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
 
 if (!$Batch) {
     # Is not a part of the global batch => import module
-    Import-Module "$here\..\dbops.psd1" -Force
+    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
     Write-Host "Running $commandName tests" -ForegroundColor Cyan
 }
 
-$workFolder = Join-Path "$here\etc" "$commandName.Tests.dbops"
+$workFolder = Join-PSFPath -Normalize "$here\etc" "$commandName.Tests.dbops"
 $unpackedFolder = Join-Path $workFolder 'unpacked'
 
-$scriptFolder = "$here\etc\install-tests\success"
+$scriptFolder = Join-PSFPath -Normalize "$here\etc\install-tests\success"
 $v1scripts = Join-Path $scriptFolder "1.sql"
 $v2scripts = Join-Path $scriptFolder "2.sql"
 $packageName = Join-Path $workFolder "TempDeployment.zip"
@@ -46,20 +46,20 @@ Describe "Remove-DBOBuild tests" -Tag $commandName, UnitTests {
             { Remove-DBOBuild -Name $packageNameTest -Build 1.0 } | Should Not Throw
             Test-Path $packageNameTest | Should Be $true
         }
-        $results = Get-ArchiveItem $packageNameTest
+        $testResults = Get-ArchiveItem $packageNameTest
         It "build 1.0 should not exist" {
-            'content\1.0' | Should Not BeIn $results.Path
+            Join-PSFPath -Normalize 'content\1.0' | Should Not BeIn $testResults.Path
         }
         It "build 2.0 should contain scripts from 2.0" {
-            'content\2.0\2.sql' | Should BeIn $results.Path
+            Join-PSFPath -Normalize 'content\2.0\2.sql' | Should BeIn $testResults.Path
         }
         It "should contain module files" {
-            'Modules\dbops\dbops.psd1' | Should BeIn $results.Path
-            'Modules\dbops\bin\dbup-sqlserver.dll' | Should BeIn $results.Path
+            Join-PSFPath -Normalize 'Modules\dbops\dbops.psd1' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'Modules\dbops\bin\dbup-sqlserver.dll' | Should BeIn $testResults.Path
         }
         It "should contain config files" {
-            'dbops.config.json' | Should BeIn $results.Path
-            'dbops.package.json' | Should BeIn $results.Path
+            'dbops.config.json' | Should BeIn $testResults.Path
+            'dbops.package.json' | Should BeIn $testResults.Path
         }
     }
     Context "removing version 2.0 from existing package" {
@@ -73,20 +73,20 @@ Describe "Remove-DBOBuild tests" -Tag $commandName, UnitTests {
             { Remove-DBOBuild -Name $packageNameTest -Build 2.0 } | Should Not Throw
             Test-Path $packageNameTest | Should Be $true
         }
-        $results = Get-ArchiveItem $packageNameTest
+        $testResults = Get-ArchiveItem $packageNameTest
         It "build 1.0 should contain scripts from 1.0" {
-            'content\1.0\1.sql' | Should BeIn $results.Path
+            Join-PSFPath -Normalize 'content\1.0\1.sql' | Should BeIn $testResults.Path
         }
         It "build 2.0 should not exist" {
-            'content\2.0' | Should Not BeIn $results.Path
+            Join-PSFPath -Normalize 'content\2.0' | Should Not BeIn $testResults.Path
         }
         It "should contain module files" {
-            'Modules\dbops\dbops.psd1' | Should BeIn $results.Path
-            'Modules\dbops\bin\dbup-sqlserver.dll' | Should BeIn $results.Path
+            Join-PSFPath -Normalize 'Modules\dbops\dbops.psd1' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'Modules\dbops\bin\dbup-sqlserver.dll' | Should BeIn $testResults.Path
         }
         It "should contain config files" {
-            'dbops.config.json' | Should BeIn $results.Path
-            'dbops.package.json' | Should BeIn $results.Path
+            'dbops.config.json' | Should BeIn $testResults.Path
+            'dbops.package.json' | Should BeIn $testResults.Path
         }
     }
     Context "removing all versions from existing package" {
@@ -100,20 +100,20 @@ Describe "Remove-DBOBuild tests" -Tag $commandName, UnitTests {
             { Remove-DBOBuild -Name $packageNameTest -Build "1.0", "2.0"  } | Should Not Throw
             Test-Path $packageNameTest | Should Be $true
         }
-        $results = Get-ArchiveItem $packageNameTest
+        $testResults = Get-ArchiveItem $packageNameTest
         It "build 1.0 should not exist" {
-            'content\1.0' | Should Not BeIn $results.Path
+            Join-PSFPath -Normalize 'content\1.0' | Should Not BeIn $testResults.Path
         }
         It "build 2.0 should not exist" {
-            'content\2.0' | Should Not BeIn $results.Path
+            Join-PSFPath -Normalize 'content\2.0' | Should Not BeIn $testResults.Path
         }
         It "should contain module files" {
-            'Modules\dbops\dbops.psd1' | Should BeIn $results.Path
-            'Modules\dbops\bin\dbup-sqlserver.dll' | Should BeIn $results.Path
+            Join-PSFPath -Normalize 'Modules\dbops\dbops.psd1' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'Modules\dbops\bin\dbup-sqlserver.dll' | Should BeIn $testResults.Path
         }
         It "should contain config files" {
-            'dbops.config.json' | Should BeIn $results.Path
-            'dbops.package.json' | Should BeIn $results.Path
+            'dbops.config.json' | Should BeIn $testResults.Path
+            'dbops.package.json' | Should BeIn $testResults.Path
         }
     }
     Context "removing version 2.0 from existing package using pipeline" {
@@ -127,20 +127,20 @@ Describe "Remove-DBOBuild tests" -Tag $commandName, UnitTests {
             { $packageNameTest | Remove-DBOBuild -Build '2.0' } | Should Not Throw
             Test-Path $packageNameTest | Should Be $true
         }
-        $results = Get-ArchiveItem $packageNameTest
+        $testResults = Get-ArchiveItem $packageNameTest
         It "build 1.0 should contain scripts from 1.0" {
-            'content\1.0\1.sql' | Should BeIn $results.Path
+            Join-PSFPath -Normalize 'content\1.0\1.sql' | Should BeIn $testResults.Path
         }
         It "build 2.0 should not exist" {
-            'content\2.0' | Should Not BeIn $results.Path
+            Join-PSFPath -Normalize 'content\2.0' | Should Not BeIn $testResults.Path
         }
         It "should contain module files" {
-            'Modules\dbops\dbops.psd1' | Should BeIn $results.Path
-            'Modules\dbops\bin\dbup-sqlserver.dll' | Should BeIn $results.Path
+            Join-PSFPath -Normalize 'Modules\dbops\dbops.psd1' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'Modules\dbops\bin\dbup-sqlserver.dll' | Should BeIn $testResults.Path
         }
         It "should contain config files" {
-            'dbops.config.json' | Should BeIn $results.Path
-            'dbops.package.json' | Should BeIn $results.Path
+            'dbops.config.json' | Should BeIn $testResults.Path
+            'dbops.package.json' | Should BeIn $testResults.Path
         }
     }
     Context "negative tests" {

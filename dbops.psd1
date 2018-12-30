@@ -42,7 +42,7 @@
     # Modules that must be imported into the global environment prior to importing
     # this module
     RequiredModules        = @(
-        @{ ModuleName = 'PSFramework'; ModuleVersion = '0.9.24.98'}
+        @{ ModuleName = 'PSFramework'; ModuleVersion = '0.10.30.165'}
     )
     
     # Assemblies that must be loaded prior to importing this module
@@ -86,7 +86,9 @@
         'Send-DBOMailMessage',
         'Reset-DBODefaultSetting',
         'New-DBOConfig',
-        'Export-DBOConfig'
+        'Export-DBOConfig',
+        'ConvertTo-EncryptedString',
+        'ConvertFrom-EncryptedString'
     )
     
     # Cmdlets to export from this module

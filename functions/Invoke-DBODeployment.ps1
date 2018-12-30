@@ -73,7 +73,7 @@
         Invoke-DBODeployment -SqlInstance '#{server}' -Database '#{db}' -Variables @{server = 'myserver\instance1'; db = 'MyDb'}
 #>
     
-    [CmdletBinding(SupportsShouldProcess = $true, DefaultParameterSetName = 'PackageFile')]
+    [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'PackageFile')]
     Param (
         [parameter(ParameterSetName = 'PackageFile')]
         [string]$PackageFile = ".\dbops.package.json",
@@ -84,6 +84,7 @@
         [Alias('Package')]
         [object]$InputObject,
         [parameter(ParameterSetName = 'PackageObject')]
+        [parameter(ParameterSetName = 'PackageFile')]
         [string[]]$Build,
         [string]$OutputFile,
         [switch]$Append,
@@ -100,29 +101,17 @@
         if ($PsCmdlet.ParameterSetName -eq 'PackageFile') {
             #Get package object from the json file
             $package = Get-DBOPackage $PackageFile -Unpacked
-            $config.Merge($package.Configuration)
         }
         elseif ($PsCmdlet.ParameterSetName -eq 'PackageObject') {
             $package = Get-DBOPackage -InputObject $InputObject
-            $config.Merge($package.Configuration)
         }
-
-        if (Test-PSFParameterBinding -ParameterName Configuration -BoundParameters $PSBoundParameters) {
-            if ($Configuration -is [DBOpsConfig] -or $Configuration -is [hashtable]) {
-                Write-PSFMessage -Level Verbose -Message "Merging configuration from a $($Configuration.GetType().Name) object"
-                $config.Merge($Configuration)
-            }
-            elseif ($Configuration -is [String] -or $Configuration -is [System.IO.FileInfo]) {
-                $configFromFile = Get-DBOConfig -Path $Configuration
-                Write-PSFMessage -Level Verbose -Message "Merging configuration from file $($Configuration)"
-                $config.Merge($configFromFile)
-            }
-            elseif ($Configuration) {
-                Stop-PSFFunction -EnableException $true -Message "The following object type is not supported: $($Configuration.GetType().Name). The only supported types are DBOpsConfig, Hashtable, FileInfo and String"
-            }
-            else {
-                Stop-PSFFunction -EnableException $true -Message "No configuration provided, aborting"
-            }
+        # Merge package config into the current config
+        if ($package) {
+            $config = $config | Get-DBOConfig -Configuration $package.Configuration
+        }
+        # Merge custom config into the current config
+        if (Test-PSFParameterBinding -ParameterName Configuration) {
+            $config = $config | Get-DBOConfig -Configuration $Configuration
         }
 
         #Test if the selected Connection type is supported
@@ -171,19 +160,17 @@
         
             if ($config.Credential) {
                 $CSBuilder["User ID"] = $config.Credential.UserName
-                $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($config.Credential.Password)
-                $CSBuilder["Password"] = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+                $CSBuilder["Password"] = $config.Credential.GetNetworkCredential().Password
             }
             elseif ($config.Username) {
-                $CSBuilder["User ID"] = $config.UserName
                 if ($Password) {
-                    [SecureString]$currentPassword = $Password
+                    $currentCred = [pscredential]::new($config.Username, $Password)
                 }
                 else {
-                    [SecureString]$currentPassword = $config.Password
+                    $currentCred = [pscredential]::new($config.Username, $config.Password)
                 }
-                $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($currentPassword)
-                $CSBuilder["Password"] = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+                $CSBuilder["User ID"] = $currentCred.UserName
+                $CSBuilder["Password"] = $currentCred.GetNetworkCredential().Password
             }
             else {
                 $CSBuilder["Integrated Security"] = $true
@@ -213,9 +200,8 @@
             foreach ($buildItem in $buildCollection) {
                 foreach ($script in $buildItem.scripts) {
                     # Replace tokens in the scripts
-                    $scriptPackagePath = ($script.GetPackagePath() -replace ('^' + [regex]::Escape($package.GetPackagePath())), '').TrimStart('\')
                     $scriptContent = Resolve-VariableToken $script.GetContent() $runtimeVariables
-                    $scriptCollection += [DbUp.Engine.SqlScript]::new($scriptPackagePath, $scriptContent)
+                    $scriptCollection += [DbUp.Engine.SqlScript]::new($script.GetDeploymentPath(), $scriptContent)
                 }
             }
         }
@@ -276,7 +262,9 @@
         }
         $status.ConnectionType = $ConnectionType
         if ($PsCmdlet.ParameterSetName -eq 'Script') {
-            $status.SourcePath += $ScriptPath
+            foreach ($p in $ScriptPath) {
+                $status.SourcePath += Join-PSFPath -Normalize $p
+            }
         }
         else {
             $status.SourcePath = $package.FileName

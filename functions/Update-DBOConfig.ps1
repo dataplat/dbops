@@ -53,7 +53,7 @@
     
     #>
     [CmdletBinding(DefaultParameterSetName = 'Value',
-        SupportsShouldProcess = $true)]
+        SupportsShouldProcess)]
     Param (
         [Parameter(Mandatory = $true,
             ValueFromPipeline = $true,
