@@ -6,6 +6,9 @@ function Invoke-DBOQuery {
     .DESCRIPTION
         Runs a query against a selected database server and returns results
     
+    .PARAMETER Query
+        One or more queries to execute on the remote server
+    
     .PARAMETER InputFile
         Path to one or more SQL sript files.
         Aliases: Name, FileName, ScriptPath, Path
@@ -25,12 +28,6 @@ function Invoke-DBOQuery {
         If 0, will wait for connection until the end of times.
         
         Default: 30
-        
-    .PARAMETER ExecutionTimeout
-        Script execution timeout. The script will be aborted if the execution takes more than specified number of seconds.
-        If 0, the script is allowed to run until the end of times.
-
-        Default: 0
     
     .PARAMETER Encrypt
         Enables connection encryption.
@@ -54,7 +51,7 @@ function Invoke-DBOQuery {
         Will augment and/or overwrite Variables defined inside the package.
      
     .PARAMETER OutputFile
-        Log output into specified file.
+        Put the execution log into the specified file.
     
     .PARAMETER Append
         Append output to the -OutputFile instead of overwriting it.
@@ -73,6 +70,9 @@ function Invoke-DBOQuery {
     .PARAMETER ConnectionType
         Defines the driver to use when connecting to the database server.
         Available options: SqlServer (default), Oracle
+
+    .PARAMETER As
+        Specifies output type. Valid options for this parameter are 'DataSet', 'DataTable', 'DataRow', 'PSObject', and 'SingleValue'
     
     .PARAMETER Confirm
         Prompts to confirm certain actions
@@ -94,7 +94,7 @@ function Invoke-DBOQuery {
 
     .EXAMPLE
         # Runs two scripts from the current folder using custom configuration file
-        Invoke-DBOQuery -Path .\Script1.sql,.\Script2.sql -SqlInstance 'Srv1' -Database 'MyDb' -ConfigurationFile .\localconfig.json
+        Invoke-DBOQuery -InputFile .\Script1.sql,.\Script2.sql -ConfigurationFile .\localconfig.json
 
     .EXAMPLE
         # Runs two scripts from the current folder using variables instead of specifying values directly
@@ -123,7 +123,6 @@ function Invoke-DBOQuery {
         [Parameter(Position = 3)]
         [string]$Database,
         [int]$ConnectionTimeout,
-        [int]$ExecutionTimeout,
         [switch]$Encrypt,
         [pscredential]$Credential,
         [string]$UserName,
@@ -147,47 +146,6 @@ function Invoke-DBOQuery {
     )
     
     begin {
-        if ($As -eq "PSObject") {
-            #This code scrubs DBNulls.  Props to Dave Wyatt
-            $cSharp = @'
-                using System;
-                using System.Data;
-                using System.Management.Automation;
-
-                public class DBNullScrubber
-                {
-                    public static PSObject DataRowToPSObject(DataRow row)
-                    {
-                        PSObject psObject = new PSObject();
-
-                        if (row != null && (row.RowState & DataRowState.Detached) != DataRowState.Detached)
-                        {
-                            foreach (DataColumn column in row.Table.Columns)
-                            {
-                                Object value = null;
-                                if (!row.IsNull(column))
-                                {
-                                    value = row[column];
-                                }
-
-                                psObject.Properties.Add(new PSNoteProperty(column.ColumnName, value));
-                            }
-                        }
-
-                        return psObject;
-                    }
-                }
-'@
-
-            try {
-                Add-Type -TypeDefinition $cSharp -ReferencedAssemblies 'System.Data', 'System.Xml' -ErrorAction Stop
-            } catch {
-                if (-not $_.ToString() -like "*The type name 'DBNullScrubber' already exists*") {
-                    Write-PSFMessage -Level Warning -Message "Could not load DBNullScrubber.  Defaulting to DataRow output: $_."
-                    $As = "Datarow"
-                }
-            }
-        }
     }
     process {
         $config = New-DBOConfig -Configuration $Configuration
@@ -222,37 +180,70 @@ function Invoke-DBOQuery {
         $dbUpSqlParser = Get-SqlParser -Type $ConnectionType
         $status = [DBOpsDeploymentStatus]::new()
         $dbUpLog = [DBOpsLog]::new($config.Silent, $OutputFile, $Append, $status)
+        $dbUpLog.CallStack = (Get-PSCallStack)[0]
+        if (-Not $config.Silent) {
+            $dbUpConnection.IsScriptOutputLogged = $true
+        }
         $managedConnection = $dbUpConnection.OperationStarting($dbUpLog, $null)
-        $queryList = $Query
+        if ($Query) {
+            $queryText = $Query
+        }
+        else {
+            $fileObjects = @()
+            try {
+                if ($InputFile) {
+                    $fileObjects += $InputFile | Get-Item -ErrorAction Stop
+                }
+                if ($InputObject) {
+                    $fileObjects += $InputObject | Get-Item -ErrorAction Stop
+                }
+            }
+            catch {
+                Stop-PSFFunction -Message 'File not found' -Exception $_ -EnableException $true
+            }
+            $queryText = $fileObjects | Get-Content -Raw
+        }
+
+        #Replace tokens in the sql code if any
+        $queryList = @()
+        foreach ($qText in $queryText) {
+            $queryList += Resolve-VariableToken $qText $config.Variables
+        }
         try {
             $ds = [System.Data.DataSet]::new()
+            $qCount = 0
             foreach ($queryItem in $queryList) {
-                $dt = [System.Data.DataTable]::new()
-                $rows = $dbUpConnection.ExecuteCommandsWithManagedConnection( [Func[Func[Data.IDbCommand],[pscustomobject]]]{
-                    Param (
-                        $dbCommandFactory
-                    )
-                    $sqlRunner = [DbUp.Helpers.AdHocSqlRunner]::new($dbCommandFactory, $dbUpSqlParser, $config.Schema)
-                    return $sqlRunner.ExecuteReader($queryItem)
-                })
-                $rowCount = ($rows | Measure-Object).Count
-                if ($rowCount -gt 0) {
-                    $keys = switch ($rowCount) {
-                        1 { $rows.Keys }
-                        default { $rows[0].Keys }
-                    }
-                    foreach ($column in $keys) {
-                        $null = $dt.Columns.Add($column)
-                    }
-                    foreach($row in $rows) {
-                        $dr = $dt.NewRow()
-                        foreach ($col in $row.Keys) {
-                            $dr[$col] = $row[$col]
+                $qCount++
+                if ($PSCmdlet.ShouldProcess("Executing query $qCount", $config.SqlInstance)) {
+                    foreach ($splitQuery in $dbUpConnection.SplitScriptIntoCommands($queryItem)) {
+                        $dt = [System.Data.DataTable]::new()
+                        $rows = $dbUpConnection.ExecuteCommandsWithManagedConnection( [Func[Func[Data.IDbCommand],[pscustomobject]]]{
+                            Param (
+                                $dbCommandFactory
+                            )
+                            $sqlRunner = [DbUp.Helpers.AdHocSqlRunner]::new($dbCommandFactory, $dbUpSqlParser, $config.Schema)
+                            return $sqlRunner.ExecuteReader($splitQuery)
+                        })
+                        $rowCount = ($rows | Measure-Object).Count
+                        if ($rowCount -gt 0) {
+                            $keys = switch ($rowCount) {
+                                1 { $rows.Keys }
+                                default { $rows[0].Keys }
+                            }
+                            foreach ($column in $keys) {
+                                $null = $dt.Columns.Add($column)
+                            }
+                            foreach($row in $rows) {
+                                $dr = $dt.NewRow()
+                                foreach ($col in $row.Keys) {
+                                    $dr[$col] = $row[$col]
+                                }
+                                $null = $dt.Rows.Add($dr);
+                            }
                         }
-                        $null = $dt.Rows.Add($dr);
+                        $null = $ds.Tables.Add($dt);
                     }
                 }
-                $null = $ds.Tables.Add($dt);
             }
         }
         catch {
@@ -275,10 +266,8 @@ function Invoke-DBOQuery {
             }
             'PSObject' {
                 if ($ds.Tables.Count -gt 0) {
-                    #Scrub DBNulls - Provides convenient results you can use comparisons with
-                    #Introduces overhead (e.g. ~2000 rows w/ ~80 columns went from .15 Seconds to .65 Seconds - depending on your data could be much more!)
                     foreach ($row in $ds.Tables[0].Rows) {
-                        [DBNullScrubber]::DataRowToPSObject($row)
+                        [DBOpsHelper]::DataRowToPSObject($row)
                     }
                 }
             }
