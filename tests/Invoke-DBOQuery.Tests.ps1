@@ -29,10 +29,10 @@ Describe "Invoke-DBOQuery tests" -Tag $commandName, IntegrationTests {
     }
     Context "Regular tests" {
         It "should run the query" {
-           $query = "SELECT 1 AS A, 2 AS B UNION ALL SELECT 3 AS A, 4 AS B"
-           $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -As DataTable
-           $result.A | Should -Be 1, 3
-           $result.B | Should -Be 2, 4
+            $query = "SELECT 1 AS A, 2 AS B UNION ALL SELECT 3 AS A, 4 AS B"
+            $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -As DataTable
+            $result.A | Should -Be 1, 3
+            $result.B | Should -Be 2, 4
         }
         It "should run the query with GO" {
             $query = "SELECT 1 AS A, 2 AS B
@@ -69,7 +69,7 @@ Describe "Invoke-DBOQuery tests" -Tag $commandName, IntegrationTests {
             $file1 = Join-Path $workFolder 1.sql
             $file2 = Join-Path $workFolder 2.sql
             "SELECT 1 AS A, 2 AS B" | Out-File $file1 -Force
-            "SELECT 3 AS A, 4 AS B" | Out-File $file2 -Force -Encoding utf8BOM
+            "SELECT 3 AS A, 4 AS B" | Out-File $file2 -Force -Encoding bigendianunicode
             $result = Invoke-DBOQuery -InputFile $file1, $file2 -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -As DataTable
             $result[0].A | Should -Be 1
             $result[0].B | Should -Be 2
@@ -80,13 +80,13 @@ Describe "Invoke-DBOQuery tests" -Tag $commandName, IntegrationTests {
             $file1 = Join-Path $workFolder 1.sql
             $file2 = Join-Path $workFolder 2.sql
             "SELECT 1 AS A, 2 AS B" | Out-File $file1 -Force
-            "SELECT 3 AS A, 4 AS B" | Out-File $file2 -Force -Encoding utf8BOM
-            $result = Get-Item $file1, $file2 | Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -As DataTable
+            "SELECT 3 AS A, 4 AS B" | Out-File $file2 -Force -Encoding bigendianunicode
+            $result = Get-Item $file1, $file2 | Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -As DataTable
             $result[0].A | Should -Be 1
             $result[0].B | Should -Be 2
             $result[1].A | Should -Be 3
             $result[1].B | Should -Be 4
-            $result = $file1, $file2 | Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -As DataTable
+            $result = $file1, $file2 | Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -As DataTable
             $result[0].A | Should -Be 1
             $result[0].B | Should -Be 2
             $result[1].A | Should -Be 3
