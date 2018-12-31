@@ -38,7 +38,7 @@ class DBOps {
         }
         Write-PSFMessage @splatParam
     }
-   
+
     hidden [void] WriteDebug ([string]$Message, [object]$Target) {
         $callStack = (Get-PSCallStack)[1]
         $splatParam = @{
@@ -112,7 +112,7 @@ class DBOps {
                 else {
                     $this.$CollectionName = $this.$CollectionName | Where-Object { $_.PackagePath -ne $file.PackagePath }
                 }
-                
+
             }
         }
     }
@@ -352,7 +352,7 @@ class DBOpsPackageBase : DBOps {
             else {
                 $exportObject.$type = $this.$type
             }
-        
+
         }
         return $exportObject | ConvertTo-Json -Depth 4
     }
@@ -482,7 +482,7 @@ class DBOpsPackageBase : DBOps {
 class DBOpsPackage : DBOpsPackageBase {
     #Constructors
     DBOpsPackage () {
-    
+
         $this.Init()
         # Processing deploy file
         $file = [DBOpsConfig]::GetDeployFile()
@@ -497,7 +497,7 @@ class DBOpsPackage : DBOpsPackageBase {
     }
 
     DBOpsPackage ([string]$fileName) {
-    
+
         if (!(Test-Path $fileName -PathType Leaf)) {
             throw "File $fileName not found. Aborting."
         }
@@ -817,7 +817,7 @@ class DBOpsBuild : DBOps {
         catch {
             Stop-PSFFunction -Message "Failed to open filestream to $($this.Parent.FileName) with mode $writeMode" -EnableException $true -ErrorRecord $_ -ModuleName dbops -FunctionName $this.GetType().Name
         }
-        
+
         try {
             #Open zip file
             $zip = [ZipArchive]::new($stream, [ZipArchiveMode]::Update)
@@ -901,7 +901,7 @@ class DBOpsFile : DBOps {
         finally {
             $stream.Dispose()
         }
-    
+
         $this.Length = $this.ByteArray.Length
     }
     DBOpsFile ([psobject]$fileDescription, [System.IO.FileInfo]$file) {
@@ -1101,7 +1101,7 @@ class DBOpsConfig : DBOps {
         $this.Init()
 
         $jsonConfig = $jsonString | ConvertFrom-Json -ErrorAction Stop
-    
+
         foreach ($property in $jsonConfig.psobject.properties.Name) {
             if ($property -in [DBOpsConfig]::EnumProperties()) {
                 $this.SetValue($property, $jsonConfig.$property)
@@ -1245,14 +1245,14 @@ class DBOpsConfig : DBOps {
                     }
                 }
                 # lastly, convert back to psobject and re-assign
-                $this.SetValue($key, ([psobject]$hashVar))
+                $this.SetValue($key, ([pscustomobject]$hashVar))
             }
             else {
                 $this.SetValue($key, $config.$key)
             }
         }
     }
-    
+
     #Save configuration to a file
     [void] SaveToFile([string]$fileName) {
         $this.ExportToJson() | Out-File -FilePath $fileName -Encoding unicode
