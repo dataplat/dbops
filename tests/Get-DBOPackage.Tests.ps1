@@ -58,7 +58,7 @@ Describe "Get-DBOPackage tests" -Tag $commandName, UnitTests {
             { $null | Get-DBOPackage -ErrorAction Stop } | Should Throw
         }
         It "returns error when unsupported object is pipelined" {
-            { @{a=1} | Get-DBOPackage -ErrorAction Stop } | Should Throw
+            { @{a = 1} | Get-DBOPackage -ErrorAction Stop } | Should Throw
         }
         It "returns error when package is in an incorrect format" {
             { $null = Get-DBOPackage -Path $v1scripts } | Should Throw
@@ -117,7 +117,8 @@ Describe "Get-DBOPackage tests" -Tag $commandName, UnitTests {
             [PSCredential]::new('test', $testResult.Configuration.Password).GetNetworkCredential().Password  | Should Be "TestPassword"
             $testResult.Configuration.SchemaVersionTable | Should Be "test.Table"
             $testResult.Configuration.Silent | Should Be $true
-            $testResult.Configuration.Variables | Should Be $null
+            $testResult.Configuration.Variables.foo | Should Be 'bar'
+            $testResult.Configuration.Variables.boo | Should Be 'far'
             $testResult.Configuration.Schema | Should Be 'testschema'
         }
         It "properly returns pipelined package object" {
@@ -182,7 +183,8 @@ Describe "Get-DBOPackage tests" -Tag $commandName, UnitTests {
             [PSCredential]::new('test', $testResult.Configuration.Password).GetNetworkCredential().Password | Should Be "TestPassword"
             $testResult.Configuration.SchemaVersionTable | Should Be "test.Table"
             $testResult.Configuration.Silent | Should Be $true
-            $testResult.Configuration.Variables | Should Be $null
+            $testResult.Configuration.Variables.foo | Should Be 'bar'
+            $testResult.Configuration.Variables.boo | Should Be 'far'
             $testResult.Configuration.Schema | Should Be 'testschema'
         }
     }
