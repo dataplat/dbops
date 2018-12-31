@@ -33,7 +33,8 @@
         "functions\\New-DBOConfig.ps1",
         "functions\\Export-DBOConfig.ps1",
         "functions\\ConvertTo-EncryptedString.ps1",
-        "functions\\ConvertFrom-EncryptedString.ps1"
+        "functions\\ConvertFrom-EncryptedString.ps1",
+        "functions\\Invoke-DBOQuery.ps1"
     ],
     "Internal": [
         "internal\\classes\\DBOps.enums.ps1",
@@ -45,6 +46,10 @@
         "internal\\functions\\Get-EncryptionKey.ps1",
         "internal\\functions\\New-EncryptionKey.ps1",
         "internal\\functions\\Test-Windows.ps1",
+        "internal\\functions\\Get-ConnectionManager.ps1",
+        "internal\\functions\\Get-ConnectionString.ps1",
+        "internal\\functions\\Get-SqlParser.ps1",
+        "internal\\functions\\Initialize-ExternalLibrary.ps1",
         "internal\\classes\\DBOpsHelper.class.ps1",
         "internal\\classes\\DBOps.class.ps1",
         "internal\\classes\\DBOpsDeploymentStatus.class.ps1",

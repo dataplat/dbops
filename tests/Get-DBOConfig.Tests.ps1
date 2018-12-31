@@ -72,7 +72,8 @@ Describe "Get-DBOConfig tests" -Tag $commandName, UnitTests {
         [PSCredential]::new('test', $testResult.Password).GetNetworkCredential().Password | Should Be "TestPassword"
         $testResult.SchemaVersionTable | Should Be "test.Table"
         $testResult.Silent | Should Be $true
-        $testResult.Variables | Should Be $null
+        $testResult.Variables.foo | Should -Be 'bar'
+        $testResult.Variables.boo | Should -Be 'far'
         $testResult.Schema | Should Be 'testschema'
         $testResult.CreateDatabase | Should Be $false
     }
@@ -91,7 +92,8 @@ Describe "Get-DBOConfig tests" -Tag $commandName, UnitTests {
         [PSCredential]::new('test', $testResult.Password).GetNetworkCredential().Password | Should Be "TestPassword"
         $testResult.SchemaVersionTable | Should Be "test.Table"
         $testResult.Silent | Should Be $true
-        $testResult.Variables | Should Be $null
+        $testResult.Variables.foo | Should -Be 'bar'
+        $testResult.Variables.boo | Should -Be 'far'
         $testResult.Schema | Should Be 'testschema'
         $testResult.CreateDatabase | Should Be $false
     }

@@ -16,7 +16,6 @@ else {
 }
 
 . "$here\constants.ps1"
-. "$here\etc\Invoke-SqlCmd2.ps1"
 
 $workFolder = Join-PSFPath -Normalize "$here\etc" "$commandName.Tests.dbops"
 $unpackedFolder = Join-PSFPath -Normalize $workFolder 'unpacked'
@@ -36,12 +35,12 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = New-Item $workFolder -ItemType Directory -Force
         $dropDatabaseScript = 'IF EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{0}]; END' -f $newDbName
-        $null = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database master -Query $dropDatabaseScript
+        $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database master -Query $dropDatabaseScript
     }
     AfterAll {
-        $null = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+        $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
-        $null = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database master -Query $dropDatabaseScript
+        $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database master -Query $dropDatabaseScript
     }
     Context "testing regular deployment with CreateDatabase specified" {
         It "should deploy version 1.0 to a new database using -CreateDatabase switch" {
@@ -63,7 +62,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             "Created database $newDbName" | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
@@ -74,7 +73,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
     }
     Context "testing transactional deployment of scripts" {
         BeforeEach {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "Should throw an error and not create any objects" {
             #Running package
@@ -86,7 +85,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             }
             $testResults.Exception.Message | Should Be "There is already an object named 'a' in the database."
             #Verifying objects
-            $testResults = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should Not BeIn $testResults.name
             'a' | Should Not BeIn $testResults.name
             'b' | Should Not BeIn $testResults.name
@@ -96,7 +95,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
     }
     Context "testing non transactional deployment of scripts" {
         BeforeAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "Should throw an error and create one object" {
             #Running package
@@ -108,7 +107,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             }
             $testResults.Exception.Message | Should Be "There is already an object named 'a' in the database."
             #Verifying objects
-            $testResults = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should Not BeIn $testResults.name
@@ -118,7 +117,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
     }
     Context "testing script deployment" {
         BeforeAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy version 1.0" {
             $testResults = Install-DBOSqlScript -ScriptPath $v1scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
@@ -137,7 +136,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
@@ -161,7 +160,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
@@ -171,7 +170,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
     }
     Context "testing deployment order" {
         BeforeAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy 2.sql before 1.sql" {
             $testResults = Install-DBOSqlScript -ScriptPath $v2scripts, $v1scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
@@ -190,14 +189,14 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
             'c' | Should BeIn $testResults.name
             'd' | Should BeIn $testResults.name
             #Verifying order
-            $r1 = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Query "SELECT ScriptName FROM $logtable ORDER BY Id"
+            $r1 = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -Query "SELECT ScriptName FROM $logtable ORDER BY Id"
             $r1.ScriptName | Should Be (Get-Item $v2scripts, $v1scripts).FullName
         }
     }
@@ -207,7 +206,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             "WAITFOR DELAY '00:00:03'; PRINT ('Successful!')" | Out-File $file
         }
         BeforeEach {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "should throw timeout error" {
             try {
@@ -264,7 +263,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
     }
     Context  "$commandName whatif tests" {
         BeforeAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         AfterAll {
         }
@@ -286,7 +285,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             "$v1scripts would have been executed - WhatIf mode." | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should Not BeIn $testResults.name
             'a' | Should Not BeIn $testResults.name
             'b' | Should Not BeIn $testResults.name
@@ -296,13 +295,13 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
     }
     Context "testing deployment without specifying SchemaVersion table" {
         BeforeAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         AfterAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
         }
         It "should deploy version 1.0" {
-            $before = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
             $testResults = Install-DBOSqlScript -ScriptPath $v1scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Silent
             $testResults.Successful | Should Be $true
@@ -320,7 +319,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             'SchemaVersions' | Should BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
@@ -329,7 +328,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 3)
         }
         It "should deploy version 2.0" {
-            $before = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
             $testResults = Install-DBOSqlScript -ScriptPath $v2scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Silent
             $testResults.Successful | Should Be $true
@@ -347,7 +346,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             'SchemaVersions' | Should BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
@@ -358,13 +357,13 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
     }
     Context "testing deployment with no history`: SchemaVersion is null" {
         BeforeEach {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         AfterEach {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
         }
         It "should deploy version 1.0 without creating SchemaVersions" {
-            $before = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
             $testResults = Install-DBOSqlScript -ScriptPath $v1scripts  -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Silent -SchemaVersionTable $null
             $testResults.Successful | Should Be $true
@@ -383,7 +382,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             'Checking whether journal table exists..' | Should Not BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             'SchemaVersions' | Should Not BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
@@ -394,7 +393,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
     }
     Context "deployments with errors should throw terminating errors" {
         BeforeAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
             $null = Install-DBOSqlScript -ScriptPath $v1scripts  -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Silent -SchemaVersionTable $null
         }
         It "Should return terminating error when object exists" {
@@ -424,7 +423,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             $errorObject | Should Not BeNullOrEmpty
             $errorObject.Exception.Message | Should Be "There is already an object named 'a' in the database."
             #Verifying objects
-            $testResults = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
             'c' | Should Not BeIn $testResults.name

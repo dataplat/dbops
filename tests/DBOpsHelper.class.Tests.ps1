@@ -252,4 +252,34 @@ Describe "dbopsHelper class tests" -Tag $commandName, UnitTests, dbopsHelper {
             { $h::DecodeBinaryText('NotAByte') } | Should Throw
         }
     }
+    Context "tests DataRowToPSObject method" {
+        It "should process normal dataset with nulls" {
+            $ds = [System.Data.DataSet]::new()
+            $dt = [System.Data.DataTable]::new()
+            $null = $dt.Columns.Add('a')
+            1, 2, $null | ForEach-Object {
+                $dr = $dt.NewRow()
+                $dr['a'] = $_
+                $null = $dt.Rows.Add($dr);
+            }
+            $null = $ds.Tables.Add($dt);
+            $output = @()
+            foreach ($row in $ds.Tables[0].Rows) {
+                $output += [DBOpsHelper]::DataRowToPSObject($row)
+            }
+            $output.a | Should -Be 1, 2, $null
+        }
+        It "should process empty dataset" {
+            $ds = [System.Data.DataSet]::new()
+            $dt = [System.Data.DataTable]::new()
+            $null = $dt.Columns.Add('a')
+            $dr = $dt.NewRow()
+            $output = [DBOpsHelper]::DataRowToPSObject($dr)
+            $output | Should -BeNullOrEmpty
+        }
+        It "should process null" {
+            $output = [DBOpsHelper]::DataRowToPSObject($null)
+            $output | Should -BeNullOrEmpty
+        }
+    }
 }

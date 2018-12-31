@@ -108,7 +108,8 @@ Describe "Update-DBOConfig tests" -Tag $commandName, UnitTests {
             $testResults.Password | Should Be $null
             $testResults.SchemaVersionTable | Should Be $null
             $testResults.Silent | Should Be $null
-            $testResults.Variables | Should Be $null
+            $testResults.Variables.foo | Should -Be 'bar'
+            $testResults.Variables.boo | Should -Be 'far'
             $testResults.Schema | Should Be $null
         }
         It "updates config items with a proper config file" {
@@ -126,7 +127,8 @@ Describe "Update-DBOConfig tests" -Tag $commandName, UnitTests {
             [PSCredential]::new('test', $testResults.Password).GetNetworkCredential().Password | Should Be "TestPassword"
             $testResults.SchemaVersionTable | Should Be "test.Table"
             $testResults.Silent | Should Be $true
-            $testResults.Variables | Should Be $null
+            $testResults.Variables.foo | Should -Be 'bar'
+            $testResults.Variables.boo | Should -Be 'far'
             $testResults.Schema | Should Be 'testschema'
         }
         It "should throw when config file is not specified" {

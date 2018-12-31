@@ -3,8 +3,8 @@ function Get-ExternalLibrary {
     Param (
         [string]$Type
     )
-    $slash = [IO.Path]::DirectorySeparatorChar
-    $d = Get-Content (Join-Path (Get-Item $PSScriptRoot).Parent.FullName "json\dbops.dependencies.json".Replace('\', $slash)) -Raw | ConvertFrom-Json
+    $jsonFile = Join-PSFPath -Normalize (Get-Item $PSScriptRoot).Parent.FullName "json\dbops.dependencies.json"
+    $d = Get-Content $jsonFile -Raw | ConvertFrom-Json
     if ($Type) { $d.$Type }
     else { $d }
 }

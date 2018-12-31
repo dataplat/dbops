@@ -1,5 +1,6 @@
 using namespace System.IO
 using namespace System.IO.Compression
+using namespace System.Data
 
 class DBOpsHelper {
     # Only keeps N last items in the path - helps to build relative paths
@@ -139,5 +140,19 @@ class DBOpsHelper {
             $encoding = [System.Text.Encoding]::ASCII
         }
         return $encoding.GetString($Array, $skipBytes, $Array.Length - $skipBytes)
+    }
+    # scrubs nulls from the datatable
+    static [PSObject] DataRowToPSObject([DataRow] $row){
+        $psObject = [PSObject]::new()
+        if ($null -ne $row -and $row.RowState -and $row.RowState -ne [DataRowState]::Detached) {
+            foreach ($column in $row.Table.Columns) {
+                $value = $null
+                if (-Not $row.IsNull($column)) {
+                    $value = $row[$column]
+                }
+                Add-Member -InputObject $psObject -MemberType NoteProperty -Name $column.ColumnName -Value $value
+            }
+        }
+        return $psObject
     }
 }

@@ -2,18 +2,18 @@
     <#
     .SYNOPSIS
         Deploys extracted dbops package from the specified location
-    
+
     .DESCRIPTION
         Deploys an extracted dbops package or plain text scripts with optional parameters.
         Uses a table specified in SchemaVersionTable parameter to determine scripts to run.
         Will deploy all the builds from the package that previously have not been deployed.
-    
+
     .PARAMETER PackageFile
         Path to the dbops package file (usually, dbops.package.json).
 
     .PARAMETER InputObject
         DBOpsPackage object to deploy. Supports pipelining.
-    
+
     .PARAMETER ScriptPath
         A collection of script files to deploy to the server. Accepts Get-Item/Get-ChildItem objects and wildcards.
         Will recursively add all of the subfolders inside folders. See examples if you want only custom files to be added.
@@ -21,35 +21,29 @@
          - Item order provided in the ScriptPath parameter
            - Files inside each child folder (both folders and files in alphabetical order)
              - Files inside the root folder (in alphabetical order)
-             
+
         Aliases: SourcePath
-    
+
     .PARAMETER Configuration
         A custom configuration that will be used during a deployment, overriding existing parameters inside the package.
         Can be a Hashtable, a DBOpsConfig object, or a path to a json file.
-    
-    .PARAMETER Variables
-        Hashtable with variables that can be used inside the scripts and deployment parameters.
-        Proper format of the variable tokens is #{MyVariableName}
-        Can also be provided as a part of Configuration hashtable: -Configuration @{ Variables = @{ Var1 = ...; Var2 = ...}}
-        Will augment and/or overwrite Variables defined inside the package.
 
     .PARAMETER OutputFile
         Log output into specified file.
-        
+
     .PARAMETER ConnectionType
         Defines the driver to use when connecting to the database server.
         Available options: SqlServer (default), Oracle
-        
+
     .PARAMETER Append
         Append output to the -OutputFile instead of overwriting it.
 
     .PARAMETER RegisterOnly
         Store deployment script records in the SchemaVersions table without deploying anything.
-    
+
     .PARAMETER Build
         Only deploy certain builds from the package.
-    
+
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -59,20 +53,20 @@
     .EXAMPLE
         # Start the deployment of the extracted package from the current folder
         Invoke-DBODeployment
-    
+
     .EXAMPLE
         # Start the deployment of the extracted package from the current folder using specific connection parameters
         Invoke-DBODeployment -SqlInstance 'myserver\instance1' -Database 'MyDb' -ExecutionTimeout 3600
-        
+
     .EXAMPLE
         # Start the deployment of the extracted package using custom logging parameters and schema tracking table
         Invoke-DBODeployment .\Extracted\dbops.package.json -SchemaVersionTable dbo.SchemaHistory -OutputFile .\out.log -Append
-    
+
     .EXAMPLE
         # Start the deployment of the extracted package in the current folder using variables instead of specifying values directly
-        Invoke-DBODeployment -SqlInstance '#{server}' -Database '#{db}' -Variables @{server = 'myserver\instance1'; db = 'MyDb'}
+        Invoke-DBODeployment -SqlInstance '#{server}' -Database '#{db}' -Configuration @{ Variables = @{server = 'myserver\instance1'; db = 'MyDb'} }
 #>
-    
+
     [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'PackageFile')]
     Param (
         [parameter(ParameterSetName = 'PackageFile')]
@@ -92,7 +86,6 @@
         [Alias('Type', 'ServerType')]
         [string]$ConnectionType = 'SQLServer',
         [object]$Configuration,
-        [hashtable]$Variables,
         [switch]$RegisterOnly
     )
     begin {}
@@ -130,60 +123,14 @@
             return
         }
 
-        #Join variables from config and parameters
-        $runtimeVariables = @{ }
-        if ($Variables) {
-            $runtimeVariables += $Variables
-        }
-        if ($config.Variables) {
-            foreach ($variable in $config.Variables.psobject.Properties.Name) {
-                if ($variable -notin $runtimeVariables.Keys) {
-                    $runtimeVariables += @{
-                        $variable = $config.Variables.$variable
-                    }
-                }
-            }
-        }
-    
         #Replace tokens if any
-        foreach ($property in $config.psobject.Properties.Name | Where-Object { $_ -ne 'Variables' }) {
-            $config.SetValue($property, (Resolve-VariableToken $config.$property $runtimeVariables))
+        foreach ($property in [DBOpsConfig]::EnumProperties() | Where-Object { $_ -ne 'Variables' }) {
+            $config.SetValue($property, (Resolve-VariableToken $config.$property $config.Variables))
         }
-       
+
         #Build connection string
-        if (!$config.ConnectionString) {
-            $CSBuilder = [System.Data.SqlClient.SqlConnectionStringBuilder]::new()
-            $CSBuilder["Server"] = $config.SqlInstance
-            if ($config.Database) { $CSBuilder["Database"] = $config.Database }
-            if ($config.Encrypt) { $CSBuilder["Encrypt"] = $true }
-            $CSBuilder["Connection Timeout"] = $config.ConnectionTimeout
-        
-            if ($config.Credential) {
-                $CSBuilder["User ID"] = $config.Credential.UserName
-                $CSBuilder["Password"] = $config.Credential.GetNetworkCredential().Password
-            }
-            elseif ($config.Username) {
-                if ($Password) {
-                    $currentCred = [pscredential]::new($config.Username, $Password)
-                }
-                else {
-                    $currentCred = [pscredential]::new($config.Username, $config.Password)
-                }
-                $CSBuilder["User ID"] = $currentCred.UserName
-                $CSBuilder["Password"] = $currentCred.GetNetworkCredential().Password
-            }
-            else {
-                $CSBuilder["Integrated Security"] = $true
-            }
-            if ($ConnectionType -eq 'SQLServer') {
-                $CSBuilder["Application Name"] = $config.ApplicationName
-            }
-            $connString = $CSBuilder.ToString()
-        }
-        else {
-            $connString = $config.ConnectionString
-        }
-    
+        $connString = Get-ConnectionString -Configuration $config -Type $ConnectionType
+
         $scriptCollection = @()
         if ($PsCmdlet.ParameterSetName -ne 'Script') {
             # Get contents of the script files
@@ -220,8 +167,8 @@
 
         #Build dbUp object
         $dbUp = [DbUp.DeployChanges]::To
+        $dbUpConnection = Get-ConnectionManager -ConnectionString $connString -Type $ConnectionType
         if ($ConnectionType -eq 'SqlServer') {
-            $dbUpConnection = [DbUp.SqlServer.SqlConnectionManager]::new($connString)
             if ($config.Schema) {
                 $dbUp = [SqlServerExtensions]::SqlDatabase($dbUp, $dbUpConnection, $config.Schema)
             }
@@ -230,7 +177,6 @@
             }
         }
         elseif ($ConnectionType -eq 'Oracle') {
-            $dbUpConnection = [DbUp.Oracle.OracleConnectionManager]::new($connString)
             if ($config.Schema) {
                 $dbUp = [DbUp.Oracle.OracleExtensions]::OracleDatabase($dbUpConnection, $config.Schema)
             }
@@ -308,9 +254,9 @@
             #Enable schema versioning
             if ($ConnectionType -eq 'SqlServer') { $dbUpJournalType = [DbUp.SqlServer.SqlTableJournal] }
             elseif ($ConnectionType -eq 'Oracle') { $dbUpJournalType = [DbUp.Oracle.OracleTableJournal] }
-            
+
             $dbUpTableJournal = $dbUpJournalType::new( { $dbUpConnection }, { $dbUpLog }, $schemaName, $tableName)
-            
+
             #$dbUp = [SqlServerExtensions]::JournalToSqlTable($dbUp, $schemaName, $tableName)
         }
         $dbUp = [StandardExtensions]::JournalTo($dbUp, $dbUpTableJournal)

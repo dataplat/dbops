@@ -18,7 +18,7 @@
     [CmdletBinding()]
     Param (
         [object[]]$InputObject,
-        [hashtable]$Runtime
+        [object]$Runtime
     )
     foreach ($obj in $InputObject) {
         if ($obj -is [string]) {
@@ -29,7 +29,9 @@
                 #Replace variables found in the config
                 $tokenRegEx = "\#\{$token\}"
                 if ($Runtime) {
-                    if ($Runtime.Keys -contains $token) {
+                    if ($Runtime -is [hashtable]) { $variableList = $Runtime.Keys }
+                    else { $variableList = $Runtime.psobject.Properties.Name }
+                    if ($variableList -contains $token) {
                         $output = $output -replace $tokenRegEx, $Runtime.$token
                     }
                 }

@@ -16,7 +16,6 @@ else {
 }
 
 . "$here\constants.ps1"
-. "$here\etc\Invoke-SqlCmd2.ps1"
 
 $workFolder = Join-PSFPath -Normalize "$here\etc" "$commandName.Tests.dbops"
 $unpackedFolder = Join-PSFPath -Normalize $workFolder 'unpacked'
@@ -37,16 +36,16 @@ Describe "deploy.ps1 integration tests" -Tag $commandName, IntegrationTests {
         $null = Expand-Archive -Path $packageName -DestinationPath $workFolder -Force
         $dropDatabaseScript = 'IF EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{0}]; END' -f $newDbName
         $createDatabaseScript = 'IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN CREATE DATABASE [{0}]; END' -f $newDbName
-        $null = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database master -Query $dropDatabaseScript
-        $null = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database master -Query $createDatabaseScript
+        $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database master -Query $dropDatabaseScript
+        $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database master -Query $createDatabaseScript
     }
     AfterAll {
-        $null = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database master -Query $dropDatabaseScript
+        $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database master -Query $dropDatabaseScript
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
     }
     Context "testing deployment of extracted package" {
         BeforeEach {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy with a -Configuration parameter" {
             $deploymentConfig = @{
@@ -73,7 +72,7 @@ Describe "deploy.ps1 integration tests" -Tag $commandName, IntegrationTests {
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
@@ -97,7 +96,7 @@ Describe "deploy.ps1 integration tests" -Tag $commandName, IntegrationTests {
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
@@ -107,7 +106,7 @@ Describe "deploy.ps1 integration tests" -Tag $commandName, IntegrationTests {
     }
     Context  "$commandName whatif tests" {
         BeforeAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         AfterAll {
         }
@@ -129,7 +128,7 @@ Describe "deploy.ps1 integration tests" -Tag $commandName, IntegrationTests {
             $v1Journal | ForEach-Object { "$_ would have been executed - WhatIf mode." } | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-SqlCmd2 -ServerInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should Not BeIn $testResults.name
             'a' | Should Not BeIn $testResults.name
             'b' | Should Not BeIn $testResults.name
