@@ -92,7 +92,7 @@
     process {
         $config = New-DBOConfig
         if ($PsCmdlet.ParameterSetName -eq 'PackageFile') {
-            #Get package object from the json file
+            # Get package object from the json file
             $package = Get-DBOPackage $PackageFile -Unpacked
         }
         elseif ($PsCmdlet.ParameterSetName -eq 'PackageObject') {
@@ -107,28 +107,15 @@
             $config = $config | Get-DBOConfig -Configuration $Configuration
         }
 
-        #Test if the selected Connection type is supported
-        if (Test-DBOSupportedSystem -Type $ConnectionType) {
-            #Load external libraries
-            $dependencies = Get-ExternalLibrary -Type $ConnectionType
-            foreach ($dPackage in $dependencies) {
-                $localPackage = Get-Package -Name $dPackage.Name -MinimumVersion $dPackage.Version -ErrorAction Stop
-                foreach ($dPath in $dPackage.Path) {
-                    Add-Type -Path (Join-Path (Split-Path $localPackage.Source -Parent) $dPath)
-                }
-            }
-        }
-        else {
-            Stop-PSFFunction -EnableException $true -Message "$ConnectionType is not supported on this system - some of the external dependencies are missing."
-            return
-        }
+        # Initialize external libraries if needed
+        Initialize-ExternalLibrary -Type $ConnectionType
 
-        #Replace tokens if any
+        # Replace tokens if any
         foreach ($property in [DBOpsConfig]::EnumProperties() | Where-Object { $_ -ne 'Variables' }) {
             $config.SetValue($property, (Resolve-VariableToken $config.$property $config.Variables))
         }
 
-        #Build connection string
+        # Build connection string
         $connString = Get-ConnectionString -Configuration $config -Type $ConnectionType
 
         $scriptCollection = @()
@@ -165,7 +152,7 @@
             }
         }
 
-        #Build dbUp object
+        # Build dbUp object
         $dbUp = [DbUp.DeployChanges]::To
         $dbUpConnection = Get-ConnectionManager -ConnectionString $connString -Type $ConnectionType
         if ($ConnectionType -eq 'SqlServer') {
@@ -184,10 +171,10 @@
                 $dbUp = [DbUp.Oracle.OracleExtensions]::OracleDatabase($dbUpConnection)
             }
         }
-        #Add deployment scripts to the object
+        # Add deployment scripts to the object
         $dbUp = [StandardExtensions]::WithScripts($dbUp, $scriptCollection)
 
-        #Disable automatic sorting by using a custom comparer
+        # Disable automatic sorting by using a custom comparer
         $comparer = [DBOpsScriptComparer]::new($scriptCollection.Name)
         $dbUp = [StandardExtensions]::WithScriptNameComparer($dbUp, $comparer)
 
@@ -198,7 +185,7 @@
             $dbUp = [StandardExtensions]::WithTransactionPerScript($dbUp)
         }
 
-        #Create an output object
+        # Create an output object
         $status = [DBOpsDeploymentStatus]::new()
         $status.StartTime = [datetime]::Now
         $status.Configuration = $config
@@ -261,10 +248,10 @@
         }
         $dbUp = [StandardExtensions]::JournalTo($dbUp, $dbUpTableJournal)
 
-        #Adding execution timeout - defaults to unlimited execution
+        # Adding execution timeout - defaults to unlimited execution
         $dbUp = [StandardExtensions]::WithExecutionTimeout($dbUp, [timespan]::FromSeconds($config.ExecutionTimeout))
 
-        #Create database if necessary for supported platforms
+        # Create database if necessary for supported platforms
         if ($config.CreateDatabase) {
             if ($PSCmdlet.ShouldProcess("Ensuring the target database exists")) {
                 switch ($ConnectionType) {
@@ -272,9 +259,9 @@
                 }
             }
         }
-        #Register only
+        # Register only
         if ($RegisterOnly) {
-            #Cycle through already registered files and register the ones that are missing
+            # Cycle through already registered files and register the ones that are missing
             if ($PSCmdlet.ShouldProcess($package, "Registering the package")) {
                 $registeredScripts = @()
                 $managedConnection = $dbUpConnection.OperationStarting($dbUpLog, $null)
@@ -309,7 +296,7 @@
             }
         }
         else {
-            #Build and Upgrade
+            # Build and Upgrade
             if ($PSCmdlet.ShouldProcess($package, "Deploying the package")) {
                 $dbUpBuild = $dbUp.Build()
                 $upgradeResult = $dbUpBuild.PerformUpgrade()
@@ -336,7 +323,7 @@
         $status.EndTime = [datetime]::Now
         $status
         if (!$status.Successful) {
-            #Throw output error if unsuccessful
+            # Throw output error if unsuccessful
             if ($status.Error) {
                 throw $status.Error
             }

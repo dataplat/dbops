@@ -159,14 +159,8 @@ function Invoke-DBOQuery {
         }
         $config.Merge($newConfig)
 
-        #Test if the selected Connection type is supported and initialize libraries if required
-        if (Test-DBOSupportedSystem -Type $ConnectionType) {
-            Initialize-ExternalLibrary -Type $ConnectionType
-        }
-        else {
-            Stop-PSFFunction -EnableException $true -Message "$ConnectionType is not supported on this system - some of the external dependencies are missing."
-            return
-        }
+        # Initialize external libraries if needed
+        Initialize-ExternalLibrary -Type $ConnectionType
 
         #Replace tokens if any
         foreach ($property in [DBOpsConfig]::EnumProperties() | Where-Object { $_ -ne 'Variables' }) {
@@ -217,13 +211,13 @@ function Invoke-DBOQuery {
                 if ($PSCmdlet.ShouldProcess("Executing query $qCount", $config.SqlInstance)) {
                     foreach ($splitQuery in $dbUpConnection.SplitScriptIntoCommands($queryItem)) {
                         $dt = [System.Data.DataTable]::new()
-                        $rows = $dbUpConnection.ExecuteCommandsWithManagedConnection( [Func[Func[Data.IDbCommand],[pscustomobject]]]{
-                            Param (
-                                $dbCommandFactory
-                            )
-                            $sqlRunner = [DbUp.Helpers.AdHocSqlRunner]::new($dbCommandFactory, $dbUpSqlParser, $config.Schema)
-                            return $sqlRunner.ExecuteReader($splitQuery)
-                        })
+                        $rows = $dbUpConnection.ExecuteCommandsWithManagedConnection( [Func[Func[Data.IDbCommand], [pscustomobject]]] {
+                                Param (
+                                    $dbCommandFactory
+                                )
+                                $sqlRunner = [DbUp.Helpers.AdHocSqlRunner]::new($dbCommandFactory, $dbUpSqlParser, $config.Schema)
+                                return $sqlRunner.ExecuteReader($splitQuery)
+                            })
                         $rowCount = ($rows | Measure-Object).Count
                         if ($rowCount -gt 0) {
                             $keys = switch ($rowCount) {
@@ -233,7 +227,7 @@ function Invoke-DBOQuery {
                             foreach ($column in $keys) {
                                 $null = $dt.Columns.Add($column)
                             }
-                            foreach($row in $rows) {
+                            foreach ($row in $rows) {
                                 $dr = $dt.NewRow()
                                 foreach ($col in $row.Keys) {
                                     $dr[$col] = $row[$col]

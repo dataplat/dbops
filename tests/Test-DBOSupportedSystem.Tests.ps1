@@ -20,7 +20,7 @@ Describe "Test-DBOSupportedSystem tests" -Tag $commandName, UnitTests {
             Test-DBOSupportedSystem -Type SQLServer | Should Be $true
         }
         It "should test Oracle support" {
-            $expectedResult = [bool](Get-Package Oracle.ManagedDataAccess -MinimumVersion 12.2.1100 -ErrorAction SilentlyContinue)
+            $expectedResult = [bool](Get-Package Oracle.ManagedDataAccess -RequiredVersion 12.2.1100 -ErrorAction SilentlyContinue)
             $testResult = Test-DBOSupportedSystem -Type Oracle 3>$null
             $testResult | Should Be $expectedResult
         }
