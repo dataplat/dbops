@@ -2,78 +2,78 @@ function Invoke-DBOQuery {
     <#
     .SYNOPSIS
         Runs a query against database
-    
+
     .DESCRIPTION
         Runs a query against a selected database server and returns results
-    
+
     .PARAMETER Query
         One or more queries to execute on the remote server
-    
+
     .PARAMETER InputFile
         Path to one or more SQL sript files.
         Aliases: Name, FileName, ScriptPath, Path
 
     .PARAMETER InputObject
         Pipeline implementation of InputFile. Accepts output from Get-Item and Get-ChildItem, as well as simple strings and arrays.
-    
+
     .PARAMETER SqlInstance
         Database server to connect to. SQL Server only for now.
         Aliases: Server, SQLServer, DBServer, Instance
-    
+
     .PARAMETER Database
         Name of the database to execute the scripts in. Optional - will use default database if not specified.
-    
+
     .PARAMETER ConnectionTimeout
         Database server connection timeout in seconds. Only affects connection attempts. Does not affect execution timeout.
         If 0, will wait for connection until the end of times.
-        
+
         Default: 30
-    
+
     .PARAMETER Encrypt
         Enables connection encryption.
-    
+
     .PARAMETER Credential
         PSCredential object with username and password to login to the database server.
-    
+
     .PARAMETER UserName
         An alternative to -Credential - specify username explicitly
-    
+
     .PARAMETER Password
         An alternative to -Credential - specify password explicitly
-    
+
     .PARAMETER Silent
         Will supress all output from the command.
-    
+
     .PARAMETER Variables
         Hashtable with variables that can be used inside the scripts and deployment parameters.
         Proper format of the variable tokens is #{MyVariableName}
         Can also be provided as a part of Configuration hashtable: -Configuration @{ Variables = @{ Var1 = ...; Var2 = ...}}
         Will augment and/or overwrite Variables defined inside the package.
-     
+
     .PARAMETER OutputFile
         Put the execution log into the specified file.
-    
+
     .PARAMETER Append
         Append output to the -OutputFile instead of overwriting it.
 
     .PARAMETER ConnectionString
         Custom connection string that will override other connection parameters.
         IMPORTANT: Will also ignore user/password/credential parameters, so make sure to include proper authentication credentials into the string.
-    
+
     .PARAMETER Configuration
         A custom configuration that will be used during the execution.
         Can be a Hashtable, a DBOpsConfig object, or a path to a json file.
 
     .PARAMETER Schema
         Execute in a specific schema (if supported by RDBMS)
-    
+
     .PARAMETER ConnectionType
         Defines the driver to use when connecting to the database server.
         Available options: SqlServer (default), Oracle
 
     .PARAMETER As
         Specifies output type. Valid options for this parameter are 'DataSet', 'DataTable', 'DataRow', 'PSObject', and 'SingleValue'
-    
+
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -83,11 +83,11 @@ function Invoke-DBOQuery {
     .EXAMPLE
         # Runs all SQL scripts from the folder .\SqlCode in the target database
         Invoke-DBOQuery .\SqlCode\*.sql -SqlInstance 'myserver\instance1' -Database 'MyDb'
-    
+
     .EXAMPLE
         # Runs script file using specific connection parameters
         Get-Item .\SqlCode\Script1.sql | Invoke-DBOQuery -SqlInstance 'Srv1' -Database 'MyDb' -ExecutionTimeout 3600
-        
+
     .EXAMPLE
         # Runs all the scripts from the .\SqlCode folder using custom logging parameters and schema tracking table
         Get-ChildItem .\SqlCode\* | Invoke-DBOQuery -SqlInstance 'Srv1' -Database 'MyDb' -OutputFile .\out.log -Append
@@ -144,7 +144,7 @@ function Invoke-DBOQuery {
         [string]
         $As = "DataRow"
     )
-    
+
     begin {
     }
     process {
@@ -169,7 +169,7 @@ function Invoke-DBOQuery {
         }
 
         #Replace tokens if any
-        foreach ($property in $config.psobject.Properties.Name | Where-Object { $_ -ne 'Variables' }) {
+        foreach ($property in [DBOpsConfig]::EnumProperties() | Where-Object { $_ -ne 'Variables' }) {
             $config.SetValue($property, (Resolve-VariableToken $config.$property $config.Variables))
         }
 

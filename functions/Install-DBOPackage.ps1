@@ -2,58 +2,58 @@
     <#
     .SYNOPSIS
         Deploys an existing DBOps package
-    
+
     .DESCRIPTION
         Deploys an existing DBOps package with optional parameters.
         Uses a table specified in SchemaVersionTable parameter to determine scripts to run.
         Will deploy all the builds from the package that previously have not been deployed.
-    
+
     .PARAMETER Path
         Path to the existing DBOpsPackage.
         Aliases: Name, FileName, Package
 
     .PARAMETER InputObject
         Pipeline implementation of Path. Can also contain a DBOpsPackage object.
-    
+
     .PARAMETER SqlInstance
         Database server to connect to. SQL Server only for now.
         Aliases: Server, SQLServer, DBServer, Instance
-    
+
     .PARAMETER Database
         Name of the database to execute the scripts in. Optional - will use default database if not specified.
-    
+
     .PARAMETER DeploymentMethod
         Choose one of the following deployment methods:
         - SingleTransaction: wrap all the deployment scripts into a single transaction and rollback whole deployment on error
         - TransactionPerScript: wrap each script into a separate transaction; rollback single script deployment in case of error
         - NoTransaction: deploy as is
-        
+
         Default: NoTransaction
-    
+
     .PARAMETER ConnectionTimeout
         Database server connection timeout in seconds. Only affects connection attempts. Does not affect execution timeout.
         If 0, will wait for connection until the end of times.
-        
+
         Default: 30
-        
+
     .PARAMETER ExecutionTimeout
         Script execution timeout. The script will be aborted if the execution takes more than specified number of seconds.
         If 0, the script is allowed to run until the end of times.
 
         Default: 0
-    
+
     .PARAMETER Encrypt
         Enables connection encryption.
-    
+
     .PARAMETER Credential
         PSCredential object with username and password to login to the database server.
-    
+
     .PARAMETER UserName
         An alternative to -Credential - specify username explicitly
-    
+
     .PARAMETER Password
         An alternative to -Credential - specify password explicitly
-    
+
     .PARAMETER SchemaVersionTable
         A table that will hold the history of script execution. This table is used to choose what scripts are going to be
         run during the deployment, preventing the scripts from being execured twice.
@@ -61,26 +61,26 @@
         and all the builds from the package are going to be deployed regardless of any previous deployment history.
 
         Default: SchemaVersions
-    
+
     .PARAMETER Silent
         Will supress all output from the command.
-    
+
     .PARAMETER Variables
         Hashtable with variables that can be used inside the scripts and deployment parameters.
         Proper format of the variable tokens is #{MyVariableName}
         Can also be provided as a part of Configuration hashtable: -Configuration @{ Variables = @{ Var1 = ...; Var2 = ...}}
         Will augment and/or overwrite Variables defined inside the package.
-    
+
     .PARAMETER OutputFile
         Log output into specified file.
-    
+
     .PARAMETER Append
         Append output to the -OutputFile instead of overwriting it.
 
     .PARAMETER ConnectionString
         Custom connection string that will override other connection parameters.
         IMPORTANT: Will also ignore user/password/credential parameters, so make sure to include proper authentication credentials into the string.
-    
+
     .PARAMETER Configuration
         A custom configuration that will be used during a deployment, overriding existing parameters inside the package.
         Can be a Hashtable, a DBOpsConfig object, or a path to a json file.
@@ -90,14 +90,14 @@
 
     .PARAMETER Build
         Only deploy certain builds from the package.
-    
+
     .PARAMETER CreateDatabase
         Will create an empty database if missing on supported RDMBS
 
     .PARAMETER ConnectionType
         Defines the driver to use when connecting to the database server.
         Available options: SqlServer (default), Oracle
-    
+
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -107,11 +107,11 @@
     .EXAMPLE
         # Installs package with predefined configuration inside the package
         Install-DBOPackage .\MyPackage.zip
-    
+
     .EXAMPLE
         # Installs package using specific connection parameters
         .\MyPackage.zip | Install-DBOPackage -SqlInstance 'myserver\instance1' -Database 'MyDb' -ExecutionTimeout 3600
-        
+
     .EXAMPLE
         # Installs package using custom logging parameters and schema tracking table
         .\MyPackage.zip | Install-DBOPackage -SchemaVersionTable dbo.SchemaHistory -OutputFile .\out.log -Append
@@ -170,7 +170,7 @@
         [Alias('Type', 'ServerType')]
         [string]$ConnectionType = 'SQLServer'
     )
-    
+
     begin {
     }
     process {
@@ -187,22 +187,24 @@
         #Merging the custom configuration provided
         $config = $config | Get-DBOConfig -Configuration $Configuration
 
-        #Merge custom parameters into the configuration, excluding variables
+        #Merge custom parameters into a configuration
+        $newConfig = @{}
         foreach ($key in ($PSBoundParameters.Keys)) {
-            if ($key -in [DBOpsConfig]::EnumProperties() -and $key -ne 'Variables') {
+            if ($key -in [DBOpsConfig]::EnumProperties()) {
                 Write-PSFMessage -Level Debug -Message "Overriding parameter $key with $($PSBoundParameters[$key])"
-                $config.SetValue($key, $PSBoundParameters[$key])
+                $newConfig.$key = $PSBoundParameters[$key]
             }
         }
-        
+        $config.Merge($newConfig)
+
         #Prepare deployment function call parameters
         $params = @{
-            InputObject = $package
+            InputObject   = $package
             Configuration = $config
         }
         foreach ($key in ($PSBoundParameters.Keys)) {
             #If any custom properties were specified
-            if ($key -in @('OutputFile', 'Append', 'Variables', 'ConnectionType', 'Build')) {
+            if ($key -in @('OutputFile', 'Append', 'ConnectionType', 'Build')) {
                 $params += @{ $key = $PSBoundParameters[$key] }
             }
         }
@@ -210,6 +212,6 @@
         Invoke-DBODeployment @params
     }
     end {
-        
+
     }
 }
