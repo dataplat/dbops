@@ -2,7 +2,7 @@
 (
     [string[]]$Path = '.',
     [string[]]$Tag
-    
+
 )
 
 $ModuleBase = Split-Path -Path $PSScriptRoot -Parent
@@ -10,13 +10,15 @@ $ModuleBase = Split-Path -Path $PSScriptRoot -Parent
 Remove-Module dbops -ErrorAction Ignore
 #imports the module making sure DLL is loaded ok
 Import-Module "$ModuleBase\dbops.psd1" -DisableNameChecking
+#import internal commands
+Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 #Import ZipHelper
 Import-Module ziphelper -Force
 
 #Run each module function
 $params = @{
     Script = @{
-        Path = $Path
+        Path       = $Path
         Parameters = @{
             Batch = $true
         }
