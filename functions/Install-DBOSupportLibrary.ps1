@@ -15,6 +15,13 @@ Function Install-DBOSupportLibrary {
     .PARAMETER Scope
     Choose whether to install for CurrentUser or for AllUsers
 
+    .PARAMETER Confirm
+    Prompts to confirm certain actions
+
+    .PARAMETER WhatIf
+    Shows what would happen if the command would execute, but does not actually perform the command
+
+
     .EXAMPLE
     #Installs all dependencies for Oracle
     Install-DBOSupportLibrary Oracle
