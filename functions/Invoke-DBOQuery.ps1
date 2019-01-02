@@ -67,7 +67,7 @@ function Invoke-DBOQuery {
     .PARAMETER Schema
         Execute in a specific schema (if supported by RDBMS)
 
-    .PARAMETER ConnectionType
+    .PARAMETER Type
         Defines the driver to use when connecting to the database server.
         Available options: SqlServer (default), Oracle
 
@@ -138,8 +138,8 @@ function Invoke-DBOQuery {
         [AllowNull()]
         [string]$ConnectionString,
         [ValidateSet('SQLServer', 'Oracle')]
-        [Alias('Type', 'ServerType')]
-        [string]$ConnectionType = 'SQLServer',
+        [Alias('ConnectionType', 'ServerType')]
+        [string]$Type = (Get-DBODefaultSetting -Name rdbms.type -Value),
         [ValidateSet("DataSet", "DataTable", "DataRow", "PSObject", "SingleValue")]
         [string]
         $As = "DataRow"
@@ -160,7 +160,7 @@ function Invoke-DBOQuery {
         $config.Merge($newConfig)
 
         # Initialize external libraries if needed
-        Initialize-ExternalLibrary -Type $ConnectionType
+        Initialize-ExternalLibrary -Type $Type
 
         #Replace tokens if any
         foreach ($property in [DBOpsConfig]::EnumProperties() | Where-Object { $_ -ne 'Variables' }) {
@@ -168,10 +168,10 @@ function Invoke-DBOQuery {
         }
 
         #Build connection string
-        #$connString = Get-ConnectionString -Configuration $config -Type $ConnectionType
-        #$dbUpConnection = Get-ConnectionManager -ConnectionString $connString -Type $ConnectionType
-        $dbUpConnection = Get-ConnectionManager -Configuration $config -Type $ConnectionType
-        $dbUpSqlParser = Get-SqlParser -Type $ConnectionType
+        #$connString = Get-ConnectionString -Configuration $config -Type $Type
+        #$dbUpConnection = Get-ConnectionManager -ConnectionString $connString -Type $Type
+        $dbUpConnection = Get-ConnectionManager -Configuration $config -Type $Type
+        $dbUpSqlParser = Get-SqlParser -Type $Type
         $status = [DBOpsDeploymentStatus]::new()
         $dbUpLog = [DBOpsLog]::new($config.Silent, $OutputFile, $Append, $status)
         $dbUpLog.CallStack = (Get-PSCallStack)[0]
