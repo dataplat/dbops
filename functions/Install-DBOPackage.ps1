@@ -94,7 +94,7 @@
     .PARAMETER CreateDatabase
         Will create an empty database if missing on supported RDMBS
 
-    .PARAMETER ConnectionType
+    .PARAMETER Type
         Defines the driver to use when connecting to the database server.
         Available options: SqlServer (default), Oracle
 
@@ -167,8 +167,8 @@
         [AllowNull()]
         [string]$ConnectionString,
         [ValidateSet('SQLServer', 'Oracle')]
-        [Alias('Type', 'ServerType')]
-        [string]$ConnectionType = 'SQLServer'
+        [Alias('ConnectionType', 'ServerType')]
+        [string]$Type = (Get-DBODefaultSetting -Name rdbms.type -Value)
     )
 
     begin {
@@ -204,7 +204,7 @@
         }
         foreach ($key in ($PSBoundParameters.Keys)) {
             #If any custom properties were specified
-            if ($key -in @('OutputFile', 'Append', 'ConnectionType', 'Build')) {
+            if ($key -in @('OutputFile', 'Append', 'Type', 'Build')) {
                 $params += @{ $key = $PSBoundParameters[$key] }
             }
         }

@@ -67,7 +67,7 @@ function Invoke-DBOQuery {
     .PARAMETER Schema
         Execute in a specific schema (if supported by RDBMS)
 
-    .PARAMETER ConnectionType
+    .PARAMETER Type
         Defines the driver to use when connecting to the database server.
         Available options: SqlServer (default), Oracle
 
@@ -138,8 +138,8 @@ function Invoke-DBOQuery {
         [AllowNull()]
         [string]$ConnectionString,
         [ValidateSet('SQLServer', 'Oracle')]
-        [Alias('Type', 'ServerType')]
-        [string]$ConnectionType = 'SQLServer',
+        [Alias('ConnectionType', 'ServerType')]
+        [string]$Type = (Get-DBODefaultSetting -Name rdbms.type -Value),
         [ValidateSet("DataSet", "DataTable", "DataRow", "PSObject", "SingleValue")]
         [string]
         $As = "DataRow"
@@ -159,14 +159,8 @@ function Invoke-DBOQuery {
         }
         $config.Merge($newConfig)
 
-        #Test if the selected Connection type is supported and initialize libraries if required
-        if (Test-DBOSupportedSystem -Type $ConnectionType) {
-            Initialize-ExternalLibrary -Type $ConnectionType
-        }
-        else {
-            Stop-PSFFunction -EnableException $true -Message "$ConnectionType is not supported on this system - some of the external dependencies are missing."
-            return
-        }
+        # Initialize external libraries if needed
+        Initialize-ExternalLibrary -Type $Type
 
         #Replace tokens if any
         foreach ($property in [DBOpsConfig]::EnumProperties() | Where-Object { $_ -ne 'Variables' }) {
@@ -174,10 +168,10 @@ function Invoke-DBOQuery {
         }
 
         #Build connection string
-        #$connString = Get-ConnectionString -Configuration $config -Type $ConnectionType
-        #$dbUpConnection = Get-ConnectionManager -ConnectionString $connString -Type $ConnectionType
-        $dbUpConnection = Get-ConnectionManager -Configuration $config -Type $ConnectionType
-        $dbUpSqlParser = Get-SqlParser -Type $ConnectionType
+        #$connString = Get-ConnectionString -Configuration $config -Type $Type
+        #$dbUpConnection = Get-ConnectionManager -ConnectionString $connString -Type $Type
+        $dbUpConnection = Get-ConnectionManager -Configuration $config -Type $Type
+        $dbUpSqlParser = Get-SqlParser -Type $Type
         $status = [DBOpsDeploymentStatus]::new()
         $dbUpLog = [DBOpsLog]::new($config.Silent, $OutputFile, $Append, $status)
         $dbUpLog.CallStack = (Get-PSCallStack)[0]
@@ -217,13 +211,13 @@ function Invoke-DBOQuery {
                 if ($PSCmdlet.ShouldProcess("Executing query $qCount", $config.SqlInstance)) {
                     foreach ($splitQuery in $dbUpConnection.SplitScriptIntoCommands($queryItem)) {
                         $dt = [System.Data.DataTable]::new()
-                        $rows = $dbUpConnection.ExecuteCommandsWithManagedConnection( [Func[Func[Data.IDbCommand],[pscustomobject]]]{
-                            Param (
-                                $dbCommandFactory
-                            )
-                            $sqlRunner = [DbUp.Helpers.AdHocSqlRunner]::new($dbCommandFactory, $dbUpSqlParser, $config.Schema)
-                            return $sqlRunner.ExecuteReader($splitQuery)
-                        })
+                        $rows = $dbUpConnection.ExecuteCommandsWithManagedConnection( [Func[Func[Data.IDbCommand], [pscustomobject]]] {
+                                Param (
+                                    $dbCommandFactory
+                                )
+                                $sqlRunner = [DbUp.Helpers.AdHocSqlRunner]::new($dbCommandFactory, $dbUpSqlParser, $config.Schema)
+                                return $sqlRunner.ExecuteReader($splitQuery)
+                            })
                         $rowCount = ($rows | Measure-Object).Count
                         if ($rowCount -gt 0) {
                             $keys = switch ($rowCount) {
@@ -233,7 +227,7 @@ function Invoke-DBOQuery {
                             foreach ($column in $keys) {
                                 $null = $dt.Columns.Add($column)
                             }
-                            foreach($row in $rows) {
+                            foreach ($row in $rows) {
                                 $dr = $dt.NewRow()
                                 foreach ($col in $row.Keys) {
                                     $dr[$col] = $row[$col]
