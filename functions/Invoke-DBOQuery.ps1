@@ -74,6 +74,10 @@ function Invoke-DBOQuery {
     .PARAMETER As
         Specifies output type. Valid options for this parameter are 'DataSet', 'DataTable', 'DataRow', 'PSObject', and 'SingleValue'
 
+    .PARAMETER Parameter
+        Uses values in specified hashtable as parameters inside the SQL query.
+        For example, <Invoke-DBOQuery -Query 'SELECT @p1' -Parameter @{ p1 = 1 }> would return "1" on SQL Server.
+
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -142,7 +146,9 @@ function Invoke-DBOQuery {
         [string]$Type = (Get-DBODefaultSetting -Name rdbms.type -Value),
         [ValidateSet("DataSet", "DataTable", "DataRow", "PSObject", "SingleValue")]
         [string]
-        $As = "DataRow"
+        $As = "DataRow",
+        [Alias('SqlParameters', 'SqlParameter', 'Parameters')]
+        [System.Collections.IDictionary]$Parameter
     )
 
     begin {
@@ -178,7 +184,13 @@ function Invoke-DBOQuery {
         if (-Not $config.Silent) {
             $dbUpConnection.IsScriptOutputLogged = $true
         }
-        $managedConnection = $dbUpConnection.OperationStarting($dbUpLog, $null)
+        try {
+            $managedConnection = $dbUpConnection.OperationStarting($dbUpLog, $null)
+        }
+        catch {
+            Stop-PSFFunction -EnableException $true -Message "Failed to connect to the server" -ErrorRecord $_
+            return
+        }
         if ($Query) {
             $queryText = $Query
         }
@@ -211,12 +223,23 @@ function Invoke-DBOQuery {
                 if ($PSCmdlet.ShouldProcess("Executing query $qCount", $config.SqlInstance)) {
                     foreach ($splitQuery in $dbUpConnection.SplitScriptIntoCommands($queryItem)) {
                         $dt = [System.Data.DataTable]::new()
-                        $rows = $dbUpConnection.ExecuteCommandsWithManagedConnection( [Func[Func[Data.IDbCommand], [pscustomobject]]] {
+                        $rows = $dbUpConnection.ExecuteCommandsWithManagedConnection( [Func[Func[Data.IDbCommand], pscustomobject]] {
                                 Param (
                                     $dbCommandFactory
                                 )
+                                # Compile the parameters as Expression functions
+                                $exp = [System.Linq.Expressions.Expression]
+                                $parameterList = @()
+                                foreach ($key in $Parameter.Keys) {
+                                    $param = $exp::Parameter([string], $key)
+                                    $value = $exp::Constant($Parameter.$key)
+                                    $body = $exp::Convert($value, [System.Object])
+                                    $lambda = $exp::Lambda([Func[string, object]], $body, $param)
+                                    $parameterList += $lambda
+                                }
+                                # Initiating the AdHocSqlRunner
                                 $sqlRunner = [DbUp.Helpers.AdHocSqlRunner]::new($dbCommandFactory, $dbUpSqlParser, $config.Schema)
-                                return $sqlRunner.ExecuteReader($splitQuery)
+                                return $sqlRunner.ExecuteReader($splitQuery, $parameterList)
                             })
                         $rowCount = ($rows | Measure-Object).Count
                         if ($rowCount -gt 0) {

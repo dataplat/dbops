@@ -4,7 +4,7 @@ class DBOpsLog : DbUp.Engine.Output.IUpgradeLog {
     hidden [bool]$Silent
     hidden [object]$CallStack
     hidden [DBOpsDeploymentStatus]$Status
-    
+
     #Constructors
     DBOpsLog ([bool]$silent, [string]$outFile, [bool]$append) {
         $this.Init($silent, $outFile, $append)
@@ -27,10 +27,10 @@ class DBOpsLog : DbUp.Engine.Output.IUpgradeLog {
                 $txt | Out-File $this.logToFile -Force
             }
         }
-        $this.CallStack = (Get-PSCallStack)[1]
+        $this.CallStack = (Get-PSCallStack)[0]
     }
-    
-    
+
+
     #Methods
     [void] WriteInformation([string]$format, [object[]]$params) {
         $level = switch ($this.silent) {
@@ -45,7 +45,7 @@ class DBOpsLog : DbUp.Engine.Output.IUpgradeLog {
             Line         = $this.callStack.Position.StartLineNumber
             Level        = $level
             Message      = $format -f $params
-            
+
         }
         Write-PSFMessage @splatParam
         if ($this.logToFile) {
@@ -66,7 +66,7 @@ class DBOpsLog : DbUp.Engine.Output.IUpgradeLog {
             Line         = $this.callStack.Position.StartLineNumber
             Level        = $level
             Message      = $format -f $params
-            
+
         }
         Write-PSFMessage @splatParam
         if ($this.logToFile) {
@@ -87,7 +87,7 @@ class DBOpsLog : DbUp.Engine.Output.IUpgradeLog {
             Line         = $this.callStack.Position.StartLineNumber
             Level        = $level
             Message      = $format -f $params
-            
+
         }
         Write-PSFMessage @splatParam
         if ($this.logToFile) {

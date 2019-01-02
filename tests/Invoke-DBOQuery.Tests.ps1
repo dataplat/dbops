@@ -104,5 +104,11 @@ Describe "Invoke-DBOQuery tests" -Tag $commandName, IntegrationTests {
             $result.A | Should -Be '1', '3'
             $result.B | Should -Be '2', '4'
         }
+        It "should run the query with custom parameters" {
+            $query = "SELECT @p1 AS A, @p2 AS B"
+            $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Parameter @{ p1 = '1'; p2 = 'string'}
+            $result.A | Should -Be 1
+            $result.B | Should -Be string
+        }
     }
 }
