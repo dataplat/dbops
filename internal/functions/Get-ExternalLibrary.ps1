@@ -1,7 +1,7 @@
 function Get-ExternalLibrary {
     # Returns all external dependencies for RDBMS
     Param (
-        [string]$Type
+        [DBOps.ConnectionType]$Type
     )
     $jsonFile = Join-PSFPath -Normalize (Get-Item $PSScriptRoot).Parent.FullName "json\dbops.dependencies.json"
     $d = Get-Content $jsonFile -Raw | ConvertFrom-Json

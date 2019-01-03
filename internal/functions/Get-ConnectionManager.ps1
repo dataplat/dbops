@@ -1,11 +1,11 @@
 function Get-ConnectionManager {
     # Returns a connection manager object
     Param (
-        [Parameter(ParameterSetName='ConnString', Mandatory)]
+        [Parameter(ParameterSetName = 'ConnString', Mandatory)]
         [string]$ConnectionString,
-        [Parameter(ParameterSetName='Config', Mandatory)]
+        [Parameter(ParameterSetName = 'Config', Mandatory)]
         [DBOpsConfig]$Configuration,
-        [string]$Type
+        [DBOps.ConnectionType]$Type
     )
     if ($Configuration) {
         $ConnectionString = Get-ConnectionString -Configuration $Configuration -Type $Type

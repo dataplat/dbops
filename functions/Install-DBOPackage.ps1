@@ -166,9 +166,8 @@
         [switch]$CreateDatabase,
         [AllowNull()]
         [string]$ConnectionString,
-        [ValidateSet('SQLServer', 'Oracle')]
         [Alias('ConnectionType', 'ServerType')]
-        [string]$Type = (Get-DBODefaultSetting -Name rdbms.type -Value)
+        [DBOps.ConnectionType]$Type = (Get-DBODefaultSetting -Name rdbms.type -Value)
     )
 
     begin {

@@ -27,14 +27,14 @@ class DBOps {
     hidden [void] WriteVerbose ([string]$Message, [object]$Target) {
         $callStack = (Get-PSCallStack)[1]
         $splatParam = @{
-            Tag             = 'DBOps', 'class', $this.GetType().Name
-            FunctionName    = $this.GetType().Name
-            ModuleName      = 'dbops'
-            File            = $callStack.Position.File
-            Line            = $callStack.Position.StartLineNumber
-            Message         = $Message
-            Target          = $Target
-            Level           = 'Verbose'
+            Tag          = 'DBOps', 'class', $this.GetType().Name
+            FunctionName = $this.GetType().Name
+            ModuleName   = 'dbops'
+            File         = $callStack.Position.File
+            Line         = $callStack.Position.StartLineNumber
+            Message      = $Message
+            Target       = $Target
+            Level        = 'Verbose'
         }
         Write-PSFMessage @splatParam
     }
@@ -99,7 +99,7 @@ class DBOps {
     hidden [void] RemoveFile ([string[]]$PackagePath, [string]$CollectionName) {
         if ($this.$CollectionName) {
             foreach ($path in $PackagePath) {
-                $this.RemoveFile($this.$CollectionName.GetFile($path, $CollectionName),$CollectionName)
+                $this.RemoveFile($this.$CollectionName.GetFile($path, $CollectionName), $CollectionName)
             }
         }
     }
@@ -1061,7 +1061,7 @@ class DBOpsScriptFile : DBOpsFile {
             $lastParent = $lastParent.Parent
         }
         $dPath = $dPath -replace ('^' + [regex]::Escape($lastParent.GetPackagePath() + ([IO.Path]::DirectorySeparatorChar))), ''
-        return $dPath.Replace('/','\')
+        return $dPath.Replace('/', '\')
     }
 }
 
@@ -1172,7 +1172,8 @@ class DBOpsConfig : DBOps {
                     }
                 }
             }
-            else { $outObject += @{ $prop = $this.$prop }}
+            else { $outObject += @{ $prop = $this.$prop }
+            }
         }
         return $outObject | ConvertTo-Json -Depth 3
     }
@@ -1278,7 +1279,7 @@ class DBOpsConfig : DBOps {
     }
 
     static [string[]] EnumProperties () {
-        return [DBOpsConfigProperty].GetEnumNames()
+        return [DBOps.ConfigProperty].GetEnumNames()
     }
 
     #Returns deploy file name

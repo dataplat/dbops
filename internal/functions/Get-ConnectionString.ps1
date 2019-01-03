@@ -2,7 +2,7 @@ function Get-ConnectionString {
     # Returns a connection string based on a config object
     Param (
         [DBOpsConfig]$Configuration,
-        [string]$Type
+        [DBOps.ConnectionType]$Type
     )
     #Build connection string
     if (!$Configuration.ConnectionString) {
@@ -11,7 +11,7 @@ function Get-ConnectionString {
         if ($Configuration.Database) { $CSBuilder["Database"] = $Configuration.Database }
         if ($Configuration.Encrypt) { $CSBuilder["Encrypt"] = $true }
         $CSBuilder["Connection Timeout"] = $Configuration.ConnectionTimeout
-    
+
         if ($Configuration.Credential) {
             $CSBuilder["User ID"] = $Configuration.Credential.UserName
             $CSBuilder["Password"] = $Configuration.Credential.GetNetworkCredential().Password

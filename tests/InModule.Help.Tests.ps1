@@ -129,7 +129,8 @@ foreach ($command in $commands) {
                             $testparamserrors += 1
                         }
                     }
-                    elseif ($parameter.ParameterType.FullName -in $HelpTestEnumeratedArrays) {
+                    #removing the [] in the end to properly identify enums
+                    elseif ((Invoke-Expression "[$($parameter.ParameterType.FullName.Trim('[]'))]").IsEnum) {
                         # Enumerations often have issues with the typename not being reliably available
                         $names = [Enum]::GetNames($parameter.ParameterType.DeclaredMembers[0].ReturnType)
                         if ($parameterHelp.parameterValueGroup.parameterValue -ne $names) {

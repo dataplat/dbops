@@ -34,8 +34,7 @@ Function Install-DBOSupportLibrary {
             ValueFromPipeline = $true,
             Position = 1)]
         [Alias('System', 'Database')]
-        [ValidateSet('SQLServer', 'Oracle')]
-        [string[]]$Type,
+        [DBOps.ConnectionType[]]$Type,
         [ValidateSet('CurrentUser', 'AllUsers')]
         [string]$Scope = 'AllUsers',
         [switch]$Force

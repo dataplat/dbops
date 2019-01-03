@@ -110,5 +110,11 @@ Describe "Invoke-DBOQuery tests" -Tag $commandName, IntegrationTests {
             $result.A | Should -Be 1
             $result.B | Should -Be string
         }
+        It "should run the query with Type specified" {
+            $query = "SELECT 1 AS A, 2 AS B UNION ALL SELECT 3 AS A, 4 AS B"
+            $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Type SQLServer
+            $result.A | Should -Be 1, 3
+            $result.B | Should -Be 2, 4
+        }
     }
 }
