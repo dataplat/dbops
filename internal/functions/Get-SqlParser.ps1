@@ -10,4 +10,7 @@ function Get-SqlParser {
     elseif ($Type -eq 'Oracle') {
         return [DbUp.Oracle.OracleObjectParser]::new()
     }
+    elseif ($Type -eq 'MySql') {
+        return [DbUp.MySql.MySqlObjectParser]::new()
+    }
 }

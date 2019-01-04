@@ -16,4 +16,11 @@ function Get-ConnectionManager {
     elseif ($Type -eq 'Oracle') {
         return [DbUp.Oracle.OracleConnectionManager]::new($ConnectionString)
     }
+    elseif ($Type -eq 'MySql') {
+        return [DbUp.MySql.MySqlConnectionManager]::new($ConnectionString)
+    }
+    else {
+        Stop-PSFFunction -Message "Unknown type $Type" -EnableException $true
+        return
+    }
 }

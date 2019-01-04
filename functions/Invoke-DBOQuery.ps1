@@ -180,7 +180,7 @@ function Invoke-DBOQuery {
         $status = [DBOpsDeploymentStatus]::new()
         $dbUpLog = [DBOpsLog]::new($config.Silent, $OutputFile, $Append, $status)
         $dbUpLog.CallStack = (Get-PSCallStack)[0]
-        if (-Not $config.Silent) {
+        if ($null -ne $dbUpConnection.IsScriptOutputLogged -and -Not $config.Silent) {
             $dbUpConnection.IsScriptOutputLogged = $true
         }
         try {

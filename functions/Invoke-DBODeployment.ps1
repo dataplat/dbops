@@ -114,9 +114,6 @@
             $config.SetValue($property, (Resolve-VariableToken $config.$property $config.Variables))
         }
 
-        # Build connection string
-        $connString = Get-ConnectionString -Configuration $config -Type $Type
-
         $scriptCollection = @()
         if ($PsCmdlet.ParameterSetName -ne 'Script') {
             # Get contents of the script files
@@ -151,25 +148,12 @@
             }
         }
 
-        # Build dbUp object
-        $dbUp = [DbUp.DeployChanges]::To
-        $dbUpConnection = Get-ConnectionManager -ConnectionString $connString -Type $Type
-        if ($Type -eq 'SqlServer') {
-            if ($config.Schema) {
-                $dbUp = [SqlServerExtensions]::SqlDatabase($dbUp, $dbUpConnection, $config.Schema)
-            }
-            else {
-                $dbUp = [SqlServerExtensions]::SqlDatabase($dbUp, $dbUpConnection)
-            }
-        }
-        elseif ($Type -eq 'Oracle') {
-            if ($config.Schema) {
-                $dbUp = [DbUp.Oracle.OracleExtensions]::OracleDatabase($dbUpConnection, $config.Schema)
-            }
-            else {
-                $dbUp = [DbUp.Oracle.OracleExtensions]::OracleDatabase($dbUpConnection)
-            }
-        }
+        # Get DbUp connection object
+        $dbUpConnection = Get-ConnectionManager -Configuration $config -Type $Type
+
+        # Get DbUpBuilder based on the connection
+        $dbUp = Get-DbUpBuilder -Connection $dbUpConnection -Type $Type
+
         # Add deployment scripts to the object
         $dbUp = [StandardExtensions]::WithScripts($dbUp, $scriptCollection)
 
@@ -208,43 +192,8 @@
         $dbUp = [StandardExtensions]::LogTo($dbUp, $dbUpLog)
         $dbUp = [StandardExtensions]::LogScriptOutput($dbUp)
 
-        # Configure schema versioning
-        if (!$config.SchemaVersionTable) {
-            $dbUpTableJournal = [DbUp.Helpers.NullJournal]::new()
-        }
-        elseif ($config.SchemaVersionTable) {
-            $table = $config.SchemaVersionTable.Split('.')
-            if (($table | Measure-Object).Count -gt 2) {
-                Stop-PSFFunction -EnableException $true -Message 'Incorrect table name - use the following syntax: schema.table'
-                return
-            }
-            elseif (($table | Measure-Object).Count -eq 2) {
-                $tableName = $table[1]
-                $schemaName = $table[0]
-            }
-            elseif (($table | Measure-Object).Count -eq 1) {
-                $tableName = $table[0]
-                if ($config.Schema) {
-                    $schemaName = $config.Schema
-                }
-                else {}
-            }
-            else {
-                Stop-PSFFunction -EnableException $true -Message 'No table name specified'
-                return
-            }
-            # Set default schema for known DB Types
-            if (!$schemaName) {
-                if ($Type -eq 'SqlServer') { $schemaName = 'dbo' }
-            }
-            #Enable schema versioning
-            if ($Type -eq 'SqlServer') { $dbUpJournalType = [DbUp.SqlServer.SqlTableJournal] }
-            elseif ($Type -eq 'Oracle') { $dbUpJournalType = [DbUp.Oracle.OracleTableJournal] }
-
-            $dbUpTableJournal = $dbUpJournalType::new( { $dbUpConnection }, { $dbUpLog }, $schemaName, $tableName)
-
-            #$dbUp = [SqlServerExtensions]::JournalToSqlTable($dbUp, $schemaName, $tableName)
-        }
+        # Define schema versioning (journalling)
+        $dbUpTableJournal = Get-DbUpJournal -Connection { $dbUpConnection } -Log { $dbUpLog } -Schema $config.Schema -SchemaVersionTable $config.SchemaVersionTable -Type $Type
         $dbUp = [StandardExtensions]::JournalTo($dbUp, $dbUpTableJournal)
 
         # Adding execution timeout - defaults to unlimited execution

@@ -2,7 +2,8 @@ $enums = @'
 namespace DBOps {
     public enum ConnectionType {
         SQLServer,
-        Oracle
+        Oracle,
+        MySql
     }
     public enum ConfigProperty {
         ApplicationName,

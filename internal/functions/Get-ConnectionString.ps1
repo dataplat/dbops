@@ -29,7 +29,7 @@ function Get-ConnectionString {
         else {
             $CSBuilder["Integrated Security"] = $true
         }
-        if ($ConnectionType -eq 'SQLServer') {
+        if ($Type -eq 'SQLServer') {
             $CSBuilder["Application Name"] = $Configuration.ApplicationName
         }
         return $CSBuilder.ToString()
