@@ -107,9 +107,11 @@
         }
 
         # Initialize external libraries if needed
+        Write-PSFMessage -Level Debug -Message "Initializing libraries for $Type"
         Initialize-ExternalLibrary -Type $Type
 
         # Replace tokens if any
+        Write-PSFMessage -Level Debug -Message "Replacing variable tokens"
         foreach ($property in [DBOpsConfig]::EnumProperties() | Where-Object { $_ -ne 'Variables' }) {
             $config.SetValue($property, (Resolve-VariableToken $config.$property $config.Variables))
         }
@@ -129,14 +131,17 @@
             }
             foreach ($buildItem in $buildCollection) {
                 foreach ($script in $buildItem.scripts) {
+                    $scriptDeploymentPath = $script.GetDeploymentPath()
+                    Write-PSFMessage -Level Debug -Message "Adding deployment script $scriptDeploymentPath"
                     # Replace tokens in the scripts
                     $scriptContent = Resolve-VariableToken $script.GetContent() $runtimeVariables
-                    $scriptCollection += [DbUp.Engine.SqlScript]::new($script.GetDeploymentPath(), $scriptContent)
+                    $scriptCollection += [DbUp.Engine.SqlScript]::new($scriptDeploymentPath, $scriptContent)
                 }
             }
         }
         else {
             foreach ($scriptItem in (Get-ChildScriptItem $ScriptPath)) {
+                Write-PSFMessage -Level Debug -Message "Adding deployment script $($scriptItem.SourcePath)"
                 if (!$RegisterOnly) {
                     # Replace tokens in the scripts
                     $scriptContent = Resolve-VariableToken (Get-Content $scriptItem.FullName -Raw) $runtimeVariables
@@ -148,6 +153,7 @@
             }
         }
 
+        Write-PSFMessage -Level Debug -Message "Creating DbUp objects"
         # Get DbUp connection object
         $dbUpConnection = Get-ConnectionManager -Configuration $config -Type $Type
 
@@ -202,6 +208,7 @@
         # Create database if necessary for supported platforms
         if ($config.CreateDatabase) {
             if ($PSCmdlet.ShouldProcess("Ensuring the target database exists")) {
+                Write-PSFMessage -Level Debug -Message "Creating database if not exists"
                 switch ($Type) {
                     SqlServer { [SqlServerExtensions]::SqlDatabase([DbUp.EnsureDatabase]::For, $connString, $dbUpLog, $config.ExecutionTimeout) }
                 }
@@ -217,6 +224,7 @@
                 try {
                     foreach ($script in $scriptCollection) {
                         if ($script.Name -notin $deployedScripts) {
+                            Write-PSFMessage -Level Debug -Message "Registering script $($script.Name)"
                             $dbUpConnection.ExecuteCommandsWithManagedConnection( {
                                     Param (
                                         $dbCommandFactory
@@ -246,6 +254,7 @@
         else {
             # Build and Upgrade
             if ($PSCmdlet.ShouldProcess($package, "Deploying the package")) {
+                Write-PSFMessage -Level Debug -Message "Performing deployment"
                 $dbUpBuild = $dbUp.Build()
                 $upgradeResult = $dbUpBuild.PerformUpgrade()
                 $status.Successful = $upgradeResult.Successful
