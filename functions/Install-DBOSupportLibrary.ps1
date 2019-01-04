@@ -15,6 +15,9 @@ Function Install-DBOSupportLibrary {
     .PARAMETER Scope
     Choose whether to install for CurrentUser or for AllUsers
 
+    .PARAMETER SkipDependencies
+    Skips dependencies of the package with the connectivity libraries, only downloading a single package.
+
     .PARAMETER Confirm
     Prompts to confirm certain actions
 
@@ -37,6 +40,7 @@ Function Install-DBOSupportLibrary {
         [DBOps.ConnectionType[]]$Type,
         [ValidateSet('CurrentUser', 'AllUsers')]
         [string]$Scope = 'AllUsers',
+        [switch]$SkipDependencies,
         [switch]$Force
     )
     begin {
@@ -76,7 +80,7 @@ Function Install-DBOSupportLibrary {
             # Install dependencies
             foreach ($package in $packagesToUpdate) {
                 Write-PSFMessage -Level Verbose -Message "Installing package $($package.Name)($($package.Version))"
-                $null = Install-Package -Source $packageSource.Name -Name $package.Name -RequiredVersion $package.Version -Force:$Force -Scope:$Scope
+                $null = Install-Package -Source $packageSource.Name -Name $package.Name -RequiredVersion $package.Version -Force:$Force -Scope:$Scope -SkipDependencies:$SkipDependencies
             }
         }
     }

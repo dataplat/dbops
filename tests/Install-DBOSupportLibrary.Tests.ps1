@@ -16,10 +16,10 @@ else {
 
 Describe "Install-DBOSupportLibrary tests" -Tag $commandName, UnitTests {
     Context "Testing support for different RDBMS" {
-        $dependencies = Get-Content (Join-PSFPath -Normalize "$here\.." "internal\json\dbops.dependencies.json") -Raw | ConvertFrom-Json
+        $dependencies = Get-ExternalLibrary
         foreach ($d in ($dependencies | Get-Member | Where-Object MemberType -eq NoteProperty | Select-Object -ExpandProperty Name)) {
             It "should attempt to install $d support" {
-                Install-DBOSupportLibrary -Type $d -Scope CurrentUser -Force -Confirm:$false
+                Install-DBOSupportLibrary -Type $d -Scope CurrentUser -Force -Confirm:$false -SkipDependencies
                 foreach ($package in $dependencies.$d) {
                     $testResult = Get-Package $package.Name -MinimumVersion $package.Version -ProviderName nuget
                     $testResult.Name | Should Be $package.Name
