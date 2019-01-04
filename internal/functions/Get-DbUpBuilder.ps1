@@ -23,12 +23,28 @@ function Get-DbUpBuilder {
             $dbUp = [DbUp.Oracle.OracleExtensions]::OracleDatabase($dbUp, $dbUpConnection)
         }
     }
-    elseif ($Type -eq [DBOps.ConnectionType]::MySql) {
+    elseif ($Type -eq [DBOps.ConnectionType]::MySQL) {
         if ($Schema) {
             $dbUp = [MySqlExtensions]::MySqlDatabase($dbUp, $dbUpConnection, $Schema)
         }
         else {
             $dbUp = [MySqlExtensions]::MySqlDatabase($dbUp, $dbUpConnection)
+        }
+    }
+    elseif ($Type -eq [DBOps.ConnectionType]::MySQL) {
+        if ($Schema) {
+            $dbUp = [MySqlExtensions]::MySqlDatabase($dbUp, $dbUpConnection, $Schema)
+        }
+        else {
+            $dbUp = [MySqlExtensions]::MySqlDatabase($dbUp, $dbUpConnection)
+        }
+    }
+    elseif ($Type -eq [DBOps.ConnectionType]::PostgreSQL) {
+        if ($Schema) {
+            $dbUp = [PostgresqlExtensions]::PostgresqlDatabase($dbUp, $dbUpConnection, $Schema)
+        }
+        else {
+            $dbUp = [PostgresqlExtensions]::PostgresqlDatabase($dbUp, $dbUpConnection)
         }
     }
     else {

@@ -10,14 +10,17 @@ function Get-ConnectionManager {
     if ($Configuration) {
         $ConnectionString = Get-ConnectionString -Configuration $Configuration -Type $Type
     }
-    if ($Type -eq 'SqlServer') {
+    if ($Type -eq [DBOps.ConnectionType]::SqlServer) {
         return [DbUp.SqlServer.SqlConnectionManager]::new($ConnectionString)
     }
-    elseif ($Type -eq 'Oracle') {
+    elseif ($Type -eq [DBOps.ConnectionType]::Oracle) {
         return [DbUp.Oracle.OracleConnectionManager]::new($ConnectionString)
     }
-    elseif ($Type -eq 'MySql') {
+    elseif ($Type -eq [DBOps.ConnectionType]::MySQL) {
         return [DbUp.MySql.MySqlConnectionManager]::new($ConnectionString)
+    }
+    elseif ($Type -eq [DBOps.ConnectionType]::PostgreSQL) {
+        return [DbUp.Postgresql.PostgresqlConnectionManager]::new($ConnectionString)
     }
     else {
         Stop-PSFFunction -Message "Unknown type $Type" -EnableException $true

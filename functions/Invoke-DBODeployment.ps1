@@ -154,10 +154,11 @@
         }
 
         Write-PSFMessage -Level Debug -Message "Creating DbUp objects"
-        # Get DbUp connection object
-        $dbUpConnection = Get-ConnectionManager -Configuration $config -Type $Type
+        # Create DbUp connection object
+        $connString = Get-ConnectionString -Configuration $config -Type $Type
+        $dbUpConnection = Get-ConnectionManager -ConnectionString $connString -Type $Type
 
-        # Get DbUpBuilder based on the connection
+        # Create DbUpBuilder based on the connection
         $dbUp = Get-DbUpBuilder -Connection $dbUpConnection -Type $Type
 
         # Add deployment scripts to the object
@@ -209,9 +210,7 @@
         if ($config.CreateDatabase) {
             if ($PSCmdlet.ShouldProcess("Ensuring the target database exists")) {
                 Write-PSFMessage -Level Debug -Message "Creating database if not exists"
-                switch ($Type) {
-                    SqlServer { [SqlServerExtensions]::SqlDatabase([DbUp.EnsureDatabase]::For, $connString, $dbUpLog, $config.ExecutionTimeout) }
-                }
+                $null = Invoke-EnsureDatabase -ConnectionString $connString -Log $dbUpLog -Timeout $config.ExecutionTimeout -Type $Type
             }
         }
         # Register only

@@ -36,8 +36,11 @@ function Get-DbUpJournal {
         elseif ($Type -eq [DBOps.ConnectionType]::Oracle) {
             $dbUpJournalType = [DbUp.Oracle.OracleTableJournal]
         }
-        elseif ($Type -eq [DBOps.ConnectionType]::MySql) {
+        elseif ($Type -eq [DBOps.ConnectionType]::MySQL) {
             $dbUpJournalType = [DbUp.MySql.MySqlTableJournal]
+        }
+        elseif ($Type -eq [DBOps.ConnectionType]::PostgreSQL) {
+            $dbUpJournalType = [DbUp.Postgresql.PostgresqlTableJournal]
         }
         else {
             Stop-PSFFunction -Message "Unknown type $Type" -EnableException $true

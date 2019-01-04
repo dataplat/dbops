@@ -24,7 +24,7 @@ function Initialize-ExternalLibrary {
                 Add-Type -Path (Join-PSFPath -Normalize (Split-Path $localPackage.Source -Parent) $dPath) -ErrorAction Stop
             }
             catch {
-                Stop-PSFFunction -EnableException $true -Message "Could not load $dPath from $localPackage" -Exception $_
+                Stop-PSFFunction -EnableException $true -Message "Could not load $dPath from $localPackage" -ErrorRecord $_
             }
         }
     }

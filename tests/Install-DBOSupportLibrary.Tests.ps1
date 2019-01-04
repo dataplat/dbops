@@ -18,11 +18,15 @@ Describe "Install-DBOSupportLibrary tests" -Tag $commandName, UnitTests {
     Context "Testing support for different RDBMS" {
         $dependencies = Get-ExternalLibrary
         foreach ($d in ($dependencies | Get-Member | Where-Object MemberType -eq NoteProperty | Select-Object -ExpandProperty Name)) {
-            It "should attempt to install $d support" {
+            It "should attempt to install $d libraries" {
                 Install-DBOSupportLibrary -Type $d -Scope CurrentUser -Force -Confirm:$false
                 foreach ($package in $dependencies.$d) {
                     $testResult = Get-Package $package.Name -MinimumVersion $package.Version -ProviderName nuget
                     $testResult.Name | Should Be $package.Name
+                    foreach ($dPath in $package.Path) {
+                        $dllPath = Join-PSFPath -Normalize (Split-Path $testResult.Source -Parent) $dPath
+                        Test-Path $dllPath | Should -Be $true
+                    }
                 }
             }
         }

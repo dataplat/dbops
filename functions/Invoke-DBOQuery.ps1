@@ -204,7 +204,7 @@ function Invoke-DBOQuery {
                 }
             }
             catch {
-                Stop-PSFFunction -Message 'File not found' -Exception $_ -EnableException $true
+                Stop-PSFFunction -Message 'File not found' -ErrorRecord $_ -EnableException $true
             }
             $queryText = $fileObjects | Get-Content -Raw
         }
