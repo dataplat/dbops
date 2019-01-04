@@ -27,7 +27,7 @@
             "Name": "MySql.Data",
             "Version": "6.9.5",
             "Path": [
-                "lib\\net452\\MySql.Data.dll"
+                "lib\\net45\\MySql.Data.dll"
             ],
             "PSEdition": [
                 "Desktop"
