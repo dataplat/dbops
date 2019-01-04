@@ -40,7 +40,7 @@ Function Install-DBOSupportLibrary {
         [DBOps.ConnectionType[]]$Type,
         [ValidateSet('CurrentUser', 'AllUsers')]
         [string]$Scope = 'AllUsers',
-        [switch]$SkipDependencies,
+        #[switch]$SkipDependencies, # disabling for now, dependencies are not supported anyways
         [switch]$Force
     )
     begin {
@@ -80,7 +80,7 @@ Function Install-DBOSupportLibrary {
             # Install dependencies
             foreach ($package in $packagesToUpdate) {
                 Write-PSFMessage -Level Verbose -Message "Installing package $($package.Name)($($package.Version))"
-                $null = Install-Package -Source $packageSource.Name -Name $package.Name -RequiredVersion $package.Version -Force:$Force -Scope:$Scope -SkipDependencies:$SkipDependencies
+                $null = Install-Package -Source $packageSource.Name -Name $package.Name -RequiredVersion $package.Version -Force:$Force -Scope:$Scope -SkipDependencies
             }
         }
     }
