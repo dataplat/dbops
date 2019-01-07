@@ -29,6 +29,8 @@ $packageFileName = Join-PSFPath -Normalize $workFolder "dbops.package.json"
 $cleanupPackageName = Join-PSFPath -Normalize "$here\etc\TempCleanup.zip"
 $outFile = Join-PSFPath -Normalize "$here\etc\outLog.txt"
 $newDbName = "_test_$commandName"
+$dropDatabaseScript = 'IF EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{0}]; END' -f $newDbName
+$createDatabaseScript = 'IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN CREATE DATABASE [{0}]; END' -f $newDbName
 
 Describe "Invoke-DBODeployment integration tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
@@ -37,8 +39,6 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
         $null = New-Item $unpackedFolder -ItemType Directory -Force
         $packageName = New-DBOPackage -Path (Join-Path $workFolder 'tmp.zip') -ScriptPath $tranFailScripts -Build 1.0 -Force
         $null = Expand-Archive -Path $packageName -DestinationPath $workFolder -Force
-        $dropDatabaseScript = 'IF EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{0}]; END' -f $newDbName
-        $createDatabaseScript = 'IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN CREATE DATABASE [{0}]; END' -f $newDbName
         $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database master -Query $dropDatabaseScript
         $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database master -Query $createDatabaseScript
     }

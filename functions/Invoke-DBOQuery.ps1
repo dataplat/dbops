@@ -175,6 +175,7 @@ function Invoke-DBOQuery {
         #Build connection string
         #$connString = Get-ConnectionString -Configuration $config -Type $Type
         #$dbUpConnection = Get-ConnectionManager -ConnectionString $connString -Type $Type
+        Write-PSFMessage -Level Debug -Message "Getting the connection object"
         $dbUpConnection = Get-ConnectionManager -Configuration $config -Type $Type
         $dbUpSqlParser = Get-SqlParser -Type $Type
         $status = [DBOpsDeploymentStatus]::new()
@@ -183,6 +184,7 @@ function Invoke-DBOQuery {
         if ($null -ne $dbUpConnection.IsScriptOutputLogged -and -Not $config.Silent) {
             $dbUpConnection.IsScriptOutputLogged = $true
         }
+        Write-PSFMessage -Level Verbose -Message "Establishing connection with $Type $($config.SqlInstance)"
         try {
             $managedConnection = $dbUpConnection.OperationStarting($dbUpLog, $null)
         }
@@ -214,6 +216,7 @@ function Invoke-DBOQuery {
         foreach ($qText in $queryText) {
             $queryList += Resolve-VariableToken $qText $config.Variables
         }
+        Write-PSFMessage -Level Debug -Message "Preparing to run $($queryList.Count) queries"
         try {
             $ds = [System.Data.DataSet]::new()
             $qCount = 0
