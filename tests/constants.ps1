@@ -5,15 +5,19 @@ if (Test-Path "$PSScriptRoot\constants.local.ps1") {
     . "$PSScriptRoot\constants.local.ps1"
 }
 else {
+    # default appveyor password
+    $appveyorPassword = ConvertTo-SecureString 'Password12!' -AsPlainText -Force
+
     # SqlServer
     $script:mssqlInstance = $env:mssql_instance
     if (Test-Windows) {
         $script:mssqlCredential = $null
-    } else {
-        $script:mssqlCredential = [pscredential]::new($env:mssql_login, (ConvertTo-SecureString $env:mssql_password -AsPlainText -Force))
+    }
+    else {
+        $script:mssqlCredential = [pscredential]::new('sa', $appveyorPassword)
     }
 
     # MySQL
     $script:mysqlInstance = 'localhost:3306'
-    $script:mysqlCredential = [pscredential]::new($env:mysql_login, (ConvertTo-SecureString $env:mysql_password -AsPlainText -Force))
+    $script:mysqlCredential = [pscredential]::new('root', $appveyorPassword)
 }

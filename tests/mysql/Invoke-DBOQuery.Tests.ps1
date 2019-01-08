@@ -16,6 +16,10 @@ else {
 }
 
 . "$here\..\constants.ps1"
+# install MySQL libs if needed
+if (-not (Test-DBOSupportedSystem -Type MySQL)) {
+    Install-DBOSupportLibrary -Type MySQL -Force 3>$null
+}
 
 Describe "Invoke-DBOQuery MySQL tests" -Tag $commandName, IntegrationTests {
     Context "Regular tests" {

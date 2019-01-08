@@ -3,9 +3,9 @@
 build: false
 version: 0.1.{build}
 
-#images 
+#images
 
-image: 
+image:
   - Ubuntu1804
   - Visual Studio 2017
 
@@ -13,8 +13,6 @@ image:
 environment:
   environment: development
   version: 0.1.$(appveyor_build_number)
-  mysql_login: root
-  mysql_password: Password12!
 
   matrix:
   - scenario: ALL
@@ -37,8 +35,6 @@ for:
           scenario: ALL
     environment:
         mssql_instance: localhost
-        mssql_login: sa
-        mssql_password: Password12!
     services:
       - mssql
 
@@ -67,9 +63,9 @@ test_script:
   # Collecting results
   - ps: .\tests\appveyor.pester.ps1 -Finalize
 after_test:
-  - ps: .\tests\appveyor.post.ps1  
+  - ps: .\tests\appveyor.post.ps1
 
-  
+
 # Set alternative clone folder
 #clone_folder: c:\github\dbops
 
