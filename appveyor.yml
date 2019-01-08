@@ -43,16 +43,16 @@ for:
       - mssql
 
   - matrix:
-    only:
-      - image: Visual Studio 2017
-        scenario: mysql
+      only:
+        - image: Visual Studio 2017
+          scenario: mysql
     services:
       - mysql
 
   - matrix:
-    only:
-      - image: Ubuntu1804
-        scenario: mysql
+      only:
+        - image: Ubuntu1804
+          scenario: mysql
     services:
       - mysql
 
