@@ -79,9 +79,10 @@ function Get-ConnectionString {
         $connString = $csBuilder.ToString()
         $logString = $connString.Split(';') | ForEach-Object {
             $key, $value = $_.Split('=')
-            if ($key -eq 'Password') { "$key=********;"}
-            else { "$key=$value;"}
-        } | Out-String -NoNewline
+            if ($key -eq 'Password') { "$key=********"}
+            else { "$key=$value"}
+        }
+        $logString = $logString -join ';'
         Write-PSFMessage -Level Debug -Message "Generated connection string $logString"
         return $connString
     }
