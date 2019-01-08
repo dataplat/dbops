@@ -167,33 +167,23 @@ if (-not $Finalize) {
     # Invoke pester.groups.ps1 to know which tests to run
     . "$ModuleBase\tests\pester.groups.ps1"
 
-    # retrieve all .Tests.
-    $AllTestsFiles = Get-ChildItem -File -Path "$ModuleBase\tests\*.Tests.ps1"
-    # exclude "disabled"
-    $AllTests = $AllTestsFiles | Where-Object { ($_.Name -replace '^([^.]+)(.+)?.Tests.ps1', '$1') -notin $TestsRunGroups['disabled'] }
-
     # do we have a scenario ?
-    if ($env:SCENARIO) {
-        # if so, do we have a group with tests to run ?
-        if ($env:SCENARIO -in $TestsRunGroups.Keys) {
-            $AllScenarioTests = $AllTests | Where-Object { ($_.Name -replace '\.Tests\.ps1$', '') -in $TestsRunGroups[$env:SCENARIO] }
-        }
-        else {
-            $AllScenarioTests = $AllTests
-        }
+    if ($env:SCENARIO -in $TestsRunGroups.Keys) {
+        $AllScenarioTests = Get-ChildItem -File -Path $TestsRunGroups[$env:SCENARIO] -Filter *.Tests.ps1
     }
     else {
-        $AllScenarioTests = $AllTests
+        # retrieve all .Tests.
+        $AllScenarioTests = Get-ChildItem -File -Path "$ModuleBase\tests\*.Tests.ps1"
     }
+    # exclude "disabled"
+    $AllScenarioTests = $AllScenarioTests | Where-Object { ($_.Name -replace '^([^.]+)(.+)?.Tests.ps1', '$1') -notin $TestsRunGroups['disabled'] }
 
-    if ($AllTests.Count -eq 0 -and $AllScenarioTests.Count -eq 0) {
+    if ($AllScenarioTests.Count -eq 0) {
         throw "something went wrong, nothing to test"
     }
-}
 
-#Run a test with the current version of PowerShell
-#Make things faster by removing most output
-if (-not $Finalize) {
+    #Run a test with the current version of PowerShell
+    #Make things faster by removing most output
     Import-Module Pester
     Set-Variable ProgressPreference -Value SilentlyContinue
     if ($AllScenarioTests.Count -eq 0) {
