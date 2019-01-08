@@ -2,15 +2,16 @@
 
 $TestsRunGroups = @{
     # run on scenario MSSQL
-    "default" = @(
+    "default"    = @(
         "$ModuleBase\tests\*"
+        "$ModuleBase\tests\mysql\*"
     )
-    "mysql" = @(
+    "mysql"      = @(
         "$ModuleBase\tests\mysql\*"
     )
     "postgresql" = @(
         "$ModuleBase\tests\postgresql\*"
     )
     # do not run everywhere
-    "disabled" = @()
+    "disabled"   = @()
 }

@@ -12,13 +12,13 @@ if (!$Batch) {
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
-    Write-Host "Running $commandName tests" -ForegroundColor Cyan
+    Write-Host "Running MySQL $commandName tests" -ForegroundColor Cyan
 }
 
 . "$here\..\constants.ps1"
 # install MySQL libs if needed
 if (-not (Test-DBOSupportedSystem -Type MySQL)) {
-    Install-DBOSupportLibrary -Type MySQL -Force 3>$null
+    Install-DBOSupportLibrary -Type MySQL -Force -Scope CurrentUser 3>$null
 }
 
 Describe "Invoke-DBOQuery MySQL tests" -Tag $commandName, IntegrationTests {
@@ -98,47 +98,42 @@ Describe "Invoke-DBOQuery MySQL tests" -Tag $commandName, IntegrationTests {
             $result.B | Should -Be '2', '4'
         }
         It "should run the query with custom parameters" {
-            $query = "SELECT %(p1) AS A, %(p2) AS B"
+            $query = "SELECT @p1 AS A, @p2 AS B"
             $result = Invoke-DBOQuery -Type MySQL -Query $query -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Parameter @{ p1 = '1'; p2 = 'string'}
             $result.A | Should -Be 1
             $result.B | Should -Be string
         }
-        It "should run the query with Type specified" {
-            $query = "SELECT 1 AS A, 2 AS B UNION ALL SELECT 3 AS A, 4 AS B"
-            $result = Invoke-DBOQuery -Type MySQL -Query $query -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Type SQLServer
-            $result.A | Should -Be 1, 3
-            $result.B | Should -Be 2, 4
-        }
         It "should connect to a specific database" {
             $query = "SELECT db_name()"
-            $result = Invoke-DBOQuery -Type MySQL -Query $query -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database tempdb -As SingleValue
+            $result = Invoke-DBOQuery -Type MySQL -Query $query -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database mysql -As SingleValue
             $result | Should -Be tempdb
         }
         It "should address column names automatically" {
             $query = "SELECT 1 AS A, 2, 3"
-            $result = Invoke-DBOQuery -Type MySQL -Query $query -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential
+            $result = Invoke-DBOQuery -Type MySQL -Query $query -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -As DataTable
+            $result.Columns.ColumnName | Should -Be @('A', 'Column1', 'Column2')
             $result.A | Should Be 1
             $result.Column1 | Should Be 2
             $result.Column2 | Should Be 3
         }
     }
     Context "Negative tests" {
-        It "should throw a zero division error" {
-            $query = "SELECT 1/0"
-            { $result = Invoke-DBOQuery -Type MySQL -Query $query -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential } | Should throw "Divide by zero"
+        It "should throw an unknown table error" {
+            $query = "SELECT * FROM nonexistent"
+            { $result = Invoke-DBOQuery -Type MySQL -Query $query -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential } | Should throw "Table does not exist"
         }
         It "should throw a connection timeout error" {
             $query = "SELECT 1/0"
-            { $result = Invoke-DBOQuery -Type MySQL -Query $query -SqlInstance localhost:6493 -Credential $script:mysqlCredential -ConnectionTimeout 1} | Should throw "The server was not found or was not accessible"
+            { $result = Invoke-DBOQuery -Type MySQL -Query $query -SqlInstance localhost:6493 -Credential $script:mysqlCredential -ConnectionTimeout 1} | Should throw "Unable to connect"
         }
         It "should fail when parameters are of a wrong type" {
-            { Invoke-DBOQuery -Type MySQL -Query 'SELECT 1/%(foo)' -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Parameter @{ foo = 'bar' } } | Should throw 'Conversion failed'
-            { Invoke-DBOQuery -Type MySQL -Query 'SELECT ''bar'' + %(foo)' -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Parameter @{ foo = 10 } } | Should throw 'Conversion failed'
-            { Invoke-DBOQuery -Type MySQL -Query 'SELECT ''bar'' + %(foo)' -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Parameter @{ foo = Get-Date } } | Should throw 'Conversion failed'
+            { Invoke-DBOQuery -Type MySQL -Query 'SELECT 1/@foo' -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Parameter @{ foo = 'bar' } } | Should throw 'Conversion failed'
+            { Invoke-DBOQuery -Type MySQL -Query 'SELECT ''bar'' + @foo' -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Parameter @{ foo = 10 } } | Should throw 'Conversion failed'
+            { Invoke-DBOQuery -Type MySQL -Query 'SELECT ''bar'' + @foo' -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Parameter @{ foo = Get-Date } } | Should throw 'Conversion failed'
         }
         It "should fail when credentials are wrong" {
-            { Invoke-DBOQuery -Type MySQL -Query 'SELECT 1' -SqlInstance $script:mysqlInstance -Credential ([pscredential]::new('nontexistent', ([securestring]::new()))) } | Should throw 'Login failed'
-            { Invoke-DBOQuery -Type MySQL -Query 'SELECT 1' -SqlInstance $script:mysqlInstance -UserName nontexistent -Password ([securestring]::new()) } | Should throw 'Login failed'
+            { Invoke-DBOQuery -Type MySQL -Query 'SELECT 1' -SqlInstance $script:mysqlInstance -Credential ([pscredential]::new('nontexistent', ([securestring]::new()))) } | Should throw 'Access denied'
+            { Invoke-DBOQuery -Type MySQL -Query 'SELECT 1' -SqlInstance $script:mysqlInstance -UserName nontexistent -Password ([securestring]::new()) } | Should throw 'Access denied'
         }
         It "should fail when input file is not found" {
             { Invoke-DBOQuery -Type MySQL -InputFile '.\nonexistent' -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential } | Should throw 'Cannot find path'
