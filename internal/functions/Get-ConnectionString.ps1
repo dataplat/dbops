@@ -77,7 +77,7 @@ function Get-ConnectionString {
         }
         # generate the connection string
         $connString = $csBuilder.ToString()
-        $logString = $connString.Split(';') | ForEach-Object { 
+        $logString = $connString.Split(';') | ForEach-Object {
             $key, $value = $_.Split('=')
             if ($key -eq 'Password') { "$key=********;"}
             else { "$key=$value;"}
