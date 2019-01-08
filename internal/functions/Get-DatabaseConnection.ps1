@@ -1,7 +1,7 @@
 function Get-DatabaseConnection {
     # Returns a connection manager object
     Param (
-        [Parameter(ParameterSetName = 'ConnString', Mandatory)]
+        [Parameter(ParameterSetName = 'ConnString')]
         [string]$ConnectionString,
         [Parameter(ParameterSetName = 'Config', Mandatory)]
         [DBOpsConfig]$Configuration,
@@ -10,20 +10,12 @@ function Get-DatabaseConnection {
     if ($Configuration) {
         $ConnectionString = Get-ConnectionString -Configuration $Configuration -Type $Type
     }
-    if ($Type -eq [DBOps.ConnectionType]::SqlServer) {
-        return [System.Data.SqlClient.SqlConnection]::new($ConnectionString)
+    $connection = switch ($Type) {
+        SqlServer { [System.Data.SqlClient.SqlConnection]::new($ConnectionString) }
+        Oracle { [Oracle.DataAccess.Client.OracleConnection]::new($ConnectionString) }
+        MySQL { [MySql.Data.MySqlClient.MySqlConnection]::new($ConnectionString) }
+        PostgreSQL { [Npgsql.NpgsqlConnection]::new($ConnectionString) }
+        default { Stop-PSFFunction -Message "Unknown type $Type" -EnableException $true }
     }
-    elseif ($Type -eq [DBOps.ConnectionType]::Oracle) {
-        return [Oracle.DataAccess.Client.OracleConnection]::new($ConnectionString)
-    }
-    elseif ($Type -eq [DBOps.ConnectionType]::MySQL) {
-        return [MySql.Data.MySqlClient.MySqlConnection]::new($ConnectionString)
-    }
-    elseif ($Type -eq [DBOps.ConnectionType]::PostgreSQL) {
-        return [Npgsql.NpgsqlConnection]::new($ConnectionString)
-    }
-    else {
-        Stop-PSFFunction -Message "Unknown type $Type" -EnableException $true
-        return
-    }
+    return $connection
 }

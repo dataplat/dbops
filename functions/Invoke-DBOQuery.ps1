@@ -173,14 +173,12 @@ function Invoke-DBOQuery {
         }
 
         #Build connection string
-        #$connString = Get-ConnectionString -Configuration $config -Type $Type
-        #$dbUpConnection = Get-ConnectionManager -ConnectionString $connString -Type $Type
         Write-PSFMessage -Level Debug -Message "Getting the connection object"
-        $dbUpConnection = Get-ConnectionManager -Configuration $config -Type $Type
-        $conn = Get-DatabaseConnection -Configuration $config -Type $Type
+        $dbUpConnection = Get-ConnectionManager -ConnectionString $null -Type $Type # only needed for query parsing for now, connection string is pointless
+        $dataConnection = Get-DatabaseConnection -Configuration $config -Type $Type # the 'real' connection
         Write-PSFMessage -Level Verbose -Message "Establishing connection with $Type $($config.SqlInstance)"
         try {
-            $conn.Open();
+            $dataConnection.Open()
         }
         catch {
             Stop-PSFFunction -EnableException $true -Message "Failed to connect to the server" -ErrorRecord $_
@@ -218,9 +216,18 @@ function Invoke-DBOQuery {
             foreach ($queryItem in $queryList) {
                 $qCount++
                 if ($PSCmdlet.ShouldProcess("Executing query $qCount", $config.SqlInstance)) {
+                    # split commands using DbUp parser
                     foreach ($splitQuery in $dbUpConnection.SplitScriptIntoCommands($queryItem)) {
-                        $command = $conn.CreateCommand()
+                        # create a new command object and define text/parameters
+                        $command = $dataConnection.CreateCommand()
                         $command.CommandText = $splitQuery
+                        foreach ($key in $Parameter.Keys) {
+                            $null = switch ($Type) {
+                                Oracle { $command.Parameters.Add($key, $Parameter[$key]) }
+                                default { $command.Parameters.AddWithValue($key, $Parameter[$key]) }
+                            }
+                        }
+                        # create a reader and define output table columns
                         $reader = $command.ExecuteReader()
                         $table = [System.Data.DataTable]::new()
                         $definition = $reader.GetSchemaTable()
@@ -232,7 +239,7 @@ function Invoke-DBOQuery {
                             }
                             $null = $table.Columns.Add($name, $datatype)
                         }
-
+                        # read rows and assign values
                         while ($reader.Read()) {
                             $row = $table.NewRow()
                             for ($i = 0; $i -lt $reader.FieldCount; $i++) {
@@ -252,7 +259,7 @@ function Invoke-DBOQuery {
             Stop-PSFFunction -EnableException $true -Message "Failed to run the query" -ErrorRecord $_
         }
         finally {
-            $conn.Dispose()
+            $dataConnection.Dispose()
         }
         switch ($As) {
             'DataSet' {

@@ -116,5 +116,40 @@ Describe "Invoke-DBOQuery tests" -Tag $commandName, IntegrationTests {
             $result.A | Should -Be 1, 3
             $result.B | Should -Be 2, 4
         }
+        It "should connect to a specific database" {
+            $query = "SELECT db_name()"
+            $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database tempdb -As SingleValue
+            $result | Should -Be tempdb
+        }
+        It "should address column names automatically" {
+            $query = "SELECT 1 AS A, 2, 3"
+            $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential
+            $result.A | Should Be 1
+            $result.Column1 | Should Be 2
+            $result.Column2 | Should Be 3
+        }
+    }
+    Context "Negative tests" {
+        It "should throw a zero division error" {
+            $query = "SELECT 1/0"
+            { $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential } | Should throw "Divide by zero"
+        }
+        It "should throw a connection timeout error" {
+            $query = "SELECT 1/0"
+            { $result = Invoke-DBOQuery -Query $query -SqlInstance localhost:6493 -Credential $script:mssqlCredential -ConnectionTimeout 1} | Should throw "The server was not found or was not accessible"
+        }
+        It "should fail when parameters are of a wrong type" {
+            { Invoke-DBOQuery -Query 'SELECT 1/@foo' -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Parameter @{ foo = 'bar' } } | Should throw 'Conversion failed'
+            { Invoke-DBOQuery -Query 'SELECT ''bar'' + @foo' -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Parameter @{ foo = 10 } } | Should throw 'Conversion failed'
+            { Invoke-DBOQuery -Query 'SELECT ''bar'' + @foo' -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Parameter @{ foo = Get-Date } } | Should throw 'Conversion failed'
+        }
+        It "should fail when credentials are wrong" {
+            { Invoke-DBOQuery -Query 'SELECT 1' -SqlInstance $script:mssqlInstance -Credential ([pscredential]::new('nontexistent', ([securestring]::new()))) } | Should throw 'Login failed'
+            { Invoke-DBOQuery -Query 'SELECT 1' -SqlInstance $script:mssqlInstance -UserName nontexistent -Password ([securestring]::new()) } | Should throw 'Login failed'
+        }
+        It "should fail when input file is not found" {
+            { Invoke-DBOQuery -InputFile '.\nonexistent' -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential } | Should throw 'Cannot find path'
+            { '.\nonexistent' | Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential } | Should throw 'Cannot find path'
+        }
     }
 }

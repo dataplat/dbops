@@ -37,18 +37,18 @@ function Get-ConnectionString {
             $server = $Configuration.SqlInstance
             $port = $null
         }
+        $csBuilder[$conn.Server] = $server
+        # check if port is an independent property and set it, otherwise add the port back to the connection string
         if ($port) {
-            # check if port is an independent property and set it, otherwise add the port back to the connection string
             if ($csBuilder.ContainsKey('Port')) {
-                $csBuilder[$conn.Server] = $server
                 $csBuilder.Port = $port
             }
             else {
                 if ($Type -eq [DBOps.ConnectionType]::SqlServer) {
-                    $csBuilder[$conn.Server] = "$server,$port"
+                    $csBuilder[$conn.Server] += ",$port"
                 }
                 else {
-                    $csBuilder[$conn.Server] = "$server`:$port"
+                    $csBuilder[$conn.Server] += ":$port"
                 }
             }
         }
@@ -77,6 +77,12 @@ function Get-ConnectionString {
         }
         # generate the connection string
         $connString = $csBuilder.ToString()
+        $logString = $connString.Split(';') | ForEach-Object { 
+            $key, $value = $_.Split('=')
+            if ($key -eq 'Password') { "$key=********;"}
+            else { "$key=$value;"}
+        } | Out-String -NoNewline
+        Write-PSFMessage -Level Debug -Message "Generated connection string $logString"
         return $connString
     }
     else {
