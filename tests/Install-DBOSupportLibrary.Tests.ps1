@@ -19,7 +19,7 @@ Describe "Install-DBOSupportLibrary tests" -Tag $commandName, UnitTests {
         $dependencies = Get-ExternalLibrary
         foreach ($d in ($dependencies | Get-Member | Where-Object MemberType -eq NoteProperty | Select-Object -ExpandProperty Name)) {
             It "should attempt to install $d libraries" {
-                Install-DBOSupportLibrary -Type $d -Scope CurrentUser -Confirm:$false
+                Install-DBOSupportLibrary -Type $d -Scope CurrentUser -Force -Confirm:$false
                 foreach ($package in $dependencies.$d) {
                     $testResult = Get-Package $package.Name -MinimumVersion $package.Version -ProviderName nuget
                     $testResult.Name | Should Be $package.Name

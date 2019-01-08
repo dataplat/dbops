@@ -168,8 +168,8 @@ if (-not $Finalize) {
     . "$ModuleBase\tests\pester.groups.ps1"
 
     # do we have a scenario ?
-    if ($env:SCENARIO -in $TestsRunGroups.Keys) {
-        $AllScenarioTests = Get-ChildItem -File -Path $TestsRunGroups[$env:SCENARIO] -Filter *.Tests.ps1
+    if ($env:scenario -in $TestsRunGroups.Keys) {
+        $AllScenarioTests = Get-ChildItem -File -Path $TestsRunGroups[$env:scenario] -Filter *.Tests.ps1
     }
     else {
         # retrieve all .Tests.
