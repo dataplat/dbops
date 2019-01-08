@@ -28,6 +28,7 @@ for:
         mssql_instance: localhost\SQL2017
     services:
       - mssql2017
+      - mysql
 
   - matrix:
       only:

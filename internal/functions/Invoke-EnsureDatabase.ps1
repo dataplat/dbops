@@ -20,7 +20,7 @@ function Invoke-EnsureDatabase {
             $query = "CREATE DATABASE IF NOT EXISTS $($csBuilder.Database)"
             $null = Invoke-DBOQuery -Type $Type -ConnectionString $ConnectionString -Query $query
         }
-        PostgreSQL { [PostgresqlExtensions]::PostgresqlDatabase($dbUp, $ConnectionString, $Log)
+        PostgreSQL { [PostgresqlExtensions]::PostgresqlDatabase($dbUp, $ConnectionString, $Log) }
         default { Stop-PSFFunction -Message "Creating databases in $Type is not supported" -EnableException $false }
     }
     return $dbUp
