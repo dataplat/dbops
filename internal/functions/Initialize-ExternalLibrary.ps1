@@ -2,7 +2,7 @@ function Initialize-ExternalLibrary {
     #Load external libraries for a specific RDBMS
     Param (
         [Parameter(Mandatory)]
-        [string]$Type
+        [DBOps.ConnectionType]$Type
     )
     if (-Not (Test-DBOSupportedSystem -Type $Type)) {
         Write-PSFMessage -Level Warning -Message "Installing dependent libraries for $Type connections"
@@ -24,7 +24,7 @@ function Initialize-ExternalLibrary {
                 Add-Type -Path (Join-PSFPath -Normalize (Split-Path $localPackage.Source -Parent) $dPath) -ErrorAction Stop
             }
             catch {
-                Stop-PSFFunction -EnableException $true -Message "Could not load $dPath from $localPackage" -Exception $_
+                Stop-PSFFunction -EnableException $true -Message "Could not load $dPath from $localPackage" -ErrorRecord $_
             }
         }
     }

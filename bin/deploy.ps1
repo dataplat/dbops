@@ -41,7 +41,7 @@ $config = Get-DBOConfig -Path "$PSScriptRoot\dbops.config.json" -Configuration $
 
 #Convert custom parameters into a package configuration, excluding variables
 foreach ($key in ($PSBoundParameters.Keys)) {
-    if ($key -in [DBOpsConfigProperty].GetEnumNames() -and $key -ne 'Variables') {
+    if ($key -in [DBOps.ConfigProperty].GetEnumNames() -and $key -ne 'Variables') {
         Write-PSFMessage -Level Debug -Message "Overriding parameter $key with $($PSBoundParameters[$key])"
         $config.SetValue($key, $PSBoundParameters[$key])
     }

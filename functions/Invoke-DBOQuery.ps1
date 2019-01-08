@@ -141,9 +141,8 @@ function Invoke-DBOQuery {
         [string]$Schema,
         [AllowNull()]
         [string]$ConnectionString,
-        [ValidateSet('SQLServer', 'Oracle')]
         [Alias('ConnectionType', 'ServerType')]
-        [string]$Type = (Get-DBODefaultSetting -Name rdbms.type -Value),
+        [DBOps.ConnectionType]$Type = (Get-DBODefaultSetting -Name rdbms.type -Value),
         [ValidateSet("DataSet", "DataTable", "DataRow", "PSObject", "SingleValue")]
         [string]
         $As = "DataRow",
@@ -176,14 +175,16 @@ function Invoke-DBOQuery {
         #Build connection string
         #$connString = Get-ConnectionString -Configuration $config -Type $Type
         #$dbUpConnection = Get-ConnectionManager -ConnectionString $connString -Type $Type
+        Write-PSFMessage -Level Debug -Message "Getting the connection object"
         $dbUpConnection = Get-ConnectionManager -Configuration $config -Type $Type
         $dbUpSqlParser = Get-SqlParser -Type $Type
         $status = [DBOpsDeploymentStatus]::new()
         $dbUpLog = [DBOpsLog]::new($config.Silent, $OutputFile, $Append, $status)
         $dbUpLog.CallStack = (Get-PSCallStack)[0]
-        if (-Not $config.Silent) {
+        if ($null -ne $dbUpConnection.IsScriptOutputLogged -and -Not $config.Silent) {
             $dbUpConnection.IsScriptOutputLogged = $true
         }
+        Write-PSFMessage -Level Verbose -Message "Establishing connection with $Type $($config.SqlInstance)"
         try {
             $managedConnection = $dbUpConnection.OperationStarting($dbUpLog, $null)
         }
@@ -205,7 +206,7 @@ function Invoke-DBOQuery {
                 }
             }
             catch {
-                Stop-PSFFunction -Message 'File not found' -Exception $_ -EnableException $true
+                Stop-PSFFunction -Message 'File not found' -ErrorRecord $_ -EnableException $true
             }
             $queryText = $fileObjects | Get-Content -Raw
         }
@@ -215,6 +216,7 @@ function Invoke-DBOQuery {
         foreach ($qText in $queryText) {
             $queryList += Resolve-VariableToken $qText $config.Variables
         }
+        Write-PSFMessage -Level Debug -Message "Preparing to run $($queryList.Count) queries"
         try {
             $ds = [System.Data.DataSet]::new()
             $qCount = 0

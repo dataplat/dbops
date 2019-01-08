@@ -16,13 +16,16 @@ else {
 
 Describe "Test-DBOSupportedSystem tests" -Tag $commandName, UnitTests {
     Context "Testing support for different RDBMS" {
-        It "should test SQL Server support" {
-            Test-DBOSupportedSystem -Type SQLServer | Should Be $true
-        }
-        It "should test Oracle support" {
-            $expectedResult = [bool](Get-Package Oracle.ManagedDataAccess -RequiredVersion 12.2.1100 -ErrorAction SilentlyContinue)
-            $testResult = Test-DBOSupportedSystem -Type Oracle 3>$null
-            $testResult | Should Be $expectedResult
+        # all packages should be already installed by this time in Install-DBOSupportLibrary.Tests.ps1
+        $dependencies = Get-ExternalLibrary
+        foreach ($d in ($dependencies | Get-Member | Where-Object MemberType -eq NoteProperty | Select-Object -ExpandProperty Name)) {
+            It "should test $d support" {
+                $testResult = Test-DBOSupportedSystem -Type $d 3>$null
+                foreach ($package in $dependencies.$d) {
+                    $expectedResult = $null -ne (Get-Package $package.Name -MinimumVersion $package.Version -ProviderName nuget)
+                    $testResult | Should Be $expectedResult
+                }
+            }
         }
     }
 }

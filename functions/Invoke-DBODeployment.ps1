@@ -82,9 +82,8 @@
         [string[]]$Build,
         [string]$OutputFile,
         [switch]$Append,
-        [ValidateSet('SQLServer', 'Oracle')]
         [Alias('ConnectionType', 'ServerType')]
-        [string]$Type = (Get-DBODefaultSetting -Name rdbms.type -Value),
+        [DBOps.ConnectionType]$Type = (Get-DBODefaultSetting -Name rdbms.type -Value),
         [object]$Configuration,
         [switch]$RegisterOnly
     )
@@ -108,15 +107,14 @@
         }
 
         # Initialize external libraries if needed
+        Write-PSFMessage -Level Debug -Message "Initializing libraries for $Type"
         Initialize-ExternalLibrary -Type $Type
 
         # Replace tokens if any
+        Write-PSFMessage -Level Debug -Message "Replacing variable tokens"
         foreach ($property in [DBOpsConfig]::EnumProperties() | Where-Object { $_ -ne 'Variables' }) {
             $config.SetValue($property, (Resolve-VariableToken $config.$property $config.Variables))
         }
-
-        # Build connection string
-        $connString = Get-ConnectionString -Configuration $config -Type $Type
 
         $scriptCollection = @()
         if ($PsCmdlet.ParameterSetName -ne 'Script') {
@@ -133,14 +131,17 @@
             }
             foreach ($buildItem in $buildCollection) {
                 foreach ($script in $buildItem.scripts) {
+                    $scriptDeploymentPath = $script.GetDeploymentPath()
+                    Write-PSFMessage -Level Debug -Message "Adding deployment script $scriptDeploymentPath"
                     # Replace tokens in the scripts
                     $scriptContent = Resolve-VariableToken $script.GetContent() $runtimeVariables
-                    $scriptCollection += [DbUp.Engine.SqlScript]::new($script.GetDeploymentPath(), $scriptContent)
+                    $scriptCollection += [DbUp.Engine.SqlScript]::new($scriptDeploymentPath, $scriptContent)
                 }
             }
         }
         else {
             foreach ($scriptItem in (Get-ChildScriptItem $ScriptPath)) {
+                Write-PSFMessage -Level Debug -Message "Adding deployment script $($scriptItem.SourcePath)"
                 if (!$RegisterOnly) {
                     # Replace tokens in the scripts
                     $scriptContent = Resolve-VariableToken (Get-Content $scriptItem.FullName -Raw) $runtimeVariables
@@ -152,25 +153,14 @@
             }
         }
 
-        # Build dbUp object
-        $dbUp = [DbUp.DeployChanges]::To
+        Write-PSFMessage -Level Debug -Message "Creating DbUp objects"
+        # Create DbUp connection object
+        $connString = Get-ConnectionString -Configuration $config -Type $Type
         $dbUpConnection = Get-ConnectionManager -ConnectionString $connString -Type $Type
-        if ($Type -eq 'SqlServer') {
-            if ($config.Schema) {
-                $dbUp = [SqlServerExtensions]::SqlDatabase($dbUp, $dbUpConnection, $config.Schema)
-            }
-            else {
-                $dbUp = [SqlServerExtensions]::SqlDatabase($dbUp, $dbUpConnection)
-            }
-        }
-        elseif ($Type -eq 'Oracle') {
-            if ($config.Schema) {
-                $dbUp = [DbUp.Oracle.OracleExtensions]::OracleDatabase($dbUpConnection, $config.Schema)
-            }
-            else {
-                $dbUp = [DbUp.Oracle.OracleExtensions]::OracleDatabase($dbUpConnection)
-            }
-        }
+
+        # Create DbUpBuilder based on the connection
+        $dbUp = Get-DbUpBuilder -Connection $dbUpConnection -Type $Type
+
         # Add deployment scripts to the object
         $dbUp = [StandardExtensions]::WithScripts($dbUp, $scriptCollection)
 
@@ -209,43 +199,8 @@
         $dbUp = [StandardExtensions]::LogTo($dbUp, $dbUpLog)
         $dbUp = [StandardExtensions]::LogScriptOutput($dbUp)
 
-        # Configure schema versioning
-        if (!$config.SchemaVersionTable) {
-            $dbUpTableJournal = [DbUp.Helpers.NullJournal]::new()
-        }
-        elseif ($config.SchemaVersionTable) {
-            $table = $config.SchemaVersionTable.Split('.')
-            if (($table | Measure-Object).Count -gt 2) {
-                Stop-PSFFunction -EnableException $true -Message 'Incorrect table name - use the following syntax: schema.table'
-                return
-            }
-            elseif (($table | Measure-Object).Count -eq 2) {
-                $tableName = $table[1]
-                $schemaName = $table[0]
-            }
-            elseif (($table | Measure-Object).Count -eq 1) {
-                $tableName = $table[0]
-                if ($config.Schema) {
-                    $schemaName = $config.Schema
-                }
-                else {}
-            }
-            else {
-                Stop-PSFFunction -EnableException $true -Message 'No table name specified'
-                return
-            }
-            # Set default schema for known DB Types
-            if (!$schemaName) {
-                if ($Type -eq 'SqlServer') { $schemaName = 'dbo' }
-            }
-            #Enable schema versioning
-            if ($Type -eq 'SqlServer') { $dbUpJournalType = [DbUp.SqlServer.SqlTableJournal] }
-            elseif ($Type -eq 'Oracle') { $dbUpJournalType = [DbUp.Oracle.OracleTableJournal] }
-
-            $dbUpTableJournal = $dbUpJournalType::new( { $dbUpConnection }, { $dbUpLog }, $schemaName, $tableName)
-
-            #$dbUp = [SqlServerExtensions]::JournalToSqlTable($dbUp, $schemaName, $tableName)
-        }
+        # Define schema versioning (journalling)
+        $dbUpTableJournal = Get-DbUpJournal -Connection { $dbUpConnection } -Log { $dbUpLog } -Schema $config.Schema -SchemaVersionTable $config.SchemaVersionTable -Type $Type
         $dbUp = [StandardExtensions]::JournalTo($dbUp, $dbUpTableJournal)
 
         # Adding execution timeout - defaults to unlimited execution
@@ -254,9 +209,8 @@
         # Create database if necessary for supported platforms
         if ($config.CreateDatabase) {
             if ($PSCmdlet.ShouldProcess("Ensuring the target database exists")) {
-                switch ($Type) {
-                    SqlServer { [SqlServerExtensions]::SqlDatabase([DbUp.EnsureDatabase]::For, $connString, $dbUpLog, $config.ExecutionTimeout) }
-                }
+                Write-PSFMessage -Level Debug -Message "Creating database if not exists"
+                $null = Invoke-EnsureDatabase -ConnectionString $connString -Log $dbUpLog -Timeout $config.ExecutionTimeout -Type $Type
             }
         }
         # Register only
@@ -269,6 +223,7 @@
                 try {
                     foreach ($script in $scriptCollection) {
                         if ($script.Name -notin $deployedScripts) {
+                            Write-PSFMessage -Level Debug -Message "Registering script $($script.Name)"
                             $dbUpConnection.ExecuteCommandsWithManagedConnection( {
                                     Param (
                                         $dbCommandFactory
@@ -298,6 +253,7 @@
         else {
             # Build and Upgrade
             if ($PSCmdlet.ShouldProcess($package, "Deploying the package")) {
+                Write-PSFMessage -Level Debug -Message "Performing deployment"
                 $dbUpBuild = $dbUp.Build()
                 $upgradeResult = $dbUpBuild.PerformUpgrade()
                 $status.Successful = $upgradeResult.Successful

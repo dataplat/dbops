@@ -1,12 +1,69 @@
 {
     "Oracle": [
-       {
-           "Name": "Oracle.ManagedDataAccess",
-           "Version": "12.2.1100",
-           "Path": [
-               "lib\\net40\\Oracle.ManagedDataAccess.dll"
-           ]
-       }
+        {
+            "Name": "Oracle.ManagedDataAccess",
+            "Version": "12.2.1100",
+            "Path": [
+                "lib\\net40\\Oracle.ManagedDataAccess.dll"
+            ],
+            "PSEdition": [
+                "Desktop"
+            ]
+        },
+        {
+            "Name": "Oracle.ManagedDataAccess.Core",
+            "Version": "2.12.0-beta2",
+            "Path": [
+                "lib\\netstandard2.0\\Oracle.ManagedDataAccess.dll"
+            ],
+            "PSEdition": [
+                "Core"
+            ]
+        }
     ],
-    "SQLServer": []
+    "SQLServer": [],
+    "MySQL": [
+        {
+            "Name": "MySql.Data",
+            "Version": "6.9.5",
+            "Path": [
+                "lib\\net45\\MySql.Data.dll"
+            ],
+            "PSEdition": [
+                "Desktop"
+            ]
+        },
+        {
+            "Name": "MySql.Data",
+            "Version": "6.10.6",
+            "Path": [
+                "lib\\netstandard2.0\\MySql.Data.dll"
+            ],
+            "PSEdition": [
+                "Core"
+            ]
+        }
+    ],
+    "PostgreSQL": [
+        {
+            "Name": "Npgsql",
+            "Version": "3.2.6",
+            "Path": [
+                "lib\\net45\\Npgsql.dll"
+            ],
+            "PSEdition": [
+                "Desktop"
+            ]
+        },
+        {
+            "Name": "Npgsql",
+            "Version": "3.2.6",
+            "Path": [
+                "lib\\netstandard2.0\\Npgsql.dll"
+            ],
+            "PSEdition": [
+                "Core"
+            ]
+        }
+    ]
 }
