@@ -19,3 +19,9 @@ Write-Host -Object "appveyor.prep: Install ziphelper" -ForegroundColor DarkGreen
 Install-Module -Name ziphelper -Repository PSGallery -Force -Scope CurrentUser| Out-Null
 Write-Host -Object "appveyor.prep: Install PSScriptAnalyzer" -ForegroundColor DarkGreen
 Install-Module -Name PSScriptAnalyzer -Repository PSGallery -Force -Scope CurrentUser| Out-Null
+
+# Enable MySQL named pipes
+$iniPath = "C:\ProgramData\MySQL\MySQL Server 5.7\my.ini"
+$newText = ([System.IO.File]::ReadAllText($iniPath)).Replace("# enable-named-pipe", "enable-named-pipe")
+[System.IO.File]::WriteAllText($iniPath, $newText)
+Restart-Service MySQL57

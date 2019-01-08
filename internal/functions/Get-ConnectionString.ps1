@@ -2,16 +2,19 @@ function Get-ConnectionString {
     # Returns a connection string based on a config object
     Param (
         [DBOpsConfig]$Configuration,
-        [DBOps.ConnectionType]$Type
+        [DBOps.ConnectionType]$Type,
+        [switch]$Raw
     )
+    # find proper builder type
+    $builderType = switch ($Type) {
+        SqlServer { [System.Data.SqlClient.SqlConnectionStringBuilder] }
+        PostgreSQL { [Npgsql.NpgsqlConnectionStringBuilder] }
+        Oracle { [Oracle.ManagedDataAccess.Client.OracleConnectionStringBuilder] }
+        MySQL { [MySql.Data.MySqlClient.MySqlConnectionStringBuilder] }
+    }
     # Build connection string
     if (!$Configuration.ConnectionString) {
-        $csBuilder = switch ($Type) {
-            SqlServer { [System.Data.SqlClient.SqlConnectionStringBuilder]::new() }
-            PostgreSQL { [Npgsql.NpgsqlConnectionStringBuilder]::new() }
-            Oracle { [Oracle.ManagedDataAccess.Client.OracleConnectionStringBuilder]::new() }
-            MySQL { [MySql.Data.MySqlClient.MySqlConnectionStringBuilder]::new() }
-        }
+        $csBuilder = $builderType::new()
         # finding all the right connection string properties
         $conn = @{}
         foreach ($key in 'Server', 'Data Source') {
@@ -75,18 +78,19 @@ function Get-ConnectionString {
                 $csBuilder["Integrated Security"] = $true
             }
         }
-        # generate the connection string
-        $connString = $csBuilder.ToString()
-        $logString = $connString.Split(';') | ForEach-Object {
-            $key, $value = $_.Split('=')
-            if ($key -eq 'Password') { "$key=********"}
-            else { "$key=$value"}
-        }
-        $logString = $logString -join ';'
-        Write-PSFMessage -Level Debug -Message "Generated connection string $logString"
-        return $connString
     }
     else {
-        return $Configuration.ConnectionString
+        $csBuilder = $builderType::new($Configuration.ConnectionString)
+    }
+    # generate the connection string
+    if ($Raw) {
+        return $csBuilder
+    }
+    else {
+        $connString = $csBuilder.ToString()
+        $maskedString = $builderType::new($connString)
+        $maskedString.Password = '********'
+        Write-PSFMessage -Level Debug -Message "Generated connection string $maskedString"
+        return $connString
     }
 }
