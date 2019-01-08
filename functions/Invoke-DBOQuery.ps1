@@ -177,16 +177,10 @@ function Invoke-DBOQuery {
         #$dbUpConnection = Get-ConnectionManager -ConnectionString $connString -Type $Type
         Write-PSFMessage -Level Debug -Message "Getting the connection object"
         $dbUpConnection = Get-ConnectionManager -Configuration $config -Type $Type
-        $dbUpSqlParser = Get-SqlParser -Type $Type
-        $status = [DBOpsDeploymentStatus]::new()
-        $dbUpLog = [DBOpsLog]::new($config.Silent, $OutputFile, $Append, $status)
-        $dbUpLog.CallStack = (Get-PSCallStack)[0]
-        if ($null -ne $dbUpConnection.IsScriptOutputLogged -and -Not $config.Silent) {
-            $dbUpConnection.IsScriptOutputLogged = $true
-        }
+        $conn = Get-DatabaseConnection -Configuration $config -Type $Type
         Write-PSFMessage -Level Verbose -Message "Establishing connection with $Type $($config.SqlInstance)"
         try {
-            $managedConnection = $dbUpConnection.OperationStarting($dbUpLog, $null)
+            $conn.Open();
         }
         catch {
             Stop-PSFFunction -EnableException $true -Message "Failed to connect to the server" -ErrorRecord $_
@@ -216,51 +210,40 @@ function Invoke-DBOQuery {
         foreach ($qText in $queryText) {
             $queryList += Resolve-VariableToken $qText $config.Variables
         }
+
         Write-PSFMessage -Level Debug -Message "Preparing to run $($queryList.Count) queries"
+        $ds = [System.Data.DataSet]::new()
         try {
-            $ds = [System.Data.DataSet]::new()
             $qCount = 0
             foreach ($queryItem in $queryList) {
                 $qCount++
                 if ($PSCmdlet.ShouldProcess("Executing query $qCount", $config.SqlInstance)) {
                     foreach ($splitQuery in $dbUpConnection.SplitScriptIntoCommands($queryItem)) {
-                        $dt = [System.Data.DataTable]::new()
-                        $rows = $dbUpConnection.ExecuteCommandsWithManagedConnection( [Func[Func[Data.IDbCommand], pscustomobject]] {
-                                Param (
-                                    $dbCommandFactory
-                                )
-                                # Compile the parameters as Expression functions
-                                $exp = [System.Linq.Expressions.Expression]
-                                $parameterList = @()
-                                foreach ($key in $Parameter.Keys) {
-                                    $param = $exp::Parameter([string], $key)
-                                    $value = $exp::Constant($Parameter.$key)
-                                    $body = $exp::Convert($value, [System.Object])
-                                    $lambda = $exp::Lambda([Func[string, object]], $body, $param)
-                                    $parameterList += $lambda
-                                }
-                                # Initiating the AdHocSqlRunner
-                                $sqlRunner = [DbUp.Helpers.AdHocSqlRunner]::new($dbCommandFactory, $dbUpSqlParser, $config.Schema)
-                                return $sqlRunner.ExecuteReader($splitQuery, $parameterList)
-                            })
-                        $rowCount = ($rows | Measure-Object).Count
-                        if ($rowCount -gt 0) {
-                            $keys = switch ($rowCount) {
-                                1 { $rows.Keys }
-                                default { $rows[0].Keys }
+                        $command = $conn.CreateCommand()
+                        $command.CommandText = $splitQuery
+                        $reader = $command.ExecuteReader()
+                        $table = [System.Data.DataTable]::new()
+                        $definition = $reader.GetSchemaTable()
+                        foreach ($column in $definition) {
+                            $name = $column.ColumnName
+                            $datatype = $column.DataType
+                            for ($j = 1; -not $name; $j++) {
+                                if ($table.Columns.ColumnName -notcontains "Column$j") { $name = "Column$j" }
                             }
-                            foreach ($column in $keys) {
-                                $null = $dt.Columns.Add($column)
-                            }
-                            foreach ($row in $rows) {
-                                $dr = $dt.NewRow()
-                                foreach ($col in $row.Keys) {
-                                    $dr[$col] = $row[$col]
-                                }
-                                $null = $dt.Rows.Add($dr);
-                            }
+                            $null = $table.Columns.Add($name, $datatype)
                         }
-                        $null = $ds.Tables.Add($dt);
+
+                        while ($reader.Read()) {
+                            $row = $table.NewRow()
+                            for ($i = 0; $i -lt $reader.FieldCount; $i++) {
+                                $row[$table.Columns[$i].ColumnName] = $reader.GetValue($i);
+                            }
+                            $table.Rows.Add($row)
+                        }
+                        $ds.Tables.Add($table)
+                        $reader.Close()
+                        $reader.Dispose()
+                        $command.Dispose()
                     }
                 }
             }
@@ -269,7 +252,7 @@ function Invoke-DBOQuery {
             Stop-PSFFunction -EnableException $true -Message "Failed to run the query" -ErrorRecord $_
         }
         finally {
-            $managedConnection.Dispose()
+            $conn.Dispose()
         }
         switch ($As) {
             'DataSet' {
