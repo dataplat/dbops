@@ -104,32 +104,27 @@ Describe "Invoke-DBOQuery MySQL tests" -Tag $commandName, IntegrationTests {
             $result.B | Should -Be string
         }
         It "should connect to a specific database" {
-            $query = "SELECT db_name()"
+            $query = "SELECT DATABASE()"
             $result = Invoke-DBOQuery -Type MySQL -Query $query -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database mysql -As SingleValue
-            $result | Should -Be tempdb
+            $result | Should -Be mysql
         }
         It "should address column names automatically" {
             $query = "SELECT 1 AS A, 2, 3"
             $result = Invoke-DBOQuery -Type MySQL -Query $query -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -As DataTable
-            $result.Columns.ColumnName | Should -Be @('A', 'Column1', 'Column2')
+            $result.Columns.ColumnName | Should -Be @('A', '2', '3')
             $result.A | Should Be 1
-            $result.Column1 | Should Be 2
-            $result.Column2 | Should Be 3
+            $result['2'] | Should Be 2
+            $result['3'] | Should Be 3
         }
     }
     Context "Negative tests" {
         It "should throw an unknown table error" {
             $query = "SELECT * FROM nonexistent"
-            { $result = Invoke-DBOQuery -Type MySQL -Query $query -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential } | Should throw "Table does not exist"
+            { $result = Invoke-DBOQuery -Type MySQL -Query $query -Database mysql -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential } | Should throw "Table does not exist"
         }
         It "should throw a connection timeout error" {
             $query = "SELECT 1/0"
             { $result = Invoke-DBOQuery -Type MySQL -Query $query -SqlInstance localhost:6493 -Credential $script:mysqlCredential -ConnectionTimeout 1} | Should throw "Unable to connect"
-        }
-        It "should fail when parameters are of a wrong type" {
-            { Invoke-DBOQuery -Type MySQL -Query 'SELECT 1/@foo' -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Parameter @{ foo = 'bar' } } | Should throw 'Conversion failed'
-            { Invoke-DBOQuery -Type MySQL -Query 'SELECT ''bar'' + @foo' -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Parameter @{ foo = 10 } } | Should throw 'Conversion failed'
-            { Invoke-DBOQuery -Type MySQL -Query 'SELECT ''bar'' + @foo' -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Parameter @{ foo = Get-Date } } | Should throw 'Conversion failed'
         }
         It "should fail when credentials are wrong" {
             { Invoke-DBOQuery -Type MySQL -Query 'SELECT 1' -SqlInstance $script:mysqlInstance -Credential ([pscredential]::new('nontexistent', ([securestring]::new()))) } | Should throw 'Access denied'
