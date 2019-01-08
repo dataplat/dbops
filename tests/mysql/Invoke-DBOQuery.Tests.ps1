@@ -113,14 +113,14 @@ Describe "Invoke-DBOQuery MySQL tests" -Tag $commandName, IntegrationTests {
             $result = Invoke-DBOQuery -Type MySQL -Query $query -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -As DataTable
             $result.Columns.ColumnName | Should -Be @('A', '2', '3')
             $result.A | Should Be 1
-            $result['2'] | Should Be 2
-            $result['3'] | Should Be 3
+            $result.2 | Should Be 2
+            $result.3 | Should Be 3
         }
     }
     Context "Negative tests" {
         It "should throw an unknown table error" {
             $query = "SELECT * FROM nonexistent"
-            { $result = Invoke-DBOQuery -Type MySQL -Query $query -Database mysql -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential } | Should throw "Table does not exist"
+            { $result = Invoke-DBOQuery -Type MySQL -Query $query -Database mysql -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential } | Should throw "Table 'mysql.nonexistent' doesn't exist"
         }
         It "should throw a connection timeout error" {
             $query = "SELECT 1/0"
