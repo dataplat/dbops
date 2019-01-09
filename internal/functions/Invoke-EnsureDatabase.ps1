@@ -24,7 +24,7 @@ function Invoke-EnsureDatabase {
             if (-not $dbExists.Database) {
                 $query = 'CREATE DATABASE `{0}`' -f $targetDB
                 $null = Invoke-DBOQuery -Type $Type -ConnectionString $csBuilder -Query $query
-                $Log.WriteInformation("Created database $targetDB")
+                $Log.WriteInformation("Created database {0}", $targetDB)
             }
         }
         PostgreSQL { [PostgresqlExtensions]::PostgresqlDatabase($dbUp, $ConnectionString, $Log) }

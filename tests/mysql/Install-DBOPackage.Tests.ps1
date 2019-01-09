@@ -249,7 +249,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "should throw timeout error " {
-            { $null = Install-DBOPackage -Type MySQL "TestDrive:\delay.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent } | Should throw '*Timeout expired.*'
+            { $null = Install-DBOPackage -Type MySQL "TestDrive:\delay.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent } | Should throw 'Timeout expired.'
             $output = Get-Content "TestDrive:\log.txt" -Raw
             $output | Should BeLike '*Timeout expired.*'
             $output | Should Not BeLike '*Successful!*'
