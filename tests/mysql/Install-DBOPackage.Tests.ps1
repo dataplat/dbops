@@ -8,14 +8,14 @@ else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
 if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
+    Import-Module "$here\..\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
-    Write-Host "Running $commandName tests" -ForegroundColor Cyan
+    Write-Host "Running $commandName MySQL tests" -ForegroundColor Cyan
 }
 
-. "$here\constants.ps1"
+. "$here\..\constants.ps1"
 
 $unpackedFolder = Join-Path 'TestDrive:' 'unpacked'
 $logTable = "testdeploymenthistory"
@@ -36,7 +36,7 @@ $newDbName = "_test_$commandName"
 $dropDatabaseScript = 'DROP DATABASE [{0}]' -f $newDbName
 $createDatabaseScript = 'CREATE DATABASE IF NOT EXISTS {0}' -f $newDbName
 
-Describe "Install-DBOPackage -Type MySQL integration tests" -Tag $commandName, IntegrationTests {
+Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
         $null = New-Item $unpackedFolder -ItemType Directory -Force
         (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $encryptedString | Out-File $fullConfig -Force
