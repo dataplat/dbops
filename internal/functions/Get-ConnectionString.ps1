@@ -1,7 +1,10 @@
 function Get-ConnectionString {
     # Returns a connection string based on a config object
     Param (
+        [Parameter(ParameterSetName = 'Configuration')]
         [DBOpsConfig]$Configuration,
+        [Parameter(ParameterSetName = 'ConnString')]
+        [string]$ConnectionString
         [DBOps.ConnectionType]$Type,
         [switch]$Raw
     )
@@ -13,7 +16,7 @@ function Get-ConnectionString {
         MySQL { [MySql.Data.MySqlClient.MySqlConnectionStringBuilder] }
     }
     # Build connection string
-    if (!$Configuration.ConnectionString) {
+    if ($Configuration -and -not $Configuration.ConnectionString) {
         $csBuilder = $builderType::new()
         # finding all the right connection string properties
         $conn = @{}
@@ -79,8 +82,11 @@ function Get-ConnectionString {
             }
         }
     }
-    else {
+    elseif ($Configuration) {
         $csBuilder = $builderType::new($Configuration.ConnectionString)
+    }
+    else {
+        $csBuilder = $builderType::new($ConnectionString)
     }
     # generate the connection string
     if ($Raw) {

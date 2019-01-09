@@ -65,7 +65,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             catch {
                 $testResults = $_
             }
-            $testResults.Exception.Message | Should Be "There is already an object named 'a' in the database."
+            $testResults.Exception.Message | Should Be "Table 'a' already exists"
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should Not BeIn $testResults.name
@@ -91,7 +91,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             catch {
                 $testResults = $_
             }
-            $testResults.Exception.Message | Should Be "There is already an object named 'a' in the database."
+            $testResults.Exception.Message | Should Be "Table 'a' already exists"
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
