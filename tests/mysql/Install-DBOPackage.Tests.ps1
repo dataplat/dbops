@@ -41,14 +41,13 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
 
         $null = New-Item $unpackedFolder -ItemType Directory -Force
         (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $encryptedString | Out-File $fullConfig -Force
-        $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript
-        $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database mysql -Query $createDatabaseScript
     }
     AfterAll {
         $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript
     }
     Context "testing transactional deployment" {
         BeforeAll {
+            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
             $null = New-DBOPackage -ScriptPath $tranFailScripts -Name $packageName -Build 1.0 -Force
         }
         AfterAll {
@@ -78,10 +77,11 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
     }
     Context "testing non transactional deployment" {
         BeforeAll {
+            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
             $null = New-DBOPackage -ScriptPath $tranFailScripts -Name $packageName -Build 1.0 -Force
         }
         AfterAll {
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript
         }
         It "Should throw an error and create one object" {
             #Running package
@@ -103,13 +103,13 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
     }
     Context "testing regular deployment" {
         BeforeAll {
+            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv1" -Build 1.0 -Force
             $p1 = Add-DBOBuild -ScriptPath $v2scripts -Name $p1 -Build 2.0
             #versions should not be sorted by default - creating a package where 1.0 is the second build
             $p3 = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv3" -Build 2.0 -Force
             $null = Add-DBOBuild -ScriptPath $v2scripts -Name $p3 -Build 1.0
             $outputFile = Join-PSFPath -Normalize "TestDrive:\log.txt"
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy version 1.0" {
             $testResults = Install-DBOPackage -Type MySQL $p1 -Build '1.0' -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent
@@ -240,6 +240,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
     }
     Context "testing timeouts" {
         BeforeAll {
+            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
             $file = Join-PSFPath -Normalize "TestDrive:\delay.sql"
             "DO SLEEP(5); SELECT 'Successful!'" | Out-File $file
             $null = New-DBOPackage -ScriptPath $file -Name "TestDrive:\delay" -Build 1.0 -Force -Configuration @{ ExecutionTimeout = 2 }
@@ -248,16 +249,9 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "should throw timeout error " {
-            try {
-                $null = Install-DBOPackage -Type MySQL "TestDrive:\delay.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent
-            }
-            catch {
-                $testResults = $_
-            }
-            $testResults | Should Not Be $null
-            $testResults.Exception.Message | Should BeLike '*Timeout Expired.*'
+            { $null = Install-DBOPackage -Type MySQL "TestDrive:\delay.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent } | Should throw '*Fatal error encountered during command execution.*'
             $output = Get-Content "TestDrive:\log.txt" -Raw
-            $output | Should BeLike '*Timeout Expired*'
+            $output | Should BeLike '*Fatal error encountered during command execution*'
             $output | Should Not BeLike '*Successful!*'
         }
         It "should successfully run within specified timeout" {
@@ -277,7 +271,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "TestDrive:\log.txt" -Raw
-            $output | Should Not BeLike '*Timeout Expired*'
+            $output | Should Not BeLike '*Fatal error encountered during command execution*'
             $output | Should BeLike '*Successful!*'
         }
         It "should successfully run with infinite timeout" {
@@ -303,12 +297,11 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
     }
     Context  "$commandName whatif tests" {
         BeforeAll {
+            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
             $null = New-DBOPackage -ScriptPath $v1scripts -Name $packageNamev1 -Build 1.0
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         AfterAll {
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
-            Remove-Item $packageNamev1
+            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript
         }
         It "should deploy nothing" {
             $testResults = Install-DBOPackage -Type MySQL $packageNamev1 -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent -WhatIf
@@ -337,11 +330,10 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
     }
     Context "testing regular deployment with CreateDatabase specified" {
         BeforeAll {
+            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv1" -Build 1.0 -Force
         }
         It "should deploy version 1.0 to a new database using -CreateDatabase switch" {
-            # Drop database and allow the function to create it
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript
             $testResults = Install-DBOPackage -Type MySQL $p1 -CreateDatabase -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v1Journal
@@ -370,6 +362,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
     }
     Context "testing regular deployment with configuration overrides" {
         BeforeAll {
+            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv1" -Build 1.0 -Force -ConfigurationFile $fullConfig
             $p2 = New-DBOPackage -ScriptPath $v2scripts -Name "TestDrive:\pv2" -Build 2.0 -Force -Configuration @{
                 SqlInstance        = 'nonexistingServer'
@@ -378,7 +371,6 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
                 DeploymentMethod   = "SingleTransaction"
             }
             $outputFile = "TestDrive:\log.txt"
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy version 1.0 using -Configuration file override" {
             $configFile = "TestDrive:\config.custom.json"
@@ -450,10 +442,10 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
     }
     Context "testing deployment without specifying SchemaVersion table" {
         BeforeAll {
+            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv1" -Build 1.0 -Force
             $p2 = New-DBOPackage -ScriptPath $v2scripts -Name "TestDrive:\pv2" -Build 2.0 -Force
             $outputFile = "TestDrive:\log.txt"
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         AfterAll {
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
@@ -516,7 +508,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
     Context "testing deployment with no history`: SchemaVersion is null" {
         BeforeEach {
             $null = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv1" -Build 1.0 -Force
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
         }
         AfterEach {
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
@@ -550,6 +542,9 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
         }
     }
     Context "testing deployment with defined schema" {
+        BeforeAll {
+            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
+        }
         BeforeEach {
             $null = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv1" -Build 1.0 -Force
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
@@ -590,7 +585,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
         BeforeAll {
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv1" -Build 1.0 -Force -Configuration @{SqlInstance = '#{srv}'; Database = '#{db}'}
             $outputFile = "TestDrive:\log.txt"
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
         }
         AfterAll {
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
@@ -626,7 +621,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
     Context "testing deployment with custom connection string" {
         BeforeAll {
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv1" -Build 1.0 -Force
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
         }
         It "should deploy version 1.0" {
             $connectionString = "Server=$script:mysqlInstance;Database=$newDbName;"
