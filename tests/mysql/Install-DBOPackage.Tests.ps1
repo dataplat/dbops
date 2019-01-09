@@ -36,8 +36,8 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
         $testPassword = 'TestPassword'
         $encryptedString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertTo-EncryptedString
         $newDbName = "test_dbops_$commandName"
-        $dropDatabaseScript = 'DROP DATABASE IF EXISTS "{0}"' -f $newDbName
-        $createDatabaseScript = 'CREATE DATABASE IF NOT EXISTS "{0}"' -f $newDbName
+        $dropDatabaseScript = 'DROP DATABASE IF EXISTS `{0}`' -f $newDbName
+        $createDatabaseScript = 'CREATE DATABASE IF NOT EXISTS `{0}`' -f $newDbName
 
         $null = New-Item $unpackedFolder -ItemType Directory -Force
         (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $encryptedString | Out-File $fullConfig -Force

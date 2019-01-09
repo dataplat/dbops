@@ -17,7 +17,7 @@ function Invoke-EnsureDatabase {
                 Stop-PSFFunction -Message "Database name was not provided in order to support automatic database creation" -EnableException $false
                 return
             }
-            $query = 'CREATE DATABASE IF NOT EXISTS "{0}"' -f $csBuilder.Database
+            $query = 'CREATE DATABASE IF NOT EXISTS `{0}`' -f $csBuilder.Database
             $null = Invoke-DBOQuery -Type $Type -ConnectionString $ConnectionString -Query $query
         }
         PostgreSQL { [PostgresqlExtensions]::PostgresqlDatabase($dbUp, $ConnectionString, $Log) }
