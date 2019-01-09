@@ -35,7 +35,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
         $fullConfigSource = Join-PSFPath -Normalize "$testRoot\etc\full_config.json"
         $testPassword = 'TestPassword'
         $encryptedString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertTo-EncryptedString
-        $newDbName = "test_dbops_$commandName"
+        $newDbName = "test_dbops_InstallDBOPackage"
         $dropDatabaseScript = 'DROP DATABASE IF EXISTS `{0}`' -f $newDbName
         $createDatabaseScript = 'CREATE DATABASE IF NOT EXISTS `{0}`' -f $newDbName
 
