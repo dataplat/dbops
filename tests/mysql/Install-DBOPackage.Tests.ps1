@@ -4,40 +4,41 @@
 
 if ($PSScriptRoot) { $commandName = $MyInvocation.MyCommand.Name.Replace(".Tests.ps1", ""); $here = $PSScriptRoot }
 else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
+$testRoot = (Get-Item $here\.. ).FullName
 
 if (!$Batch) {
     # Is not a part of the global batch => import module
-    #Explicitly import the module for testing
-    Import-Module "$here\..\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
+    # Explicitly import the module for testing
+    Import-Module "$testRoot\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
     Write-Host "Running $commandName MySQL tests" -ForegroundColor Cyan
 }
 
-. "$here\..\constants.ps1"
-
-$unpackedFolder = Join-Path 'TestDrive:' 'unpacked'
-$logTable = "testdeploymenthistory"
-$cleanupScript = Join-PSFPath -Normalize "$here\etc\mysql-tests\Cleanup.sql"
-$tranFailScripts = Join-PSFPath -Normalize "$here\etc\mysql-tests\transactional-failure"
-$v1scripts = Join-PSFPath -Normalize "$here\etc\mysql-tests\success\1.sql"
-$v1Journal = Get-Item $v1scripts | ForEach-Object { '1.0\' + $_.Name }
-$v2scripts = Join-PSFPath -Normalize "$here\etc\mysql-tests\success\2.sql"
-$v2Journal = Get-Item $v2scripts | ForEach-Object { '2.0\' + $_.Name }
-$verificationScript = Join-PSFPath -Normalize "$here\etc\mysql-tests\verification\select.sql"
-$packageName = Join-Path 'TestDrive:' "TempDeployment.zip"
-$packageNamev1 = Join-Path 'TestDrive:' "TempDeployment_v1.zip"
-$fullConfig = Join-PSFPath -Normalize "TestDrive:\tmp_full_config.json"
-$fullConfigSource = Join-PSFPath -Normalize "$here\etc\full_config.json"
-$testPassword = 'TestPassword'
-$encryptedString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertTo-EncryptedString
-$newDbName = "_test_$commandName"
-$dropDatabaseScript = 'DROP DATABASE [{0}]' -f $newDbName
-$createDatabaseScript = 'CREATE DATABASE IF NOT EXISTS {0}' -f $newDbName
+. "$testRoot\constants.ps1"
 
 Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
+        $unpackedFolder = Join-Path 'TestDrive:' 'unpacked'
+        $logTable = "testdeploymenthistory"
+        $cleanupScript = Join-PSFPath -Normalize "$testRoot\etc\mysql-tests\Cleanup.sql"
+        $tranFailScripts = Join-PSFPath -Normalize "$testRoot\etc\mysql-tests\transactional-failure"
+        $v1scripts = Join-PSFPath -Normalize "$testRoot\etc\mysql-tests\success\1.sql"
+        $v1Journal = Get-Item $v1scripts | ForEach-Object { '1.0\' + $_.Name }
+        $v2scripts = Join-PSFPath -Normalize "$testRoot\etc\mysql-tests\success\2.sql"
+        $v2Journal = Get-Item $v2scripts | ForEach-Object { '2.0\' + $_.Name }
+        $verificationScript = Join-PSFPath -Normalize "$testRoot\etc\mysql-tests\verification\select.sql"
+        $packageName = Join-Path 'TestDrive:' "TempDeployment.zip"
+        $packageNamev1 = Join-Path 'TestDrive:' "TempDeployment_v1.zip"
+        $fullConfig = Join-PSFPath -Normalize "TestDrive:\tmp_full_config.json"
+        $fullConfigSource = Join-PSFPath -Normalize "$testRoot\etc\full_config.json"
+        $testPassword = 'TestPassword'
+        $encryptedString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertTo-EncryptedString
+        $newDbName = "_test_$commandName"
+        $dropDatabaseScript = 'DROP DATABASE IF EXISTS {0}' -f $newDbName
+        $createDatabaseScript = 'CREATE DATABASE IF NOT EXISTS {0}' -f $newDbName
+
         $null = New-Item $unpackedFolder -ItemType Directory -Force
         (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $encryptedString | Out-File $fullConfig -Force
         $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript
@@ -160,7 +161,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1
-            $output | Should Be (Get-Content "$here\etc\mysql-tests\log1.txt")
+            $output | Should Be (Get-Content "$testRoot\etc\mysql-tests\log1.txt")
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
@@ -211,7 +212,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1
-            $output | Should Be (Get-Content "$here\etc\mysql-tests\log2.txt")
+            $output | Should Be (Get-Content "$testRoot\etc\mysql-tests\log2.txt")
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
@@ -404,7 +405,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1
-            $output | Should Be (Get-Content "$here\etc\mysql-tests\log1.txt")
+            $output | Should Be (Get-Content "$testRoot\etc\mysql-tests\log1.txt")
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
@@ -437,7 +438,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1
-            $output | Should Be (Get-Content "$here\etc\mysql-tests\log2.txt")
+            $output | Should Be (Get-Content "$testRoot\etc\mysql-tests\log2.txt")
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
@@ -613,7 +614,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1
-            $output | Should Be (Get-Content "$here\etc\mysql-tests\log1.txt")
+            $output | Should Be (Get-Content "$testRoot\etc\mysql-tests\log1.txt")
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
@@ -651,7 +652,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1
-            $output | Should Be (Get-Content "$here\etc\mysql-tests\log1.txt")
+            $output | Should Be (Get-Content "$testRoot\etc\mysql-tests\log1.txt")
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
