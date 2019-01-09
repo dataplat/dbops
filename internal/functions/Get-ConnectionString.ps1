@@ -4,7 +4,7 @@ function Get-ConnectionString {
         [Parameter(ParameterSetName = 'Configuration')]
         [DBOpsConfig]$Configuration,
         [Parameter(ParameterSetName = 'ConnString')]
-        [string]$ConnectionString
+        [string]$ConnectionString,
         [DBOps.ConnectionType]$Type,
         [switch]$Raw
     )
