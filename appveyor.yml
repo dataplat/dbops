@@ -15,7 +15,7 @@ environment:
   version: 0.1.$(appveyor_build_number)
 
   matrix:
-  - scenario: default
+  - scenario: all
 #  - scenario: mysql
 
 
@@ -23,7 +23,7 @@ for:
   - matrix:
       only:
         - image: Visual Studio 2017
-          scenario: default
+          #scenario: all
     environment:
         mssql_instance: localhost\SQL2017
     services:
@@ -33,7 +33,7 @@ for:
   - matrix:
       only:
         - image: Ubuntu1804
-          scenario: default
+          #scenario: default
     environment:
         mssql_instance: localhost
     services:

@@ -2,9 +2,12 @@
 
 $TestsRunGroups = @{
     # run on scenario MSSQL
-    "default"    = @(
+    "all"        = @(
         "$ModuleBase\tests\*"
         "$ModuleBase\tests\mysql\*"
+    )
+    "default"    = @(
+        "$ModuleBase\tests\*"
     )
     "mysql"      = @(
         "$ModuleBase\tests\mysql\*"
