@@ -19,8 +19,13 @@ function Invoke-EnsureDatabase {
             }
             $targetDB = $csBuilder.Database
             $csBuilder.Database = 'mysql'
-            $query = 'CREATE DATABASE IF NOT EXISTS `{0}`' -f $targetDB
-            $null = Invoke-DBOQuery -Type $Type -ConnectionString $csBuilder -Query $query
+            $dbExistsQuery = "SELECT SCHEMA_NAME AS 'Database' FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '$targetDB'"
+            $dbExists = Invoke-DBOQuery -Type $Type -ConnectionString $csBuilder -Query $dbExistsQuery
+            if (-not $dbExists.Database) {
+                $query = 'CREATE DATABASE `{0}`' -f $targetDB
+                $null = Invoke-DBOQuery -Type $Type -ConnectionString $csBuilder -Query $query
+                $Log.WriteInformation("Created database $targetDB")
+            }
         }
         PostgreSQL { [PostgresqlExtensions]::PostgresqlDatabase($dbUp, $ConnectionString, $Log) }
         default { Stop-PSFFunction -Message "Creating databases in $Type is not supported" -EnableException $false }
