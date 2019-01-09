@@ -35,9 +35,9 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
         $fullConfigSource = Join-PSFPath -Normalize "$testRoot\etc\full_config.json"
         $testPassword = 'TestPassword'
         $encryptedString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertTo-EncryptedString
-        $newDbName = "_test_dbops_installdbopackage"
-        $dropDatabaseScript = 'DROP DATABASE IF EXISTS {0}' -f $newDbName
-        $createDatabaseScript = 'CREATE DATABASE IF NOT EXISTS {0}' -f $newDbName
+        $newDbName = "test_dbops_$commandName"
+        $dropDatabaseScript = 'DROP DATABASE IF EXISTS "{0}"' -f $newDbName
+        $createDatabaseScript = 'CREATE DATABASE IF NOT EXISTS "{0}"' -f $newDbName
 
         $null = New-Item $unpackedFolder -ItemType Directory -Force
         (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $encryptedString | Out-File $fullConfig -Force
@@ -46,39 +46,6 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
     }
     AfterAll {
         $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript
-    }
-    Context "testing regular deployment with CreateDatabase specified" {
-        BeforeAll {
-            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv1" -Build 1.0 -Force
-        }
-        It "should deploy version 1.0 to a new database using -CreateDatabase switch" {
-            # Drop database and allow the function to create it
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript
-            $testResults = Install-DBOPackage -Type MySQL $p1 -CreateDatabase -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent
-            $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be $v1Journal
-            $testResults.SqlInstance | Should Be $script:mysqlInstance
-            $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "TestDrive:\pv1.zip")
-            $testResults.ConnectionType | Should Be 'MySQL'
-            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
-            $testResults.Configuration.CreateDatabase | Should Be $true
-            $testResults.Error | Should BeNullOrEmpty
-            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
-            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
-            "Created database $newDbName" | Should BeIn $testResults.DeploymentLog
-
-            #Verifying objects
-            $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
-        }
     }
     Context "testing transactional deployment" {
         BeforeAll {
@@ -364,6 +331,39 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $logTable | Should Not BeIn $testResults.name
             'a' | Should Not BeIn $testResults.name
             'b' | Should Not BeIn $testResults.name
+            'c' | Should Not BeIn $testResults.name
+            'd' | Should Not BeIn $testResults.name
+        }
+    }
+    Context "testing regular deployment with CreateDatabase specified" {
+        BeforeAll {
+            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv1" -Build 1.0 -Force
+        }
+        It "should deploy version 1.0 to a new database using -CreateDatabase switch" {
+            # Drop database and allow the function to create it
+            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript
+            $testResults = Install-DBOPackage -Type MySQL $p1 -CreateDatabase -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent
+            $testResults.Successful | Should Be $true
+            $testResults.Scripts.Name | Should Be $v1Journal
+            $testResults.SqlInstance | Should Be $script:mysqlInstance
+            $testResults.Database | Should Be $newDbName
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "TestDrive:\pv1.zip")
+            $testResults.ConnectionType | Should Be 'MySQL'
+            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+            $testResults.Configuration.CreateDatabase | Should Be $true
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
+            "Created database $newDbName" | Should BeIn $testResults.DeploymentLog
+
+            #Verifying objects
+            $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
+            $logTable | Should BeIn $testResults.name
+            'a' | Should BeIn $testResults.name
+            'b' | Should BeIn $testResults.name
             'c' | Should Not BeIn $testResults.name
             'd' | Should Not BeIn $testResults.name
         }
