@@ -20,10 +20,10 @@ else {
 $workFolder = Join-PSFPath -Normalize "$here\etc" "$commandName.Tests.dbops"
 $unpackedFolder = Join-PSFPath -Normalize $workFolder 'unpacked'
 $logTable = "testdeploymenthistory"
-$cleanupScript = Join-PSFPath -Normalize "$here\etc\install-tests\Cleanup.sql"
-$v1scripts = Join-PSFPath -Normalize "$here\etc\install-tests\success\1.sql"
+$cleanupScript = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\Cleanup.sql"
+$v1scripts = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
 $v1Journal = Get-Item $v1scripts | ForEach-Object { '1.0\' + $_.Name }
-$verificationScript = Join-PSFPath -Normalize "$here\etc\install-tests\verification\select.sql"
+$verificationScript = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\verification\select.sql"
 $packageName = Join-PSFPath -Normalize $workFolder 'TempDeployment.zip'
 $newDbName = "_test_$commandName"
 

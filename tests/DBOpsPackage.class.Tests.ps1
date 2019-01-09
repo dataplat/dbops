@@ -22,9 +22,9 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 $slash = [IO.Path]::DirectorySeparatorChar
 $packageName = Join-PSFPath -Normalize "$here\etc\$commandName.zip"
-$script1 = Join-PSFPath -Normalize "$here\etc\install-tests\success\1.sql"
-$script2 = Join-PSFPath -Normalize "$here\etc\install-tests\success\2.sql"
-$script3 = Join-PSFPath -Normalize "$here\etc\install-tests\success\3.sql"
+$script1 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
+$script2 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
+$script3 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\3.sql"
 
 Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
     AfterAll {
@@ -153,39 +153,39 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
         }
         It "should test ScriptExists method" {
             $b = $pkg.NewBuild('1.0')
-            $s = Join-PSFPath -Normalize "$here\etc\install-tests\success\1.sql"
+            $s = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
             $f = [DBOpsScriptFile]::new(@{SourcePath = $s; PackagePath = (Join-PSFPath -Normalize 'success\1.sql')})
             $f.SetContent([DBOpsHelper]::GetBinaryFile($s))
             $b.AddFile($f, 'Scripts')
             $pkg.ScriptExists($s) | Should Be $true
-            $pkg.ScriptExists((Join-PSFPath -Normalize "$here\etc\install-tests\transactional-failure\1.sql")) | Should Be $false
+            $pkg.ScriptExists((Join-PSFPath -Normalize "$here\etc\sqlserver-tests\transactional-failure\1.sql")) | Should Be $false
             { $pkg.ScriptExists("Nonexisting\path") } | Should Throw
         }
         It "should test ScriptModified method" {
             $b = $pkg.NewBuild('1.0')
-            $s = Join-PSFPath -Normalize "$here\etc\install-tests\success\1.sql"
+            $s = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
             $f = [DBOpsScriptFile]::new(@{SourcePath = $s; PackagePath = (Join-PSFPath -Normalize 'success\1.sql')})
             $f.SetContent([DBOpsHelper]::GetBinaryFile($s))
             $b.AddFile($f, 'Scripts')
-            $s1 = Join-PSFPath -Normalize "$here\etc\install-tests\success\1.sql"
-            $s2 = Join-PSFPath -Normalize "$here\etc\install-tests\success\2.sql"
+            $s1 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
+            $s2 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
             $pkg.ScriptModified($s2, $s1) | Should Be $true
             $pkg.ScriptModified($s1, $s1) | Should Be $false
         }
         It "should test SourcePathExists method" {
             $b = $pkg.NewBuild('1.0')
-            $s = Join-PSFPath -Normalize "$here\etc\install-tests\success\1.sql"
+            $s = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
             $f = [DBOpsScriptFile]::new(@{SourcePath = $s; PackagePath = (Join-PSFPath -Normalize 'success\1.sql')})
             $f.SetContent([DBOpsHelper]::GetBinaryFile($s))
             $b.AddFile($f, 'Scripts')
-            $s1 = Join-PSFPath -Normalize "$here\etc\install-tests\success\1.sql"
-            $s2 = Join-PSFPath -Normalize "$here\etc\install-tests\success\2.sql"
+            $s1 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
+            $s2 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
             $pkg.SourcePathExists($s1) | Should Be $true
             $pkg.SourcePathExists($s2) | Should Be $false
         }
         It "should test ExportToJson method" {
             $b = $pkg.NewBuild('1.0')
-            $s = Join-PSFPath -Normalize "$here\etc\install-tests\success\1.sql"
+            $s = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
             $f = [DBOpsScriptFile]::new(@{SourcePath = $s; PackagePath = (Join-PSFPath -Normalize 'success\1.sql')})
             $f.SetContent([DBOpsHelper]::GetBinaryFile($s))
             $b.AddFile($f, 'Scripts')
@@ -212,11 +212,11 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
         }
         It "Should test ReadMetadata method" {
             $b = $pkg.NewBuild('1.0')
-            $s = Join-PSFPath -Normalize "$here\etc\install-tests\success\1.sql"
+            $s = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
             $f = [DBOpsScriptFile]::new(@{SourcePath = $s; PackagePath = 'success\1.sql'})
             $f.SetContent([DBOpsHelper]::GetBinaryFile($s))
             $b.AddFile($f, 'Scripts')
-            $s = Join-PSFPath -Normalize "$here\etc\install-tests\success\2.sql"
+            $s = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
             $f = [DBOpsScriptFile]::new(@{SourcePath = $s; PackagePath = 'success/2.sql'})
             $f.SetContent([DBOpsHelper]::GetBinaryFile($s))
             $b.AddFile($f, 'Scripts')
@@ -261,7 +261,7 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
         Start-Sleep -Seconds 2
         It "should test Save*/Alter methods" {
             $b = $pkg.NewBuild('1.0')
-            $s = Join-PSFPath -Normalize "$here\etc\install-tests\success\1.sql"
+            $s = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
             $f = [DBOpsScriptFile]::new(@{SourcePath = $s; PackagePath = 'success\1.sql'})
             $f.SetContent([DBOpsHelper]::GetBinaryFile($s))
             $b.AddFile($f, 'Scripts')

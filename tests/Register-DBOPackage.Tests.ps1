@@ -19,12 +19,12 @@ else {
 
 $workFolder = Join-PSFPath -Normalize "$here\etc" "$commandName.Tests.dbops"
 $logTable = "testdeploymenthistory"
-$cleanupScript = Join-PSFPath -Normalize "$here\etc\install-tests\Cleanup.sql"
-$v1scripts = Join-PSFPath -Normalize "$here\etc\install-tests\success\1.sql"
+$cleanupScript = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\Cleanup.sql"
+$v1scripts = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
 $v1Journal = Get-Item $v1scripts | ForEach-Object { '1.0\' + $_.Name }
-$v2scripts = Join-PSFPath -Normalize "$here\etc\install-tests\success\2.sql"
+$v2scripts = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
 $v2Journal = Get-Item $v2scripts | ForEach-Object { '2.0\' + $_.Name }
-$verificationScript = Join-PSFPath -Normalize "$here\etc\install-tests\verification\select.sql"
+$verificationScript = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\verification\select.sql"
 
 $newDbName = "_test_$commandName"
 

@@ -22,9 +22,9 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 $packageName = Join-PSFPath -Normalize "$here\etc\$commandName.zip"
 
-$script1 = Join-PSFPath -Normalize "$here\etc\install-tests\success\1.sql"
-$script2 = Join-PSFPath -Normalize "$here\etc\install-tests\success\2.sql"
-$script3 = Join-PSFPath -Normalize "$here\etc\install-tests\success\3.sql"
+$script1 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
+$script2 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
+$script3 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\3.sql"
 $outConfig = Join-PSFPath -Normalize "$here\etc\out_full_config.json"
 $fullConfig = Join-PSFPath -Normalize "$here\etc\tmp_full_config.json"
 $fullConfigSource = Join-PSFPath -Normalize "$here\etc\full_config.json"

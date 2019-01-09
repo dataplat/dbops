@@ -18,8 +18,8 @@ else {
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 . "$here\..\internal\classes\DBOpsHelper.class.ps1"
-$script1 = Join-PSFPath -Normalize "$here\etc\install-tests\success\1.sql"
-$script2 = Join-PSFPath -Normalize "$here\etc\install-tests\success\2.sql"
+$script1 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
+$script2 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
 $archiveName = Join-PSFPath -Normalize "$here\etc\dbopsHelper.zip"
 $sqlName = Join-PSFPath -Normalize "$here\etc\dbopsHelper.sql"
 
@@ -80,7 +80,7 @@ Describe "dbopsHelper class tests" -Tag $commandName, UnitTests, dbopsHelper {
             }
             catch { throw $_ }
             finally { $zip.Dispose() }
-        
+
             #Verifying that the threads are closed
             $zip = [Zipfile]::OpenRead($archiveName)
             try {
@@ -108,7 +108,7 @@ Describe "dbopsHelper class tests" -Tag $commandName, UnitTests, dbopsHelper {
             $testResults = [DBOpsHelper]::GetArchiveItems($archiveName)
             '1.sql' | Should BeIn $testResults.FullName
             '2.sql' | Should BeIn $testResults.FullName
-        
+
             #Verifying that the threads are closed
             { [DBOpsHelper]::GetArchiveItems($archiveName) } | Should Not Throw
         }
