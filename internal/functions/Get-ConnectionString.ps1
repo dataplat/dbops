@@ -60,6 +60,10 @@ function Get-ConnectionString {
         }
 
         if ($Configuration.Database -and $csBuilder.ContainsKey('Database')) { $csBuilder["Database"] = $Configuration.Database }
+        if ($Configuration.Schema -and $Type -eq 'MySQL') {
+            # schema is database in MySQL, overriding Database
+            $csBuilder["Database"] = $Configuration.Schema
+        }
         if ($Configuration.Encrypt -and $csBuilder.ContainsKey('Encrypt')) { $csBuilder["Encrypt"] = $true }
         if ($Configuration.ApplicationName -and $csBuilder.ContainsKey('Application Name')) { $csBuilder["Application Name"] = $Configuration.ApplicationName }
         if ($Configuration.ExecutionTimeout -and $csBuilder.ContainsKey('Command Timeout')) { $csBuilder["Command Timeout"] = $Configuration.ExecutionTimeout }
