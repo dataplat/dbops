@@ -117,7 +117,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "TestDrive:\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -143,7 +143,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $testResults.Scripts.Name | Should BeNullOrEmpty
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "TestDrive:\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -153,7 +153,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
             'No new scripts need to be executed - completing.' | Should BeIn $testResults.DeploymentLog
 
-            'No new scripts need to be executed - completing.' | Should BeIn (Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1)
+            'No new scripts need to be executed - completing.' | Should BeIn (Get-Content "$TestDrive\log.txt" | Select-Object -Skip 1)
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
@@ -168,7 +168,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $testResults.Scripts.Name | Should Be $v2Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "TestDrive:\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -194,7 +194,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $testResults.Scripts.Name | Should BeNullOrEmpty
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "TestDrive:\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -204,7 +204,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
             'No new scripts need to be executed - completing.' | Should BeIn $testResults.DeploymentLog
 
-            'No new scripts need to be executed - completing.' | Should BeIn (Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1)
+            'No new scripts need to be executed - completing.' | Should BeIn (Get-Content "$TestDrive\log.txt" | Select-Object -Skip 1)
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
@@ -220,7 +220,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $testResults.Scripts.Name | Should Be (@((Get-Item $v1scripts).Name | ForEach-Object { "2.0\$_" }), ((Get-Item $v2scripts).Name | ForEach-Object { "1.0\$_" }))
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "TestDrive:\pv3.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv3.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -266,7 +266,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $testResults.Scripts.Name | Should Be '1.0\delay.sql'
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "TestDrive:\delay.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\delay.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -286,7 +286,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $testResults.Scripts.Name | Should Be '1.0\delay.sql'
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "TestDrive:\delay.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\delay.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -347,7 +347,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "TestDrive:\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Configuration.CreateDatabase | Should Be $true
@@ -394,7 +394,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "TestDrive:\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -427,7 +427,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $testResults.Scripts.Name | Should Be $v2Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "TestDrive:\pv2.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv2.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -466,7 +466,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "TestDrive:\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
             $testResults.Error | Should BeNullOrEmpty
@@ -493,7 +493,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $testResults.Scripts.Name | Should Be $v2Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "TestDrive:\pv2.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv2.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
             $testResults.Error | Should BeNullOrEmpty
@@ -529,7 +529,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "TestDrive:\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should BeNullOrEmpty
             $testResults.Error | Should BeNullOrEmpty
@@ -566,7 +566,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "TestDrive:\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
             $testResults.Configuration.Schema | Should Be 'testschema'
@@ -603,7 +603,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "TestDrive:\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -641,7 +641,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should BeNullOrEmpty
             $testResults.Database | Should BeNullOrEmpty
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "TestDrive:\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
