@@ -41,7 +41,7 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
         $testPassword = 'TestPassword'
         $encryptedString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertTo-EncryptedString
         $newDbName = "test_dbops_InstallDBOPackage"
-        $standardOutput = @( 
+        $standardOutput = @(
             "Beginning database upgrade"
             "Checking whether journal table exists.."
             "Journal table does not exist"
