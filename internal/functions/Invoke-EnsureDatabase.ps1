@@ -18,12 +18,24 @@ function Invoke-EnsureDatabase {
                 return
             }
             $targetDB = $csBuilder.Database
-            $csBuilder.Database = 'mysql'
+            $csBuilder.Database = 'sys'
             $dbExistsQuery = "SELECT SCHEMA_NAME AS 'Database' FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = '$targetDB'"
-            $dbExists = Invoke-DBOQuery -Type $Type -ConnectionString $csBuilder -Query $dbExistsQuery
+            try {
+                $dbExists = Invoke-DBOQuery -Type $Type -ConnectionString $csBuilder -Query $dbExistsQuery
+            }
+            catch {
+                $Log.WriteError("Unable to check database existance on {0}: {1}", @($csBuilder.Server, $csBuilder.Database));
+                throw $_
+            }
             if (-not $dbExists.Database) {
                 $query = 'CREATE DATABASE `{0}`' -f $targetDB
-                $null = Invoke-DBOQuery -Type $Type -ConnectionString $csBuilder -Query $query
+                try {
+                    $null = Invoke-DBOQuery -Type $Type -ConnectionString $csBuilder -Query $query
+                }
+                catch {
+                    $Log.WriteError("Unable to create database {0} on {1}", @($csBuilder.Database, $csBuilder.Server));
+                    throw $_
+                }
                 $Log.WriteInformation("Created database {0}", $targetDB)
             }
         }
