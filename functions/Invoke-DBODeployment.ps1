@@ -155,7 +155,8 @@
 
         Write-PSFMessage -Level Debug -Message "Creating DbUp objects"
         # Create DbUp connection object
-        $connString = Get-ConnectionString -Configuration $config -Type $Type
+        $csBuilder = Get-ConnectionString -Configuration $config -Type $Type -Raw
+        $connString = $csBuilder.ToString()
         $dbUpConnection = Get-ConnectionManager -ConnectionString $connString -Type $Type
 
         # Create DbUpBuilder based on the connection

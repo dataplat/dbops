@@ -22,7 +22,7 @@ $encryptedString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | 
 
 $workFolder = Join-PSFPath -Normalize "$here\etc" "$commandName.Tests.dbops"
 
-$scriptFolder = "$here\etc\install-tests\success"
+$scriptFolder = "$here\etc\sqlserver-tests\success"
 $v1scripts = Join-PSFPath -Normalize $scriptFolder '1.sql'
 $packageName = Join-PSFPath -Normalize $workFolder 'TempDeployment.zip'
 

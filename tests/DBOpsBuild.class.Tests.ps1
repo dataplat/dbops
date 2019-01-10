@@ -21,9 +21,9 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 . "$here\..\internal\classes\DBOps.class.ps1"
 
 $packageName = Join-PSFPath -Normalize "$here\etc\$commandName.zip"
-$script1 = Join-PSFPath -Normalize "$here\etc\install-tests\success\1.sql"
-$script2 = Join-PSFPath -Normalize "$here\etc\install-tests\success\2.sql"
-$script3 = Join-PSFPath -Normalize "$here\etc\install-tests\success\3.sql"
+$script1 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
+$script2 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
+$script3 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\3.sql"
 
 Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
     Context "tests DBOpsBuild object creation" {
@@ -130,7 +130,7 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
         }
         It "should test ScriptExists method" {
             $build.ScriptExists($script1) | Should Be $true
-            $build.ScriptExists((Join-PSFPath -Normalize "$here\etc\install-tests\transactional-failure\1.sql")) | Should Be $false
+            $build.ScriptExists((Join-PSFPath -Normalize "$here\etc\sqlserver-tests\transactional-failure\1.sql")) | Should Be $false
             { $build.ScriptExists("Nonexisting\path") } | Should Throw
         }
         It "should test ScriptModified method" {

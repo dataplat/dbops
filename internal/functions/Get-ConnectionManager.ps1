@@ -1,7 +1,7 @@
 function Get-ConnectionManager {
     # Returns a connection manager object
     Param (
-        [Parameter(ParameterSetName = 'ConnString', Mandatory)]
+        [Parameter(ParameterSetName = 'ConnString')]
         [string]$ConnectionString,
         [Parameter(ParameterSetName = 'Config', Mandatory)]
         [DBOpsConfig]$Configuration,

@@ -21,9 +21,9 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 . "$here\..\internal\classes\DBOps.class.ps1"
 
 $packageName = Join-PSFPath -Normalize "$here\etc\$commandName.zip"
-$script1 = Join-PSFPath -Normalize "$here\etc\install-tests\success\1.sql"
-$script2 = Join-PSFPath -Normalize "$here\etc\install-tests\success\2.sql"
-$script3 = Join-PSFPath -Normalize "$here\etc\install-tests\success\3.sql"
+$script1 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
+$script2 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
+$script3 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\3.sql"
 
 Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
     AfterAll {

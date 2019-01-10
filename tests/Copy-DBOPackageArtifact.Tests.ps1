@@ -16,7 +16,7 @@ else {
 }
 $workFolder = Join-Path "$here\etc" "$commandName.Tests.dbops"
 $packageName = Join-Path $workFolder 'TempDeployment.zip'
-$scriptFolder = Join-Path $here 'etc\install-tests\success'
+$scriptFolder = Join-Path $here 'etc\sqlserver-tests\success'
 $v1scripts = Join-Path $scriptFolder '1.sql'
 $v2scripts = Join-Path $scriptFolder '2.sql'
 $v3scripts = Join-Path $scriptFolder '3.sql'

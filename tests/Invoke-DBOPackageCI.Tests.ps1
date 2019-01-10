@@ -17,7 +17,7 @@ else {
 
 $workFolder = Join-Path "$here\etc" "$commandName.Tests.dbops"
 
-$scriptFolder = Join-PSFPath -Normalize "$here\etc\install-tests"
+$scriptFolder = Join-PSFPath -Normalize "$here\etc\sqlserver-tests"
 $v1scripts = Join-Path $scriptFolder 'success'
 $v2scripts = Join-Path $scriptFolder 'transactional-failure'
 $packageName = Join-Path $workFolder 'TempDeployment.zip'
@@ -103,11 +103,11 @@ Describe "Invoke-DBOPackageCI tests" -Tag $commandName, UnitTests {
             Join-PSFPath -Normalize 'content\1.0.2\transactional-failure\2.sql' | Should BeIn $testResults.Path
         }
         It "build 2.0.1 should only contain scripts from 2.0.1" {
-            Join-PSFPath -Normalize 'content\2.0.1\install-tests\success\1.sql' | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize 'content\2.0.1\install-tests\success\2.sql' | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize 'content\2.0.1\install-tests\success\3.sql' | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize 'content\2.0.1\install-tests\transactional-failure\1.sql' | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize 'content\2.0.1\install-tests\transactional-failure\2.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\2.0.1\sqlserver-tests\success\1.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\2.0.1\sqlserver-tests\success\2.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\2.0.1\sqlserver-tests\success\3.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\2.0.1\sqlserver-tests\transactional-failure\1.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\2.0.1\sqlserver-tests\transactional-failure\2.sql' | Should BeIn $testResults.Path
         }
         It "should contain module files" {
             Join-PSFPath -Normalize 'Modules\dbops\dbops.psd1' | Should BeIn $testResults.Path

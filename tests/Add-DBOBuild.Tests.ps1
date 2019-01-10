@@ -18,7 +18,7 @@ else {
 $workFolder = Join-PSFPath $here etc "$commandName.Tests.dbops"
 $unpackedFolder = Join-Path $workFolder 'unpacked'
 
-$scriptFolder =  Get-Item (Join-PSFPath -Normalize "$here\etc\install-tests\success")
+$scriptFolder =  Get-Item (Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success")
 $v1scripts = Get-Item (Join-Path $scriptFolder '1.sql')
 $v2scripts =  Get-Item (Join-Path $scriptFolder '2.sql')
 $packageName = Join-Path $workFolder 'TempDeployment.zip'

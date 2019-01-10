@@ -2,15 +2,19 @@
 
 $TestsRunGroups = @{
     # run on scenario MSSQL
-    "MSSQL" = @(
-        'Install-DBOPackage',
-        'Add-DBOBuild',
-        'Get-DBOConfig',
-        'New-DBOPackage',
-        'Remove-DBOBuild',
-        'Get-DBOPackage',
-        'Update-DBOConfig'
+    "all"        = @(
+        "$ModuleBase\tests\*"
+        "$ModuleBase\tests\mysql\*"
+    )
+    "default"    = @(
+        "$ModuleBase\tests\*"
+    )
+    "mysql"      = @(
+        "$ModuleBase\tests\mysql\*"
+    )
+    "postgresql" = @(
+        "$ModuleBase\tests\postgresql\*"
     )
     # do not run everywhere
-    "disabled" = @()
+    "disabled"   = @()
 }

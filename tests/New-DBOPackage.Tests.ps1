@@ -18,7 +18,7 @@ else {
 $workFolder = Join-PSFPath -Normalize "$here\etc" "$commandName.Tests.dbops"
 $unpackedFolder = Join-Path $workFolder 'unpacked'
 $packageName = Join-PSFPath -Normalize "$workFolder\dbopsTest.zip"
-$scriptFolder = Join-PSFPath -Normalize "$here\etc\install-tests\success"
+$scriptFolder = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success"
 $fullConfig = Join-PSFPath -Normalize "$here\etc\tmp_full_config.json"
 $fullConfigSource = Join-PSFPath -Normalize "$here\etc\full_config.json"
 $testPassword = 'TestPassword'
@@ -157,13 +157,13 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
     }
     Context "testing input scenarios" {
         BeforeAll {
-            Push-Location -Path "$here\etc\install-tests"
+            Push-Location -Path "$here\etc\sqlserver-tests"
         }
         AfterAll {
             Pop-Location
         }
         It "should accept wildcard input" {
-            $testResults = New-DBOPackage -ScriptPath "$here\etc\install-tests\*" -Build 'abracadabra' -Name $packageName -Force
+            $testResults = New-DBOPackage -ScriptPath "$here\etc\sqlserver-tests\*" -Build 'abracadabra' -Name $packageName -Force
             $testResults | Should Not Be $null
             $testResults.Name | Should Be (Split-Path $packageName -Leaf)
             $testResults.FullName | Should Be (Get-Item $packageName).FullName
@@ -193,7 +193,7 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
             Join-PSFPath -Normalize 'content\abracadabra\3.sql' | Should BeIn $testResults.Path
         }
         It "should accept Get-Item <files and folders> pipeline input" {
-            $testResults = Get-Item "$here\etc\install-tests\*" | New-DBOPackage -Build 'abracadabra' -Name $packageName -Force
+            $testResults = Get-Item "$here\etc\sqlserver-tests\*" | New-DBOPackage -Build 'abracadabra' -Name $packageName -Force
             $testResults | Should Not Be $null
             $testResults.Name | Should Be (Split-Path $packageName -Leaf)
             $testResults.FullName | Should Be (Get-Item $packageName).FullName

@@ -3,9 +3,9 @@
 build: false
 version: 0.1.{build}
 
-#images 
+#images
 
-image: 
+image:
   - Ubuntu1804
   - Visual Studio 2017
 
@@ -15,38 +15,31 @@ environment:
   version: 0.1.$(appveyor_build_number)
 
   matrix:
-  - scenario: ALL
+  - scenario: all
+#  - scenario: mysql
 
 
 for:
--
-  matrix:
-    only:
-      - image: Visual Studio 2017
-  environment:
-      mssql_instance: localhost\SQL2017
-  services:
-    - mssql2017
+  - matrix:
+      only:
+        - image: Visual Studio 2017
+          #scenario: all
+    environment:
+        mssql_instance: localhost\SQL2017
+    services:
+      - mssql2017
+      - mysql
 
-- matrix:
-    only:
-      - image: Ubuntu1804
-  environment:
-      mssql_instance: localhost
-      mssql_login: sa
-      mssql_password: Password12!
-  services:
-    - mssql
-  # before_test:
-  #   # run preparation scripts
-  #   - ps: ./tests/appveyor.prep.ps1
-  # test_script:
-  #   # Test with native PS version
-  #   - ps: ./tests/appveyor.pester.ps1
-  #   # Collecting results
-  #   - ps: ./tests/appveyor.pester.ps1 -Finalize
-  # after_test:
-  #   - ps: ./tests/appveyor.post.ps1
+  - matrix:
+      only:
+        - image: Ubuntu1804
+          #scenario: default
+    environment:
+        mssql_instance: localhost
+    services:
+      - mssql
+      - mysql
+
 
 before_test:
   # run preparation scripts
@@ -57,12 +50,9 @@ test_script:
   # Collecting results
   - ps: .\tests\appveyor.pester.ps1 -Finalize
 after_test:
-  - ps: .\tests\appveyor.post.ps1  
+  - ps: .\tests\appveyor.post.ps1
 
-# #Configure services
-# services:
-#   - mssql2017
-  
+
 # Set alternative clone folder
 #clone_folder: c:\github\dbops
 

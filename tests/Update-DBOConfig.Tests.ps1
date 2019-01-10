@@ -21,7 +21,7 @@ $workFolder = Join-PSFPath -Normalize "$here\etc" "$commandName.Tests.dbops"
 $unpackedFolder = Join-Path $workFolder 'unpacked'
 
 $packageName = Join-Path $workFolder 'TempDeployment.zip'
-$v1scripts = Join-PSFPath -Normalize "$here\etc\install-tests\success"
+$v1scripts = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success"
 $fullConfig = Join-PSFPath -Normalize "$here\etc\tmp_full_config.json"
 $fullConfigSource = Join-PSFPath -Normalize "$here\etc\full_config.json"
 $testPassword = 'TestPassword'

@@ -1,17 +1,23 @@
 function Get-ConnectionString {
     # Returns a connection string based on a config object
     Param (
+        [Parameter(ParameterSetName = 'Configuration')]
         [DBOpsConfig]$Configuration,
-        [DBOps.ConnectionType]$Type
+        [Parameter(ParameterSetName = 'ConnString')]
+        [string]$ConnectionString,
+        [DBOps.ConnectionType]$Type,
+        [switch]$Raw
     )
+    # find proper builder type
+    $builderType = switch ($Type) {
+        SqlServer { [System.Data.SqlClient.SqlConnectionStringBuilder] }
+        PostgreSQL { [Npgsql.NpgsqlConnectionStringBuilder] }
+        Oracle { [Oracle.ManagedDataAccess.Client.OracleConnectionStringBuilder] }
+        MySQL { [MySql.Data.MySqlClient.MySqlConnectionStringBuilder] }
+    }
     # Build connection string
-    if (!$Configuration.ConnectionString) {
-        $csBuilder = switch ($Type) {
-            SqlServer { [System.Data.SqlClient.SqlConnectionStringBuilder]::new() }
-            PostgreSQL { [Npgsql.NpgsqlConnectionStringBuilder]::new() }
-            Oracle { [Oracle.ManagedDataAccess.Client.OracleConnectionStringBuilder]::new() }
-            MySQL { [MySql.Data.MySqlClient.MySqlConnectionStringBuilder]::new() }
-        }
+    if ($Configuration -and -not $Configuration.ConnectionString) {
+        $csBuilder = $builderType::new()
         # finding all the right connection string properties
         $conn = @{}
         foreach ($key in 'Server', 'Data Source') {
@@ -37,23 +43,27 @@ function Get-ConnectionString {
             $server = $Configuration.SqlInstance
             $port = $null
         }
+        $csBuilder[$conn.Server] = $server
+        # check if port is an independent property and set it, otherwise add the port back to the connection string
         if ($port) {
-            # check if port is an independent property and set it, otherwise add the port back to the connection string
             if ($csBuilder.ContainsKey('Port')) {
-                $csBuilder[$conn.Server] = $server
                 $csBuilder.Port = $port
             }
             else {
                 if ($Type -eq [DBOps.ConnectionType]::SqlServer) {
-                    $csBuilder[$conn.Server] = "$server,$port"
+                    $csBuilder[$conn.Server] += ",$port"
                 }
                 else {
-                    $csBuilder[$conn.Server] = "$server`:$port"
+                    $csBuilder[$conn.Server] += ":$port"
                 }
             }
         }
 
         if ($Configuration.Database -and $csBuilder.ContainsKey('Database')) { $csBuilder["Database"] = $Configuration.Database }
+        if ($Configuration.Schema -and $Type -eq 'MySQL') {
+            # schema is database in MySQL, overriding Database
+            $csBuilder["Database"] = $Configuration.Schema
+        }
         if ($Configuration.Encrypt -and $csBuilder.ContainsKey('Encrypt')) { $csBuilder["Encrypt"] = $true }
         if ($Configuration.ApplicationName -and $csBuilder.ContainsKey('Application Name')) { $csBuilder["Application Name"] = $Configuration.ApplicationName }
         if ($Configuration.ExecutionTimeout -and $csBuilder.ContainsKey('Command Timeout')) { $csBuilder["Command Timeout"] = $Configuration.ExecutionTimeout }
@@ -75,11 +85,22 @@ function Get-ConnectionString {
                 $csBuilder["Integrated Security"] = $true
             }
         }
-        # generate the connection string
-        $connString = $csBuilder.ToString()
-        return $connString
+    }
+    elseif ($Configuration) {
+        $csBuilder = $builderType::new($Configuration.ConnectionString)
     }
     else {
-        return $Configuration.ConnectionString
+        $csBuilder = $builderType::new($ConnectionString)
+    }
+    # generate the connection string
+    if ($Raw) {
+        return $csBuilder
+    }
+    else {
+        $connString = $csBuilder.ToString()
+        $maskedString = $builderType::new($connString)
+        $maskedString.Password = '********'
+        Write-PSFMessage -Level Debug -Message "Generated connection string $maskedString"
+        return $connString
     }
 }
