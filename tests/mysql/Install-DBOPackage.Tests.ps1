@@ -13,13 +13,18 @@ if (!$Batch) {
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
-    Write-Host "Running $commandName MySQL tests" -ForegroundColor Cyan
+    Write-Host "Running MySQL $commandName tests" -ForegroundColor Cyan
 }
 
 . "$testRoot\constants.ps1"
+if ($drive = Get-PSDrive TestDrive -ErrorAction SilentlyContinue) { Remove-PSDrive $drive }
 
-Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, IntegrationTests {
+Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
+        if (-not $PSScriptRoot) {
+            $root = New-Item -Path $testRoot\etc\_ManualExecution -ItemType Directory -Force
+            $null = New-PSDrive -Name TestDrive -PSProvider "FileSystem" -Root $root
+        }
         $unpackedFolder = Join-Path 'TestDrive:' 'unpacked'
         $logTable = "testdeploymenthistory"
         $cleanupScript = Join-PSFPath -Normalize "$testRoot\etc\mysql-tests\Cleanup.sql"
@@ -36,6 +41,29 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
         $testPassword = 'TestPassword'
         $encryptedString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertTo-EncryptedString
         $newDbName = "test_dbops_InstallDBOPackage"
+        $standardOutput = @( 
+            "Beginning database upgrade"
+            "Checking whether journal table exists.."
+            "Journal table does not exist"
+            "Executing Database Server script '1.0\1.sql'"
+            "Checking whether journal table exists.."
+            "Upgrade successful"
+        )
+        $standardOutput2 = @(
+            "Beginning database upgrade"
+            "Checking whether journal table exists.."
+            "Fetching list of already executed scripts."
+            "Executing Database Server script '2.0\2.sql'"
+            "Checking whether journal table exists.."
+            "-------------"
+            "|   a |   b |"
+            "-------------"
+            "|   1 |   2 |"
+            "-------------"
+            ""
+            ""
+            "Upgrade successful"
+        )
         $dropDatabaseScript = 'DROP DATABASE IF EXISTS `{0}`' -f $newDbName
         $createDatabaseScript = 'CREATE DATABASE IF NOT EXISTS `{0}`' -f $newDbName
 
@@ -44,6 +72,10 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
     }
     AfterAll {
         $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript
+        if (-not $PSScriptRoot) {
+            $null = Remove-PSDrive -Name TestDrive -ErrorAction SilentlyContinue
+            $null = Remove-Item -Path $testRoot\etc\_ManualExecution -Force -Recurse
+        }
     }
     Context "testing transactional deployment" {
         BeforeAll {
@@ -51,27 +83,19 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $null = New-DBOPackage -ScriptPath $tranFailScripts -Name $packageName -Build 1.0 -Force
         }
         AfterAll {
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript
         }
-        BeforeEach {
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
-        }
-        It "Should throw an error and not create any objects" {
+        It "Should throw an error and create two tables" {
             #Running package
-            try {
-                $null = Install-DBOPackage -Type MySQL $packageName -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod SingleTransaction -Silent
-            }
-            catch {
-                $testResults = $_
-            }
-            $testResults.Exception.Message | Should Be "Table 'a' already exists"
+            { $null = Install-DBOPackage -Type MySQL $packageName -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod SingleTransaction -Silent } | Should throw "Table 'a' already exists"
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
-            $logTable | Should Not BeIn $testResults.name
-            'a' | Should Not BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            # Create table cannot be rolled back in MySQL
+            $logTable | Should -BeIn $testResults.name
+            'a' | Should -BeIn $testResults.name
+            'b' | Should -Not -BeIn $testResults.name
+            'c' | Should -Not -BeIn $testResults.name
+            'd' | Should -Not -BeIn $testResults.name
         }
 
     }
@@ -128,7 +152,10 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1
-            $output | Should Be (Get-Content "$testRoot\etc\mysql-tests\log1.txt")
+            $standardOutput | Should -BeIn $output
+            'Creating the `{0}`.`{1}` table' -f $newDbName, $logTable | Should -BeIn $output
+            'The `{0}`.`{1}` table has been created' -f $newDbName, $logTable | Should -BeIn $output
+
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
@@ -179,7 +206,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1
-            $output | Should Be (Get-Content "$testRoot\etc\mysql-tests\log2.txt")
+            $output | Should BeIn $standardOutput2
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
@@ -244,14 +271,15 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             $file = Join-PSFPath -Normalize "TestDrive:\delay.sql"
             "DO SLEEP(5); SELECT 'Successful!'" | Out-File $file
             $null = New-DBOPackage -ScriptPath $file -Name "TestDrive:\delay" -Build 1.0 -Force -Configuration @{ ExecutionTimeout = 2 }
+            $timeoutError = if ($PSVersionTable.PSVersion.Major -eq 6) { 'Fatal error encountered during command execution' } else { 'Timeout expired.'}
         }
         BeforeEach {
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "should throw timeout error " {
-            { $null = Install-DBOPackage -Type MySQL "TestDrive:\delay.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent } | Should throw 'Timeout expired.'
+            { $null = Install-DBOPackage -Type MySQL "TestDrive:\delay.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent } | Should throw $timeoutError
             $output = Get-Content "TestDrive:\log.txt" -Raw
-            $output | Should BeLike '*Timeout expired.*'
+            $output | Should BeLike "*$timeoutError*"
             $output | Should Not BeLike '*Successful!*'
         }
         It "should successfully run within specified timeout" {
@@ -271,7 +299,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "TestDrive:\log.txt" -Raw
-            $output | Should Not BeLike '*Fatal error encountered during command execution*'
+            $output | Should Not BeLike "*$timeoutError*"
             $output | Should BeLike '*Successful!*'
         }
         It "should successfully run with infinite timeout" {
@@ -397,7 +425,10 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1
-            $output | Should Be (Get-Content "$testRoot\etc\mysql-tests\log1.txt")
+            $standardOutput | Should -BeIn $output
+            'Creating the `{0}`.`{1}` table' -f $newDbName, $logTable | Should -BeIn $output
+            'The `{0}`.`{1}` table has been created' -f $newDbName, $logTable | Should -BeIn $output
+            
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
@@ -430,7 +461,7 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1
-            $output | Should Be (Get-Content "$testRoot\etc\mysql-tests\log2.txt")
+            $output | Should BeIn $standardOutput2
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
@@ -548,10 +579,10 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
         BeforeEach {
             $null = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv1" -Build 1.0 -Force
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "CREATE SCHEMA testschema"
+            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "DROP SCHEMA IF EXISTS testschema", "CREATE SCHEMA testschema"
         }
         AfterEach {
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "DROP TABLE IF EXISTS SchemaVersions"
+            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "DROP SCHEMA IF EXISTS testschema"
         }
         It "should deploy version 1.0 into testschema" {
             $testResults = Install-DBOPackage -Type MySQL "TestDrive:\pv1.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -Silent -Schema testschema
@@ -603,7 +634,9 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1
-            $output | Should Be (Get-Content "$testRoot\etc\mysql-tests\log1.txt")
+            $standardOutput | Should -BeIn $output
+            'Creating the `{0}`.`{1}` table' -f $newDbName, $logTable | Should -BeIn $output
+            'The `{0}`.`{1}` table has been created' -f $newDbName, $logTable | Should -BeIn $output
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
@@ -640,7 +673,9 @@ Describe "Install-DBOPackage MySQL integration tests" -Tag $commandName, Integra
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1
-            $output | Should Be (Get-Content "$testRoot\etc\mysql-tests\log1.txt")
+            $standardOutput | Should -BeIn $output
+            'Creating the `{0}`.`{1}` table' -f $newDbName, $logTable | Should -BeIn $output
+            'The `{0}`.`{1}` table has been created' -f $newDbName, $logTable | Should -BeIn $output
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name

@@ -48,7 +48,7 @@ function Get-DbUpJournal {
         }
         # return a journal object
         Write-PSFMessage -Level Verbose -Message "Creating journal object for $Type in $schemaName.$tableName"
-        return $dbUpJournalType::new( $Connection, $Log, $schemaName, $tableName)
+        return $dbUpJournalType::new($Connection, $Log, $schemaName, $tableName)
     }
     else {
         # return a null journal to disable journalling
