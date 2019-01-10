@@ -33,7 +33,7 @@ $newDbName = "test_dbops_InstallDBOSqlScript"
 $dropDatabaseScript = 'DROP DATABASE IF EXISTS `{0}`' -f $newDbName
 $createDatabaseScript = 'CREATE DATABASE IF NOT EXISTS `{0}`' -f $newDbName
 
-Describe "Install-DBOSqlScript -Type MySQL integration tests" -Tag $commandName, IntegrationTests {
+Describe "Install-DBOSqlScript MySQL integration tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = New-Item $workFolder -ItemType Directory -Force
