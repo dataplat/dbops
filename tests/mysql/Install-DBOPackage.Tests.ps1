@@ -17,15 +17,11 @@ else {
 }
 
 . "$testRoot\constants.ps1"
-if ($drive = Get-PSDrive TestDrive -ErrorAction SilentlyContinue) { Remove-PSDrive $drive }
 
 Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
-        if (-not $PSScriptRoot) {
-            $root = New-Item -Path $testRoot\etc\_ManualExecution -ItemType Directory -Force
-            $null = New-PSDrive -Name TestDrive -PSProvider "FileSystem" -Root $root
-        }
-        $unpackedFolder = Join-Path 'TestDrive:' 'unpacked'
+        $workFolder = Join-PSFPath -Normalize "$testRoot\etc" "$commandName.Tests.dbops"
+        $unpackedFolder = Join-Path $workFolder 'unpacked'
         $logTable = "testdeploymenthistory"
         $cleanupScript = Join-PSFPath -Normalize "$testRoot\etc\mysql-tests\Cleanup.sql"
         $tranFailScripts = Join-PSFPath -Normalize "$testRoot\etc\mysql-tests\transactional-failure"
@@ -34,9 +30,9 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
         $v2scripts = Join-PSFPath -Normalize "$testRoot\etc\mysql-tests\success\2.sql"
         $v2Journal = Get-Item $v2scripts | ForEach-Object { '2.0\' + $_.Name }
         $verificationScript = Join-PSFPath -Normalize "$testRoot\etc\mysql-tests\verification\select.sql"
-        $packageName = Join-Path 'TestDrive:' "TempDeployment.zip"
-        $packageNamev1 = Join-Path 'TestDrive:' "TempDeployment_v1.zip"
-        $fullConfig = Join-PSFPath -Normalize "TestDrive:\tmp_full_config.json"
+        $packageName = Join-Path $workFolder "TempDeployment.zip"
+        $packageNamev1 = Join-Path $workFolder "TempDeployment_v1.zip"
+        $fullConfig = Join-PSFPath -Normalize "$workFolder\tmp_full_config.json"
         $fullConfigSource = Join-PSFPath -Normalize "$testRoot\etc\full_config.json"
         $testPassword = 'TestPassword'
         $encryptedString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertTo-EncryptedString
@@ -67,15 +63,14 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
         $dropDatabaseScript = 'DROP DATABASE IF EXISTS `{0}`' -f $newDbName
         $createDatabaseScript = 'CREATE DATABASE IF NOT EXISTS `{0}`' -f $newDbName
 
+        if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
+        $null = New-Item $workFolder -ItemType Directory -Force
         $null = New-Item $unpackedFolder -ItemType Directory -Force
         (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $encryptedString | Out-File $fullConfig -Force
     }
     AfterAll {
+        if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript
-        if (-not $PSScriptRoot) {
-            $null = Remove-PSDrive -Name TestDrive -ErrorAction SilentlyContinue
-            $null = Remove-Item -Path $testRoot\etc\_ManualExecution -Force -Recurse
-        }
     }
     Context "testing transactional deployment" {
         BeforeAll {
@@ -128,20 +123,20 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
     Context "testing regular deployment" {
         BeforeAll {
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
-            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv1" -Build 1.0 -Force
+            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
             $p1 = Add-DBOBuild -ScriptPath $v2scripts -Name $p1 -Build 2.0
             #versions should not be sorted by default - creating a package where 1.0 is the second build
-            $p3 = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv3" -Build 2.0 -Force
+            $p3 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv3" -Build 2.0 -Force
             $null = Add-DBOBuild -ScriptPath $v2scripts -Name $p3 -Build 1.0
-            $outputFile = Join-PSFPath -Normalize "TestDrive:\log.txt"
+            $outputFile = Join-PSFPath -Normalize "$workFolder\log.txt"
         }
         It "should deploy version 1.0" {
-            $testResults = Install-DBOPackage -Type MySQL $p1 -Build '1.0' -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent
+            $testResults = Install-DBOPackage -Type MySQL $p1 -Build '1.0' -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -151,10 +146,10 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
-            $output = Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1
+            $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
             $standardOutput | Should -BeIn $output
-            'Creating the `{0}`.`{1}` table' -f $newDbName, $logTable | Should -BeIn $output
-            'The `{0}`.`{1}` table has been created' -f $newDbName, $logTable | Should -BeIn $output
+            'Creating the `{0}` table' -f $logTable | Should -BeIn $output
+            'The `{0}` table has been created' -f $logTable | Should -BeIn $output
 
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
@@ -165,12 +160,12 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
             'd' | Should Not BeIn $testResults.name
         }
         It "should re-deploy version 1.0 pipelining a string" {
-            $testResults = "TestDrive:\pv1.zip" | Install-DBOPackage -Type MySQL -Build '1.0' -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent
+            $testResults = "$workFolder\pv1.zip" | Install-DBOPackage -Type MySQL -Build '1.0' -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should BeNullOrEmpty
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -180,7 +175,7 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
             'No new scripts need to be executed - completing.' | Should BeIn $testResults.DeploymentLog
 
-            'No new scripts need to be executed - completing.' | Should BeIn (Get-Content "$TestDrive\log.txt" | Select-Object -Skip 1)
+            'No new scripts need to be executed - completing.' | Should BeIn (Get-Content "$workFolder\log.txt" | Select-Object -Skip 1)
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
@@ -190,12 +185,12 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
             'd' | Should Not BeIn $testResults.name
         }
         It "should deploy version 2.0 using pipelined Get-DBOPackage" {
-            $testResults = Get-DBOPackage "TestDrive:\pv1.zip" | Install-DBOPackage -Type MySQL -Build '1.0', '2.0' -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent
+            $testResults = Get-DBOPackage "$workFolder\pv1.zip" | Install-DBOPackage -Type MySQL -Build '1.0', '2.0' -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v2Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -205,7 +200,7 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
-            $output = Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1
+            $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
             $output | Should BeIn $standardOutput2
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
@@ -216,12 +211,12 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
             'd' | Should BeIn $testResults.name
         }
         It "should re-deploy version 2.0 using pipelined FileSystemObject" {
-            $testResults = Get-Item "TestDrive:\pv1.zip" | Install-DBOPackage -Type MySQL -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent
+            $testResults = Get-Item "$workFolder\pv1.zip" | Install-DBOPackage -Type MySQL -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should BeNullOrEmpty
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -231,7 +226,7 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
             'No new scripts need to be executed - completing.' | Should BeIn $testResults.DeploymentLog
 
-            'No new scripts need to be executed - completing.' | Should BeIn (Get-Content "$TestDrive\log.txt" | Select-Object -Skip 1)
+            'No new scripts need to be executed - completing.' | Should BeIn (Get-Content "$workFolder\log.txt" | Select-Object -Skip 1)
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
@@ -242,12 +237,12 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
         }
         It "should deploy in a reversed order: 2.0 before 1.0" {
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
-            $testResults = Install-DBOPackage -Type MySQL "TestDrive:\pv3.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent
+            $testResults = Install-DBOPackage -Type MySQL "$workFolder\pv3.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (@((Get-Item $v1scripts).Name | ForEach-Object { "2.0\$_" }), ((Get-Item $v2scripts).Name | ForEach-Object { "1.0\$_" }))
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv3.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv3.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -268,27 +263,27 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
     Context "testing timeouts" {
         BeforeAll {
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
-            $file = Join-PSFPath -Normalize "TestDrive:\delay.sql"
+            $file = Join-PSFPath -Normalize "$workFolder\delay.sql"
             "DO SLEEP(5); SELECT 'Successful!'" | Out-File $file
-            $null = New-DBOPackage -ScriptPath $file -Name "TestDrive:\delay" -Build 1.0 -Force -Configuration @{ ExecutionTimeout = 2 }
+            $null = New-DBOPackage -ScriptPath $file -Name "$workFolder\delay" -Build 1.0 -Force -Configuration @{ ExecutionTimeout = 2 }
             $timeoutError = if ($PSVersionTable.PSVersion.Major -eq 6) { 'Fatal error encountered during command execution' } else { 'Timeout expired.'}
         }
         BeforeEach {
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "should throw timeout error " {
-            { $null = Install-DBOPackage -Type MySQL "TestDrive:\delay.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent } | Should throw $timeoutError
-            $output = Get-Content "TestDrive:\log.txt" -Raw
+            { $null = Install-DBOPackage -Type MySQL "$workFolder\delay.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent } | Should throw $timeoutError
+            $output = Get-Content "$workFolder\log.txt" -Raw
             $output | Should BeLike "*$timeoutError*"
             $output | Should Not BeLike '*Successful!*'
         }
         It "should successfully run within specified timeout" {
-            $testResults = Install-DBOPackage -Type MySQL "TestDrive:\delay.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent -ExecutionTimeout 6
+            $testResults = Install-DBOPackage -Type MySQL "$workFolder\delay.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 6
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be '1.0\delay.sql'
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\delay.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\delay.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -298,17 +293,17 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
             $testResults.EndTime | Should -BeGreaterThan $testResults.StartTime
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
-            $output = Get-Content "TestDrive:\log.txt" -Raw
+            $output = Get-Content "$workFolder\log.txt" -Raw
             $output | Should Not BeLike "*$timeoutError*"
             $output | Should BeLike '*Successful!*'
         }
         It "should successfully run with infinite timeout" {
-            $testResults = Install-DBOPackage -Type MySQL "TestDrive:\delay.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent -ExecutionTimeout 0
+            $testResults = Install-DBOPackage -Type MySQL "$workFolder\delay.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 0
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be '1.0\delay.sql'
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\delay.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\delay.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -318,7 +313,7 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
-            $output = Get-Content "TestDrive:\log.txt" -Raw
+            $output = Get-Content "$workFolder\log.txt" -Raw
             $output | Should Not BeLike '*Timeout Expired*'
             $output | Should BeLike '*Successful!*'
         }
@@ -359,15 +354,15 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
     Context "testing regular deployment with CreateDatabase specified" {
         BeforeAll {
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript
-            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv1" -Build 1.0 -Force
+            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
         }
         It "should deploy version 1.0 to a new database using -CreateDatabase switch" {
-            $testResults = Install-DBOPackage -Type MySQL $p1 -CreateDatabase -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent
+            $testResults = Install-DBOPackage -Type MySQL $p1 -CreateDatabase -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Configuration.CreateDatabase | Should Be $true
@@ -391,17 +386,17 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
     Context "testing regular deployment with configuration overrides" {
         BeforeAll {
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
-            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv1" -Build 1.0 -Force -ConfigurationFile $fullConfig
-            $p2 = New-DBOPackage -ScriptPath $v2scripts -Name "TestDrive:\pv2" -Build 2.0 -Force -Configuration @{
+            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force -ConfigurationFile $fullConfig
+            $p2 = New-DBOPackage -ScriptPath $v2scripts -Name "$workFolder\pv2" -Build 2.0 -Force -Configuration @{
                 SqlInstance        = 'nonexistingServer'
                 Database           = 'nonexistingDB'
                 SchemaVersionTable = 'nonexistingSchema.nonexistinTable'
                 DeploymentMethod   = "SingleTransaction"
             }
-            $outputFile = "TestDrive:\log.txt"
+            $outputFile = "$workFolder\log.txt"
         }
         It "should deploy version 1.0 using -Configuration file override" {
-            $configFile = "TestDrive:\config.custom.json"
+            $configFile = "$workFolder\config.custom.json"
             @{
                 SqlInstance        = $script:mysqlInstance
                 Database           = $newDbName
@@ -409,12 +404,12 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
                 Silent             = $true
                 DeploymentMethod   = 'NoTransaction'
             } | ConvertTo-Json -Depth 2 | Out-File $configFile -Force
-            $testResults = Install-DBOPackage -Type MySQL "TestDrive:\pv1.zip" -Configuration $configFile -OutputFile "TestDrive:\log.txt" -Credential $script:mysqlCredential
+            $testResults = Install-DBOPackage -Type MySQL "$workFolder\pv1.zip" -Configuration $configFile -OutputFile "$workFolder\log.txt" -Credential $script:mysqlCredential
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -424,11 +419,11 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
-            $output = Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1
+            $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
             $standardOutput | Should -BeIn $output
-            'Creating the `{0}`.`{1}` table' -f $newDbName, $logTable | Should -BeIn $output
-            'The `{0}`.`{1}` table has been created' -f $newDbName, $logTable | Should -BeIn $output
-            
+            'Creating the `{0}` table' -f $logTable | Should -BeIn $output
+            'The `{0}` table has been created' -f $logTable | Should -BeIn $output
+
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
@@ -438,19 +433,19 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
             'd' | Should Not BeIn $testResults.name
         }
         It "should deploy version 2.0 using -Configuration object override" {
-            $testResults = Install-DBOPackage -Type MySQL "TestDrive:\pv2.zip" -Configuration @{
+            $testResults = Install-DBOPackage -Type MySQL "$workFolder\pv2.zip" -Configuration @{
                 SqlInstance        = $script:mysqlInstance
                 Credential         = $script:mysqlCredential
                 Database           = $newDbName
                 SchemaVersionTable = $logTable
                 Silent             = $true
                 DeploymentMethod   = 'NoTransaction'
-            } -OutputFile "TestDrive:\log.txt"
+            } -OutputFile "$workFolder\log.txt"
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v2Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv2.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv2.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -460,7 +455,7 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
-            $output = Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1
+            $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
             $output | Should BeIn $standardOutput2
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
@@ -474,9 +469,9 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
     Context "testing deployment without specifying SchemaVersion table" {
         BeforeAll {
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
-            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv1" -Build 1.0 -Force
-            $p2 = New-DBOPackage -ScriptPath $v2scripts -Name "TestDrive:\pv2" -Build 2.0 -Force
-            $outputFile = "TestDrive:\log.txt"
+            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
+            $p2 = New-DBOPackage -ScriptPath $v2scripts -Name "$workFolder\pv2" -Build 2.0 -Force
+            $outputFile = "$workFolder\log.txt"
         }
         AfterAll {
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "DROP TABLE IF EXISTS SchemaVersions"
@@ -484,12 +479,12 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
         It "should deploy version 1.0" {
             $before = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Install-DBOPackage -Type MySQL "TestDrive:\pv1.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -Silent
+            $testResults = Install-DBOPackage -Type MySQL "$workFolder\pv1.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
             $testResults.Error | Should BeNullOrEmpty
@@ -511,12 +506,12 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
         It "should deploy version 2.0" {
             $before = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Install-DBOPackage -Type MySQL "TestDrive:\pv2.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -Silent
+            $testResults = Install-DBOPackage -Type MySQL "$workFolder\pv2.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v2Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv2.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv2.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
             $testResults.Error | Should BeNullOrEmpty
@@ -538,7 +533,7 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
     }
     Context "testing deployment with no history`: SchemaVersion is null" {
         BeforeEach {
-            $null = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv1" -Build 1.0 -Force
+            $null = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
         }
         AfterEach {
@@ -547,12 +542,12 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
         It "should deploy version 1.0 without creating SchemaVersions" {
             $before = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Install-DBOPackage -Type MySQL "TestDrive:\pv1.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -Silent -SchemaVersionTable $null
+            $testResults = Install-DBOPackage -Type MySQL "$workFolder\pv1.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -Silent -SchemaVersionTable $null
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should BeNullOrEmpty
             $testResults.Error | Should BeNullOrEmpty
@@ -577,7 +572,7 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
         }
         BeforeEach {
-            $null = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv1" -Build 1.0 -Force
+            $null = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "DROP SCHEMA IF EXISTS testschema", "CREATE SCHEMA testschema"
         }
@@ -585,12 +580,12 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "DROP SCHEMA IF EXISTS testschema"
         }
         It "should deploy version 1.0 into testschema" {
-            $testResults = Install-DBOPackage -Type MySQL "TestDrive:\pv1.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -Silent -Schema testschema
+            $testResults = Install-DBOPackage -Type MySQL "$workFolder\pv1.zip" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -Silent -Schema testschema
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
             $testResults.Configuration.Schema | Should Be 'testschema'
@@ -608,8 +603,8 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
     }
     Context "testing deployment using variables in config" {
         BeforeAll {
-            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv1" -Build 1.0 -Force -Configuration @{SqlInstance = '#{srv}'; Database = '#{db}'}
-            $outputFile = "TestDrive:\log.txt"
+            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force -Configuration @{SqlInstance = '#{srv}'; Database = '#{db}'}
+            $outputFile = "$workFolder\log.txt"
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
         }
         AfterAll {
@@ -618,12 +613,12 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
         It "should deploy version 1.0" {
             $before = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Install-DBOPackage -Type MySQL "TestDrive:\pv1.zip" -Credential $script:mysqlCredential -Variables @{srv = $script:mysqlInstance; db = $newDbName} -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent
+            $testResults = Install-DBOPackage -Type MySQL "$workFolder\pv1.zip" -Credential $script:mysqlCredential -Variables @{srv = $script:mysqlInstance; db = $newDbName} -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should Be $script:mysqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -633,10 +628,10 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
-            $output = Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1
+            $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
             $standardOutput | Should -BeIn $output
-            'Creating the `{0}`.`{1}` table' -f $newDbName, $logTable | Should -BeIn $output
-            'The `{0}`.`{1}` table has been created' -f $newDbName, $logTable | Should -BeIn $output
+            'Creating the `{0}` table' -f $logTable | Should -BeIn $output
+            'The `{0}` table has been created' -f $logTable | Should -BeIn $output
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
@@ -647,7 +642,7 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
     }
     Context "testing deployment with custom connection string" {
         BeforeAll {
-            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "TestDrive:\pv1" -Build 1.0 -Force
+            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
         }
         It "should deploy version 1.0" {
@@ -657,12 +652,12 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
                 Credential  = $script:mysqlCredential
             }
             $connectionString = Get-ConnectionString -Configuration $configCS -Type MySQL
-            $testResults = Install-DBOPackage -Type MySQL "TestDrive:\pv1.zip" -ConnectionString $connectionString -SqlInstance willBeIgnored -Database IgnoredAsWell -SchemaVersionTable $logTable -OutputFile "TestDrive:\log.txt" -Silent
+            $testResults = Install-DBOPackage -Type MySQL "$workFolder\pv1.zip" -ConnectionString $connectionString -SqlInstance willBeIgnored -Database IgnoredAsWell -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should BeNullOrEmpty
             $testResults.Database | Should BeNullOrEmpty
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$TestDrive\pv1.zip")
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
             $testResults.ConnectionType | Should Be 'MySQL'
             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
             $testResults.Error | Should BeNullOrEmpty
@@ -672,10 +667,10 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
-            $output = Get-Content "TestDrive:\log.txt" | Select-Object -Skip 1
+            $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
             $standardOutput | Should -BeIn $output
-            'Creating the `{0}`.`{1}` table' -f $newDbName, $logTable | Should -BeIn $output
-            'The `{0}`.`{1}` table has been created' -f $newDbName, $logTable | Should -BeIn $output
+            'Creating the `{0}` table' -f $logTable | Should -BeIn $output
+            'The `{0}` table has been created' -f $logTable | Should -BeIn $output
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name

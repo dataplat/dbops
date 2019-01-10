@@ -201,7 +201,7 @@ Describe "Install-DBOSqlScript MySQL integration tests" -Tag $commandName, Integ
             'd' | Should BeIn $testResults.name
             #Verifying order
             $r1 = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "SELECT scriptname FROM $logtable ORDER BY schemaversionid"
-            $r1.ScriptName | Should Be (Get-Item $v2scripts, $v1scripts).FullName
+            $r1.scriptname | Should Be (Get-Item $v2scripts, $v1scripts).FullName
         }
     }
     Context "testing timeouts" {

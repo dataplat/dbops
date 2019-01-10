@@ -75,8 +75,8 @@ Describe "Register-DBOPackage MySQL integration tests" -Tag $commandName, Integr
             'd' | Should Not BeIn $testResults.name
 
             #Verifying SchemaVersions table
-            $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "SELECT * FROM $logTable"
-            $testResults.ScriptName | Should Be (@($v1Journal) + @($v2Journal))
+            $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "SELECT * FROM $logTable ORDER BY schemaversionid"
+            $testResults.scriptname | Should Be (@($v1Journal) + @($v2Journal))
         }
     }
     Context "testing registration of scripts" {
@@ -114,8 +114,8 @@ Describe "Register-DBOPackage MySQL integration tests" -Tag $commandName, Integr
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 1)
 
             #Verifying SchemaVersions table
-            $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "SELECT * FROM $logTable"
-            $testResults.ScriptName | Should Be $v1Journal
+            $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "SELECT * FROM $logTable ORDER BY schemaversionid"
+            $testResults.scriptname | Should Be $v1Journal
         }
         It "should register version 1.0 + 2.0 without creating any objects" {
             $before = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
@@ -145,8 +145,8 @@ Describe "Register-DBOPackage MySQL integration tests" -Tag $commandName, Integr
             ($testResults | Measure-Object).Count | Should Be $rowsBefore
 
             #Verifying SchemaVersions table
-            $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "SELECT * FROM $logTable"
-            $testResults.ScriptName | Should Be (@($v1Journal) + @($v2Journal))
+            $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "SELECT * FROM $logTable ORDER BY schemaversionid"
+            $testResults.scriptname | Should Be (@($v1Journal) + @($v2Journal))
         }
     }
     Context  "$commandName whatif tests" {

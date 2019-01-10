@@ -159,11 +159,6 @@
         $connString = $csBuilder.ToString()
         $dbUpConnection = Get-ConnectionManager -ConnectionString $connString -Type $Type
 
-        # MySQL workaround: define schema if not specified, bc schema = database
-        if ($Type -eq 'MySQL' -and -not $config.Schema) {
-            $config.SetValue('Schema', $csBuilder.Database)
-        }
-
         # Create DbUpBuilder based on the connection
         $dbUp = Get-DbUpBuilder -Connection $dbUpConnection -Type $Type
 

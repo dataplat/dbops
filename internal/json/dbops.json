@@ -60,7 +60,8 @@
         "internal\\classes\\DBOps.class.ps1",
         "internal\\classes\\DBOpsDeploymentStatus.class.ps1",
         "internal\\classes\\DBOpsLog.class.ps1",
-        "internal\\classes\\DBOpsScriptComparer.class.ps1"
+        "internal\\classes\\DBOpsScriptComparer.class.ps1",
+        "internal\\classes\\DBOpsMySqlTableJournal.class.ps1"
     ],
     "Core": [
         "internal\\json\\dbops.json",
