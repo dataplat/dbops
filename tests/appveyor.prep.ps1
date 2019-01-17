@@ -21,5 +21,5 @@ Write-Host -Object "appveyor.prep: Install PSScriptAnalyzer" -ForegroundColor Da
 Install-Module -Name PSScriptAnalyzer -Repository PSGallery -Force -Scope CurrentUser| Out-Null
 
 # Set logging parameters
-Set-PSFConfig -FullName psframework.logging.filesystem.maxmessagefilebytes -Value (100 * 1024 * 1024)
-Set-PSFConfig -FullName psframework.logging.filesystem.maxtotalfoldersize -Value (500 * 1024 * 1024)
+Set-PSFConfig -FullName psframework.logging.filesystem.maxmessagefilebytes -Value (100 * 1024 * 1024) -PassThru | Register-PSFConfig
+Set-PSFConfig -FullName psframework.logging.filesystem.maxtotalfoldersize -Value (500 * 1024 * 1024) -PassThru | Register-PSFConfig
