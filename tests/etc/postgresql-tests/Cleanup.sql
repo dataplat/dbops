@@ -1,0 +1,17 @@
+
+DROP TABLE IF EXISTS a;
+DROP TABLE IF EXISTS b;
+DROP TABLE IF EXISTS c;
+DROP TABLE IF EXISTS d;
+DROP TABLE IF EXISTS e;
+DROP TABLE IF EXISTS f;
+DROP TABLE IF EXISTS testdeploymenthistory;
+DROP TABLE IF EXISTS SchemaVersions;
+DROP TABLE IF EXISTS testschema.a;
+DROP TABLE IF EXISTS testschema.b;
+DROP TABLE IF EXISTS testschema.c;
+DROP TABLE IF EXISTS testschema.d;
+DROP TABLE IF EXISTS testschema.e;
+DROP TABLE IF EXISTS testschema.f;
+DROP TABLE IF EXISTS testschema.testdeploymenthistory;
+DROP TABLE IF EXISTS testschema.SchemaVersions;

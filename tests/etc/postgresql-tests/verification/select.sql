@@ -1,0 +1,1 @@
+SELECT tablename as "name", schemaname AS "schema" FROM pg_tables;
