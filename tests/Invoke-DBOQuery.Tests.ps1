@@ -34,6 +34,16 @@ Describe "Invoke-DBOQuery tests" -Tag $commandName, IntegrationTests {
             $result.A | Should -Be 1, 3
             $result.B | Should -Be 2, 4
         }
+        It "should select NULL" {
+            $query = "SELECT NULL"
+            $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -As DataTable
+            $result.Column1 | Should -Be ([DBNull]::Value)
+        }
+        It "should run the query with print and capture output" {
+            $query = "print ('Foo bar!')"
+            $null = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -As DataTable -Silent -OutputFile $workFolder\out.txt
+            "$workFolder\out.txt" | Should -FileContentMatch '^Foo bar!$'
+        }
         It "should run the query with GO" {
             $query = "SELECT 1 AS A, 2 AS B
             GO
@@ -47,6 +57,35 @@ Describe "Invoke-DBOQuery tests" -Tag $commandName, IntegrationTests {
         It "should run the query with GO as a dataset" {
             $query = "SELECT 1 AS A, 2 AS B
             GO
+            SELECT 3 AS A, 4 AS B"
+            $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -As Dataset
+            $result.Tables[0].A | Should -Be 1
+            $result.Tables[0].B | Should -Be 2
+            $result.Tables[1].A | Should -Be 3
+            $result.Tables[1].B | Should -Be 4
+        }
+        It "should run 2 queries with semicolon" {
+            $query = "SELECT 1 AS A, 2 AS B;
+            SELECT 3 AS A, 4 AS B"
+            $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -As DataTable
+            $result[0].A | Should -Be 1
+            $result[0].B | Should -Be 2
+            $result[1].A | Should -Be 3
+            $result[1].B | Should -Be 4
+        }
+        It "should run 2 queries with semicolon and DDL in the middle" {
+            $query = "SELECT 1 AS A, 2 AS B;
+            CREATE TABLE #t (a int);
+            INSERT INTO #t VALUES (1);
+            SELECT 3 AS A, 4 AS B"
+            $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -As DataTable
+            $result[0].A | Should -Be 1
+            $result[0].B | Should -Be 2
+            $result[1].A | Should -Be 3
+            $result[1].B | Should -Be 4
+        }
+        It "should run the query with semicolon as Dataset" {
+            $query = "SELECT 1 AS A, 2 AS B;
             SELECT 3 AS A, 4 AS B"
             $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -As Dataset
             $result.Tables[0].A | Should -Be 1
@@ -133,16 +172,16 @@ Describe "Invoke-DBOQuery tests" -Tag $commandName, IntegrationTests {
     Context "Negative tests" {
         It "should throw a zero division error" {
             $query = "SELECT 1/0"
-            { $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential } | Should throw "Divide by zero"
+            { $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Silent } | Should throw "Divide by zero"
         }
         It "should throw a connection timeout error" {
             $query = "SELECT 1/0"
             { $result = Invoke-DBOQuery -Query $query -SqlInstance localhost:6493 -Credential $script:mssqlCredential -ConnectionTimeout 1} | Should throw "The server was not found or was not accessible"
         }
         It "should fail when parameters are of a wrong type" {
-            { Invoke-DBOQuery -Query 'SELECT 1/@foo' -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Parameter @{ foo = 'bar' } } | Should throw 'Conversion failed'
-            { Invoke-DBOQuery -Query 'SELECT ''bar'' + @foo' -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Parameter @{ foo = 10 } } | Should throw 'Conversion failed'
-            { Invoke-DBOQuery -Query 'SELECT ''bar'' + @foo' -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Parameter @{ foo = Get-Date } } | Should throw 'Conversion failed'
+            { Invoke-DBOQuery -Query 'SELECT 1/@foo' -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Parameter @{ foo = 'bar' } -Silent } | Should throw 'Conversion failed'
+            { Invoke-DBOQuery -Query 'SELECT ''bar'' + @foo' -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Parameter @{ foo = 10 } -Silent } | Should throw 'Conversion failed'
+            { Invoke-DBOQuery -Query 'SELECT ''bar'' + @foo' -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Parameter @{ foo = Get-Date } -Silent } | Should throw 'Conversion failed'
         }
         It "should fail when credentials are wrong" {
             { Invoke-DBOQuery -Query 'SELECT 1' -SqlInstance $script:mssqlInstance -Credential ([pscredential]::new('nontexistent', ([securestring]::new()))) } | Should throw 'Login failed'
