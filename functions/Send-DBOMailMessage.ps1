@@ -98,7 +98,7 @@ function Send-DBOMailMessage {
         if ($null -eq $PSBoundParameters['from']) {
             Stop-PSFFunction -Message "No sender email address specified, exiting" -EnableException $true
         }
-        if ($InputObject -and $InputObject -isnot [DBOpsDeploymentStatus]) {
+        if ($InputObject -and $InputObject.GetType().FullName -ne 'DBOpsDeploymentStatus') {
             Stop-PSFFunction -Message "Wrong object in the pipeline: $($InputObject.GetType().FullName). Usable only with output from the deployment commands." -EnableException $true
         }
         #Get template from the parameter or read it from the default path
