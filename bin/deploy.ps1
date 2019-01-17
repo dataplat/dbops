@@ -43,7 +43,6 @@ $config = Get-DBOConfig -Path "$PSScriptRoot\dbops.config.json" -Configuration $
 $newConfig = @{}
 foreach ($key in ($PSBoundParameters.Keys)) {
     if ($key -in [DBOpsConfig]::EnumProperties()) {
-        Write-PSFMessage -Level Debug -Message "Overriding parameter $key with $($PSBoundParameters[$key])"
         $newConfig.$key = $PSBoundParameters[$key]
     }
 }

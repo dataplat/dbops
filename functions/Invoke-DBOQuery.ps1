@@ -158,7 +158,6 @@ function Invoke-DBOQuery {
         $newConfig = @{}
         foreach ($key in ($PSBoundParameters.Keys)) {
             if ($key -in [DBOpsConfig]::EnumProperties()) {
-                Write-PSFMessage -Level Debug -Message "Overriding parameter $key with $($PSBoundParameters[$key])"
                 $newConfig.$key = $PSBoundParameters[$key]
             }
         }
@@ -285,11 +284,11 @@ function Invoke-DBOQuery {
                     }
                     catch {
                         $dbUpLog.WriteError($_.Exception.InnerException.Message, $null)
-                        Stop-PSFFunction -EnableException $true -Message "Failed to run the query" -ErrorRecord $_
                         if ($Type -eq 'SqlServer') {
                             Unregister-Event -SourceIdentifier "DBOpsMessaging" -ErrorAction SilentlyContinue
                         }
                         $dataConnection.Dispose()
+                        Stop-PSFFunction -EnableException $true -Message "Failed to run the query" -ErrorRecord $_
                     }
                 }
             }

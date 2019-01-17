@@ -99,7 +99,7 @@ function Send-DBOMailMessage {
             Stop-PSFFunction -Message "No sender email address specified, exiting" -EnableException $true
         }
         if ($InputObject -and $InputObject -isnot [DBOpsDeploymentStatus]) {
-            Stop-PSFFunction -Message "Wrong object in the pipeline. Usable only with output from the deployment commands." -EnableException $true
+            Stop-PSFFunction -Message "Wrong object in the pipeline: $($InputObject.GetType().FullName). Usable only with output from the deployment commands." -EnableException $true
         }
         #Get template from the parameter or read it from the default path
         if (Test-PSFParameterBinding -ParameterName Template) {
@@ -138,7 +138,7 @@ function Send-DBOMailMessage {
 
         # Get HTML variable
         $htmlbody = Resolve-VariableToken $htmlTemplate $tokens
-        
+
         # Modify the params as required
         $null = $PSBoundParameters.Remove("InputObject")
         $null = $PSBoundParameters.Remove("Template")
@@ -146,7 +146,7 @@ function Send-DBOMailMessage {
         foreach ($p in (@('Subject', 'From', 'To', 'CC') | Where-Object { $_ -in $PSBoundParameters.Keys })) {
             $PSBoundParameters[$p] = Resolve-VariableToken $PSBoundParameters[$p] $tokens
         }
-       
+
         try {
             Send-MailMessage -BodyAsHtml -Body $htmlbody -ErrorAction Stop @PSBoundParameters
         }

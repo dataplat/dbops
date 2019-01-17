@@ -136,7 +136,7 @@ Describe "Invoke-DBOQuery PostgreSQL tests" -Tag $commandName, IntegrationTests 
         It "should connect to a specific database" {
             $query = "SELECT current_database()"
             $result = Invoke-DBOQuery -Query $query @connParams -As SingleValue
-            $result | Should -Be postgres
+            $result | Should -Be $newDbName
         }
         It "should address column names automatically" {
             $query = "SELECT 1 AS A, 2, 3"
