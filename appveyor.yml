@@ -32,7 +32,7 @@ for:
       - mssql2017
       - mysql
       - postgresql
-    init:
+    before_test:
       - SET PATH=C:\Program Files\PostgreSQL\9.6\bin\;%PATH%
       - psql -c "CREATE USER sa WITH PASSWORD 'Password12!';" -U postgres
       - psql -c "ALTER USER sa WITH SUPERUSER;" -U postgres
@@ -47,9 +47,9 @@ for:
       - mssql
       - mysql
       - postgresql
-    init:
-      - sudo -u postgres psql -c "CREATE USER sa WITH PASSWORD 'Password12!';" -U postgres
-      - sudo -u postgres psql -c "ALTER USER sa WITH SUPERUSER;" -U postgres
+    before_test:
+      - sudo -u postgres psql -c "CREATE USER sa WITH PASSWORD 'Password12!';"
+      - sudo -u postgres psql -c "ALTER USER sa WITH SUPERUSER;"
 
 before_test:
   # run preparation scripts
