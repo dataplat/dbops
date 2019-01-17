@@ -25,7 +25,7 @@ function Initialize-ExternalLibrary {
     if (-Not (Test-DBOSupportedSystem -Type $Type)) {
         Write-PSFMessage -Level Warning -Message "Installing dependent libraries for $Type connections"
         # Install dependencies into the current user scope
-        Install-DBOSupportLibrary -Type $Type -Scope CurrentUser
+        $null = Install-DBOSupportLibrary -Type $Type -Scope CurrentUser
         # test again
         if (-Not (Test-DBOSupportedSystem -Type $Type)) {
             Write-PSFMessage -Level Warning -Message "Dependent libraries for $Type were not found. Run Install-DBOSupportLibrary -Type $Type"
@@ -39,7 +39,7 @@ function Initialize-ExternalLibrary {
         foreach ($dPath in $dPackage.Path) {
             Write-PSFMessage -Level Debug -Message "Loading library $dPath from $($localPackage.Source)"
             try {
-                Add-Type -Path (Join-PSFPath -Normalize (Split-Path $localPackage.Source -Parent) $dPath) -ErrorAction SilentlyContinue
+                $null = Add-Type -Path (Join-PSFPath -Normalize (Split-Path $localPackage.Source -Parent) $dPath) -ErrorAction SilentlyContinue
             }
             catch {
                 Stop-PSFFunction -EnableException $true -Message "Could not load $dPath from $localPackage" -ErrorRecord $_
