@@ -20,15 +20,33 @@ else {
 if (-not (Test-DBOSupportedSystem -Type PostgreSQL)) {
     Install-DBOSupportLibrary -Type PostgreSQL -Force -Scope CurrentUser 3>$null
 }
+
+$newDbName = 'test_dbops_invokedboquery'
 $connParams = @{
     SqlInstance = $script:postgresqlInstance
     Credential  = $script:postgresqlCredential
-    Database    = 'postgres'
     Type        = 'PostgreSQL'
+    Database    = $newDbName
     Silent      = $true
 }
 
 Describe "Invoke-DBOQuery PostgreSQL tests" -Tag $commandName, IntegrationTests {
+    BeforeAll {
+
+        $dropDatabaseScript = @(
+            'SELECT pid, pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = ''{0}'' AND pid <> pg_backend_pid()' -f $newDbName
+            'DROP DATABASE IF EXISTS {0}' -f $newDbName
+        )
+        $createDatabaseScript = 'CREATE DATABASE {0}' -f $newDbName
+        $connParams.Database = 'postgres'
+        $null = Invoke-DBOQuery @connParams -Query $dropDatabaseScript
+        $null = Invoke-DBOQuery @connParams -Query $createDatabaseScript
+        $connParams.Database = $newDbName
+    }
+    AfterAll {
+        $connParams.Database = 'postgres'
+        $null = Invoke-DBOQuery @connParams -Query $dropDatabaseScript
+    }
     Context "Regular tests" {
         It "should run the query" {
             $query = "SELECT 1 AS A, 2 AS B UNION ALL SELECT NULL AS A, 4 AS B"

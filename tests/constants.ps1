@@ -22,6 +22,6 @@ else {
     $script:mysqlCredential = [pscredential]::new('root', $appveyorPassword)
 
     # PostgreSQL
-    $script:postgresqlInstance = 'localhost:5432'
+    $script:postgresqlInstance = 'localhost'
     $script:postgresqlCredential = [pscredential]::new('sa', $appveyorPassword)
 }

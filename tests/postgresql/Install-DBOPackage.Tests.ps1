@@ -20,7 +20,7 @@ else {
 $connParams = @{
     Type        = 'PostgreSQL'
     SqlInstance = $script:postgresqlInstance
-    Silent = $true
+    Silent      = $true
     Credential  = $script:postgresqlCredential
 }
 
@@ -602,8 +602,8 @@ Describe "Install-DBOPackage PostgreSQL tests" -Tag $commandName, IntegrationTes
             $after = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             $after | Where-Object name -eq 'SchemaVersions' | Select-Object -ExpandProperty schema | Should Be 'testschema'
             # postgres deploys to the public schema by default
-            $after | Where-Object Name -eq 'a' | Select-Object -ExpandProperty schema | Should Be 'public'
-            $after | Where-Object Name -eq 'b' | Select-Object -ExpandProperty schema | Should Be 'public'
+            'a' | Should -BeIn $after.name
+            'b' | Should -BeIn $after.name
             ($after | Measure-Object).Count | Should Be ($rowsBefore + 3)
         }
     }
