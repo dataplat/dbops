@@ -23,5 +23,5 @@ else {
 
     # PostgreSQL
     $script:postgresqlInstance = 'localhost:5432'
-    $script:postgresqlCredential = [pscredential]::new('postgres', $appveyorPassword)
+    $script:postgresqlCredential = [pscredential]::new('sa', $appveyorPassword)
 }

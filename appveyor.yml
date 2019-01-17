@@ -13,6 +13,8 @@ image:
 environment:
   environment: development
   version: 0.1.$(appveyor_build_number)
+  PGUSER: postgres
+  PGPASSWORD: Password12!
 
   matrix:
   - scenario: all
@@ -42,10 +44,15 @@ for:
       - mysql
       - postgresql
 
+init:
+  - SET PATH=C:\Program Files\PostgreSQL\9.6\bin\;%PATH%
 
 before_test:
   # run preparation scripts
   - ps: .\tests\appveyor.prep.ps1
+  - psql -c "CREATE USER sa WITH PASSWORD 'Password12!';" -U postgres
+  - psql -c "ALTER USER sa WITH SUPERUSER;" -U postgres
+
 test_script:
   # Test with native PS version
   - ps: .\tests\appveyor.pester.ps1
