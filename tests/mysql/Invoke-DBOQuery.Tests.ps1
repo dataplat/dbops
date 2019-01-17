@@ -38,7 +38,7 @@ Describe "Invoke-DBOQuery MySQL tests" -Tag $commandName, IntegrationTests {
             $result[1].A | Should -Be 3
             $result[1].B | Should -Be 4
         }
-        It "should run the query with GO as a dataset" {
+        It "should run the query with semicolon as a dataset" {
             $query = "SELECT 1 AS A, 2 AS B;
             SELECT 3 AS A, 4 AS B"
             $result = Invoke-DBOQuery -Type MySQL -Query $query -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -As Dataset
@@ -120,7 +120,7 @@ Describe "Invoke-DBOQuery MySQL tests" -Tag $commandName, IntegrationTests {
     Context "Negative tests" {
         It "should throw an unknown table error" {
             $query = "SELECT * FROM nonexistent"
-            { $result = Invoke-DBOQuery -Type MySQL -Query $query -Database mysql -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential } | Should throw "Table 'mysql.nonexistent' doesn't exist"
+            { $result = Invoke-DBOQuery -Type MySQL -Query $query -Database mysql -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Silent } | Should throw "Table 'mysql.nonexistent' doesn't exist"
         }
         It "should throw a connection timeout error" {
             $query = "SELECT 1/0"
