@@ -46,10 +46,20 @@
     ],
     "PostgreSQL": [
         {
+            "Name": "System.Threading.Tasks.Extensions",
+            "Version": "4.3.0",
+            "Path": [
+                "lib\\portable-net45+win8+wp8+wpa81\\System.Threading.Tasks.Extensions.dll"
+            ],
+            "PSEdition": [
+                "Desktop"
+            ]
+        },
+        {
             "Name": "Npgsql",
             "Version": "3.2.6",
             "Path": [
-                "lib\\net45\\Npgsql.dll"
+                "lib\\net451\\Npgsql.dll"
             ],
             "PSEdition": [
                 "Desktop"
