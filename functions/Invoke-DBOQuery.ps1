@@ -254,7 +254,9 @@ function Invoke-DBOQuery {
                             Unregister-Event -SourceIdentifier "DBOpsMessaging"
                         }
                         $reader = $readerTask.GetAwaiter().GetResult()
+                        $setCounter = 0
                         do {
+                            $setCounter++
                             $table = [System.Data.DataTable]::new()
                             $definition = $reader.GetSchemaTable()
                             foreach ($column in $definition) {
@@ -269,13 +271,16 @@ function Invoke-DBOQuery {
                                 $null = $table.Columns.Add($name, $datatype)
                             }
                             # read rows async and assign values
+                            $rowCount = 0
                             while ($reader.ReadAsync().GetAwaiter().GetResult()) {
+                                $rowCount++
                                 $row = $table.NewRow()
                                 for ($i = 0; $i -lt $reader.FieldCount; $i++) {
                                     $row[$table.Columns[$i].ColumnName] = $reader.GetValue($i);
                                 }
                                 $table.Rows.Add($row)
                             }
+                            Write-PSFMessage -Level Debug -Message "Received $rowCount rows from resultset $setCounter"
                             $ds.Tables.Add($table)
                         } while ($reader.NextResult())
                         $reader.Close()
