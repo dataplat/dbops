@@ -23,6 +23,7 @@ namespace DBOps {
         Schema,
         ConnectionString,
         CreateDatabase,
+        ConnectionAttribute
     }
 }
 '@

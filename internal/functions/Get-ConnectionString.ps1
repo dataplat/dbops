@@ -5,6 +5,7 @@ function Get-ConnectionString {
         [DBOpsConfig]$Configuration,
         [Parameter(ParameterSetName = 'ConnString')]
         [string]$ConnectionString,
+        [hashtable]$ConnectionAttribute,
         [DBOps.ConnectionType]$Type,
         [switch]$Raw
     )
@@ -86,12 +87,28 @@ function Get-ConnectionString {
                 $csBuilder["Integrated Security"] = $true
             }
         }
+        # make attribute adjustments if any
+        if ($Configuration.ConnectionAttribute) {
+            foreach ($key in $Configuration.ConnectionAttribute.Keys) {
+                if ($csBuilder.ContainsKey($key)) {
+                    $csBuilder[$key] = $Configuration.ConnectionAttribute.$key
+                }
+            }
+        }
     }
     elseif ($Configuration) {
         $csBuilder = $builderType::new($Configuration.ConnectionString)
     }
     else {
         $csBuilder = $builderType::new($ConnectionString)
+    }
+    # make attribute adjustments if any
+    if ($ConnectionAttribute) {
+        foreach ($key in $ConnectionAttribute.Keys) {
+            if ($csBuilder.ContainsKey($key)) {
+                $csBuilder[$key] = $ConnectionAttribute.$key
+            }
+        }
     }
     # generate the connection string
     if ($Raw) {

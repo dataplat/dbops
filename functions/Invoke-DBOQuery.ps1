@@ -78,6 +78,10 @@ function Invoke-DBOQuery {
         Uses values in specified hashtable as parameters inside the SQL query.
         For example, <Invoke-DBOQuery -Query 'SELECT @p1' -Parameter @{ p1 = 1 }> would return "1" on SQL Server.
 
+    .PARAMETER ConnectionAttribute
+        Additional connection string attributes that should be added to the existing connection string, provided as a hashtable.
+        For example to enable SYSDBA permissions in Oracle, use the following: -ConnectionAttribute @{ 'DBA Privilege' = 'SYSDBA' }
+
     .PARAMETER Interactive
         Opens connection to the server and launches interactive session to query the server directly from the command line
 
@@ -152,6 +156,7 @@ function Invoke-DBOQuery {
         $As = "DataRow",
         [Alias('SqlParameters', 'SqlParameter', 'Parameters')]
         [System.Collections.IDictionary]$Parameter,
+        [hashtable]$ConnectionAttribute,
         [Parameter(Mandatory = $true,
             Position = 1,
             ParameterSetName = 'Interactive')]

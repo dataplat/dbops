@@ -98,6 +98,10 @@
         Defines the driver to use when connecting to the database server.
         Available options: SqlServer (default), Oracle
 
+    .PARAMETER ConnectionAttribute
+        Additional connection string attributes that should be added to the existing connection string, provided as a hashtable.
+        For example to enable SYSDBA permissions in Oracle, use the following: -ConnectionAttribute @{ 'DBA Privilege' = 'SYSDBA' }
+
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -167,7 +171,8 @@
         [AllowNull()]
         [string]$ConnectionString,
         [Alias('ConnectionType', 'ServerType')]
-        [DBOps.ConnectionType]$Type = (Get-DBODefaultSetting -Name rdbms.type -Value)
+        [DBOps.ConnectionType]$Type = (Get-DBODefaultSetting -Name rdbms.type -Value),
+        [hashtable]$ConnectionAttribute
     )
 
     begin {

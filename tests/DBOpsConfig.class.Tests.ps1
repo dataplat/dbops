@@ -144,6 +144,9 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             $config.Credential.GetNetworkCredential().Password  | Should Be $testPassword
             $config.SetValue('Credential', $null)
             $config.Credential | Should Be $null
+            #hashtable
+            $config.SetValue('ConnectionAttribute', @{ 'Connection Timeout' = 10 })
+            $config.ConnectionAttribute.'Connection Timeout' | Should -Be 10
             #Negatives
             { $config.SetValue('AppplicationName', 'MyApp3') } | Should Throw
         }
