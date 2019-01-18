@@ -95,7 +95,6 @@ Describe "Install-DBOPackage PostgreSQL tests" -Tag $commandName, IntegrationTes
             { $null = Install-DBOPackage $packageName @connParams -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod SingleTransaction } | Should throw 'relation "a" already exists'
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
-            # Create table cannot be rolled back in PostgreSQL
             $logTable | Should -Not -BeIn $testResults.name
             'a' | Should -Not -BeIn $testResults.name
             'b' | Should -Not -BeIn $testResults.name

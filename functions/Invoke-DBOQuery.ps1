@@ -107,6 +107,7 @@ function Invoke-DBOQuery {
         # Runs two scripts from the current folder using variables instead of specifying values directly
         '.\Script1.sql','.\Script2.sql' | Invoke-DBOQuery -SqlInstance '#{server}' -Database '#{db}' -Variables @{server = 'Srv1'; db = 'MyDb'}
 #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingWriteHost", "")]
     [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'Query')]
     param
     (

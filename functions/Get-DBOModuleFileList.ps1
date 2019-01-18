@@ -39,7 +39,6 @@ Get-DBOModuleFileList -Type Functions
         $obj.Name = $file.Name
         $obj
     }
-    $slash = [IO.Path]::DirectorySeparatorChar
     $moduleCatalog = Get-Content (Join-PSFPath -Normalize (Get-Item $PSScriptRoot).Parent.FullName "internal\json\dbops.json") -Raw | ConvertFrom-Json
     foreach ($property in $moduleCatalog.psobject.properties.Name) {
         if (!$Type -or $property -in $Type) {
