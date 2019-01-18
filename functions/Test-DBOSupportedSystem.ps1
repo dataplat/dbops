@@ -24,18 +24,6 @@ Function Test-DBOSupportedSystem {
     )
     begin {}
     process {
-        # try looking up already loaded assemblies
-        $lookupClass = switch ($Type) {
-            SqlServer { 'System.Data.SqlClient.SqlConnection' }
-            Oracle { 'Oracle.DataAccess.Client.OracleConnection' }
-            MySQL { 'MySql.Data.MySqlClient.MySqlConnection' }
-            PostgreSQL { 'Npgsql.NpgsqlConnection' }
-            default { Stop-PSFFunction -Message "Unknown type $Type" -EnableException $true }
-        }
-        if ([System.AppDomain]::CurrentDomain.GetAssemblies() | ForEach-Object { $_.GetType($lookupClass, 0) }) {
-            return $true
-        }
-        # otherwise get package from the local system
         $dependencies = Get-ExternalLibrary -Type $Type
         foreach ($package in $dependencies) {
             $packageEntry = Get-Package $package.Name -RequiredVersion $package.Version -ProviderName nuget -ErrorAction SilentlyContinue

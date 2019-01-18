@@ -51,7 +51,9 @@ class DBOpsLog : DbUp.Engine.Output.IUpgradeLog {
         if ($this.logToFile) {
             $this.WriteToFile($format, $params)
         }
-        $this.Status.DeploymentLog += $splatParam.Message
+        if ($this.Status) {
+            $this.Status.DeploymentLog += $splatParam.Message
+        }
     }
     [void] WriteError([string]$format, [object[]]$params) {
         $level = switch ($this.silent) {
@@ -72,7 +74,9 @@ class DBOpsLog : DbUp.Engine.Output.IUpgradeLog {
         if ($this.logToFile) {
             $this.WriteToFile($format, $params)
         }
-        $this.Status.DeploymentLog += $splatParam.Message
+        if ($this.Status) {
+            $this.Status.DeploymentLog += $splatParam.Message
+        }
     }
     [void] WriteWarning([string]$format, [object[]]$params) {
         $level = switch ($this.silent) {
@@ -93,7 +97,9 @@ class DBOpsLog : DbUp.Engine.Output.IUpgradeLog {
         if ($this.logToFile) {
             $this.WriteToFile($format, $params)
         }
-        $this.Status.DeploymentLog += $splatParam.Message
+        if ($this.Status) {
+            $this.Status.DeploymentLog += $splatParam.Message
+        }
     }
     [void] WriteToFile([string]$format, [object[]]$params) {
         $format -f $params | Out-File $this.logToFile -Append

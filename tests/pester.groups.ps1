@@ -5,6 +5,7 @@ $TestsRunGroups = @{
     "all"        = @(
         "$ModuleBase\tests\*"
         "$ModuleBase\tests\mysql\*"
+        "$ModuleBase\tests\postgresql\*"
     )
     "default"    = @(
         "$ModuleBase\tests\*"
