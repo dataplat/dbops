@@ -1,26 +1,6 @@
 {
     "Oracle": [
         {
-            "Name": "dbup-oracle",
-            "Version": "4.2.0",
-            "Path": [
-                "lib\\net45\\dbup-oracle.dll"
-            ],
-            "PSEdition": [
-                "Desktop"
-            ]
-        },
-        {
-            "Name": "dbup-oracle",
-            "Version": "4.2.0",
-            "Path": [
-                "lib\\netstandard2.0\\dbup-oracle.dll"
-            ],
-            "PSEdition": [
-                "Core"
-            ]
-        },
-        {
             "Name": "Oracle.ManagedDataAccess",
             "Version": "12.2.1100",
             "Path": [

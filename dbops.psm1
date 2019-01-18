@@ -1,16 +1,16 @@
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$moduleCatalog = Get-Content "$PSScriptRoot\internal\json\dbops.json" -Raw | ConvertFrom-Json
-foreach ($bin in $moduleCatalog.Libraries) {
+. $PSScriptRoot\functions\Get-DBOModuleFileList.ps1
+foreach ($bin in (Get-DBOModuleFileList -Type Libraries -Edition $PSVersionTable.PSEdition).FullName) {
     if ($PSVersionTable.Platform -eq 'Win32NT') {
-        Unblock-File -Path "$PSScriptRoot\$bin" -ErrorAction SilentlyContinue
+        Unblock-File -Path $bin -ErrorAction SilentlyContinue
     }
-    Add-Type -Path "$PSScriptRoot\$bin"
+    Add-Type -Path $bin
 }
 
 'Functions', 'Internal' | ForEach-Object {
-    foreach ($function in $moduleCatalog.$_) {
-        . "$PSScriptRoot\$function"
+    foreach ($function in (Get-DBOModuleFileList -Type $_).FullName) {
+        . $function
     }
 }
 

@@ -47,9 +47,9 @@ Describe "Invoke-DBOPackageCI tests" -Tag $commandName, UnitTests {
             Join-PSFPath -Normalize 'content\1.0.1\success\3.sql' | Should BeIn $testResults.Path
         }
         It "should contain module files" {
-            Join-PSFPath -Normalize 'Modules\dbops\dbops.psd1' | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize 'Modules\dbops\bin\dbup-sqlserver.dll' | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize 'Modules\dbops\bin\dbup-core.dll' | Should BeIn $testResults.Path
+            foreach ($file in Get-DBOModuleFileList) {
+                Join-PSFPath -Normalize Modules\dbops $file.Path | Should BeIn $testResults.Path
+            }
         }
         It "should contain config files" {
             Join-PSFPath -Normalize 'dbops.config.json' | Should BeIn $testResults.Path
@@ -75,9 +75,9 @@ Describe "Invoke-DBOPackageCI tests" -Tag $commandName, UnitTests {
             Join-PSFPath -Normalize 'content\1.0.2\transactional-failure\2.sql' | Should BeIn $testResults.Path
         }
         It "should contain module files" {
-            Join-PSFPath -Normalize 'Modules\dbops\dbops.psd1' | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize 'Modules\dbops\bin\dbup-sqlserver.dll' | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize 'Modules\dbops\bin\dbup-core.dll' | Should BeIn $testResults.Path
+            foreach ($file in Get-DBOModuleFileList) {
+                Join-PSFPath -Normalize Modules\dbops $file.Path | Should BeIn $testResults.Path
+            }
         }
         It "should contain config files" {
             Join-PSFPath -Normalize 'dbops.config.json' | Should BeIn $testResults.Path
@@ -110,9 +110,9 @@ Describe "Invoke-DBOPackageCI tests" -Tag $commandName, UnitTests {
             Join-PSFPath -Normalize 'content\2.0.1\sqlserver-tests\transactional-failure\2.sql' | Should BeIn $testResults.Path
         }
         It "should contain module files" {
-            Join-PSFPath -Normalize 'Modules\dbops\dbops.psd1' | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize 'Modules\dbops\bin\dbup-sqlserver.dll' | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize 'Modules\dbops\bin\dbup-core.dll' | Should BeIn $testResults.Path
+            foreach ($file in Get-DBOModuleFileList) {
+                Join-PSFPath -Normalize Modules\dbops $file.Path | Should BeIn $testResults.Path
+            }
         }
         It "should contain config files" {
             Join-PSFPath -Normalize 'dbops.config.json' | Should BeIn $testResults.Path
