@@ -37,6 +37,7 @@ for:
       - psql -c "CREATE USER sa WITH PASSWORD 'Password12!';" -U postgres
       - psql -c "ALTER USER sa WITH SUPERUSER;" -U postgres
       - ps: .\tests\appveyor.prep.ps1
+      - docker run --name dbops-oracle -d -p 1521:1521 -e ORACLE_ALLOW_REMOTE=true wnameless/oracle-xe-11g
 
   - matrix:
       only:
@@ -52,6 +53,7 @@ for:
       - sudo -u postgres psql -c "CREATE USER sa WITH PASSWORD 'Password12!';"
       - sudo -u postgres psql -c "ALTER USER sa WITH SUPERUSER;"
       - ps: .\tests\appveyor.prep.ps1
+      - docker run --name dbops-oracle -d -p 1521:1521 -e ORACLE_ALLOW_REMOTE=true wnameless/oracle-xe-11g
 
 # before_test:
 #   # run preparation scripts

@@ -2,7 +2,6 @@
     "Libraries": [
         "bin\\dbup-core.dll",
         "bin\\dbup-sqlserver.dll",
-        "bin\\dbup-oracle.dll",
         "bin\\dbup-mysql.dll",
         "bin\\dbup-postgresql.dll"
     ],
