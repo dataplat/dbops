@@ -12,7 +12,7 @@ function Get-DatabaseConnection {
     }
     $connection = switch ($Type) {
         SqlServer { [System.Data.SqlClient.SqlConnection]::new($ConnectionString) }
-        Oracle { [Oracle.DataAccess.Client.OracleConnection]::new($ConnectionString) }
+        Oracle { [Oracle.ManagedDataAccess.Client.OracleConnection]::new($ConnectionString) }
         MySQL { [MySql.Data.MySqlClient.MySqlConnection]::new($ConnectionString) }
         PostgreSQL { [Npgsql.NpgsqlConnection]::new($ConnectionString) }
         default { Stop-PSFFunction -Message "Unknown type $Type" -EnableException $true }
