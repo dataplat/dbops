@@ -217,8 +217,14 @@ function Invoke-DBOQuery {
             }
             $queryText = $fileObjects | Get-Content -Raw
         }
+        $delimiter = switch ($Type) {
+            SqlServer { 'GO' }
+            PostgreSQL { 'semicolon (;)' }
+            Oracle { 'semicolon (;)' }
+            MySQL { 'semicolon (;)' }
+        }
         if ($Interactive) {
-            Write-PSFMessage -Level Host -Message "Running in interactive mode. Finish the query with a semicolon to execute it immediately. \q, exit, or quit to exit."
+            Write-PSFMessage -Level Host -Message "Running in interactive mode. Finish the query with a $delimiter to execute it immediately. \q, exit, or quit to exit."
         }
 
         #Replace tokens in the sql code if any
@@ -235,7 +241,7 @@ function Invoke-DBOQuery {
                 $queryList = $inputLine = ''
                 $interactiveQuery = @()
                 # read until user finishes with a ;
-                while (-not $inputLine -or $inputLine.substring($inputLine.Length - 1, 1) -ne ';') {
+                while ($true) {
                     $inputLine = Read-Host
                     # exit on \q
                     if ($inputLine -in '\q', 'exit', 'quit') {
@@ -243,8 +249,11 @@ function Invoke-DBOQuery {
                         return
                     }
                     $interactiveQuery += $inputLine
+                    $fullQuery = ($interactiveQuery -join "`n").Trim()
+                    $queryList = $dbUpConnection.SplitScriptIntoCommands($fullQuery)
+                    if ($queryList[0] -and $queryList[0] -ne $fullQuery) { break }
                 }
-                $queryList = $interactiveQuery -join "`n"
+                $queryList = $queryList[0]
             }
             $ds = [System.Data.DataSet]::new()
             $qCount = 0
@@ -254,6 +263,7 @@ function Invoke-DBOQuery {
                     # split commands using DbUp parser
                     foreach ($splitQuery in $dbUpConnection.SplitScriptIntoCommands($queryItem)) {
                         try {
+                            Write-PSFMessage -Level Verbose -Message "Executing sub-query $splitQuery"
                             # only Sql Server supports messaging right now
                             if ($Type -eq 'SqlServer') {
                                 # Add message events
