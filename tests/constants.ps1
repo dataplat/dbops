@@ -27,5 +27,5 @@ else {
 
     # Oracle
     $script:oracleInstance = 'localhost'
-    $script:oracleCredential = [pscredential]::new('system', (ConvertTo-SecureString 'oracle' -AsPlainText -Force))
+    $script:oracleCredential = [pscredential]::new('sys', (ConvertTo-SecureString 'oracle' -AsPlainText -Force))
 }
