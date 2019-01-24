@@ -28,6 +28,7 @@ for:
           #scenario: all
     environment:
         mssql_instance: localhost\SQL2017
+        scenario: windows
     services:
       - mssql2017
       - mysql
@@ -37,13 +38,11 @@ for:
       - psql -c "CREATE USER sa WITH PASSWORD 'Password12!';" -U postgres
       - psql -c "ALTER USER sa WITH SUPERUSER;" -U postgres
       - ps: .\tests\appveyor.prep.ps1
-      - docker-switch-linux
-      - docker run --name dbops-oracle -d -p 1521:1521 -e ORACLE_ALLOW_REMOTE=true wnameless/oracle-xe-11g
 
   - matrix:
       only:
         - image: Ubuntu1804
-          #scenario: default
+          scenario: all
     environment:
         mssql_instance: localhost
     services:

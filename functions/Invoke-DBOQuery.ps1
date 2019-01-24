@@ -165,6 +165,38 @@ function Invoke-DBOQuery {
     )
 
     begin {
+        function Write-HostTable {
+            Param (
+                $Table
+            )
+            $format = ""
+            $totalLength = 0
+            if ($Table) {
+                for ($i = 0; $i -lt $Table.Columns.Count; $i++) {
+                    $maxLength = if ($Table.Rows.Count -eq 0) { 0 } else {
+                        $Table.Rows | Foreach-Object { $len = 0 } {
+                            $itemLength = ([string]$_.ItemArray[$i]).Length
+                            if ($itemLength -gt $len) { $len = $itemLength }
+                        } { ($len + 2) }
+                    }
+                    if ($Table.Columns[$i].ColumnName.Length -gt $maxLength) { $maxLength = $Table.Columns[$i].ColumnName.Length }
+                    $format += " {$i, $maxLength} |"
+                    $totalLength += ($maxLength + 3)
+                }
+                $format = "|$format"
+                $totalLength += 1
+
+                Write-Host ([string]::new('-', $totalLength))
+                Write-Host ($format -f $Table.Columns.ColumnName)
+                Write-Host ([string]::new('-', $totalLength))
+                foreach ($row in $Table.Rows) {
+                    Write-Host ($format -f $row.ItemArray)
+                }
+                Write-Host ([string]::new('-', $totalLength))
+                # totals
+                Write-Host ("{0, $totalLength}" -f "($($Table.Rows.Count) rows)")
+            }
+        }
     }
     process {
         $config = New-DBOConfig -Configuration $Configuration
@@ -275,7 +307,10 @@ function Invoke-DBOQuery {
                             $command.CommandText = $splitQuery
                             foreach ($key in $Parameter.Keys) {
                                 $null = switch ($Type) {
-                                    Oracle { $command.Parameters.Add($key, $Parameter[$key]) }
+                                    Oracle {
+                                        $command.BindByName = $true
+                                        $command.Parameters.Add($key, $Parameter[$key])
+                                    }
                                     default { $command.Parameters.AddWithValue($key, $Parameter[$key]) }
                                 }
                             }
@@ -347,33 +382,7 @@ function Invoke-DBOQuery {
             }
             if ($Interactive) {
                 # output right to the screen
-                $format = ""
-                $totalLength = 0
-                $t = $ds.Tables[0]
-                for ($i = 0; $i -lt $t.Columns.Count; $i++) {
-                    $maxLength = if ($t.Rows.Count -eq 0) { 0 } else {
-                        $t.Rows | Foreach-Object { $len = 0 } {
-                            $itemLength = ([string]$_.ItemArray[$i]).Length
-                            if ($itemLength -gt $len) { $len = $itemLength }
-                        } { ($len + 2) }
-                    }
-                    if ($t.Columns[$i].ColumnName.Length -gt $maxLength) { $maxLength = $t.Columns[$i].ColumnName.Length }
-                    $format += " {$i, $maxLength} |"
-                    $totalLength += ($maxLength + 3)
-                }
-                $format = "|$format"
-                $totalLength += 1
-                if ($t) {
-                    Write-Host ([string]::new('-', $totalLength))
-                    Write-Host ($format -f $t.Columns.ColumnName)
-                    Write-Host ([string]::new('-', $totalLength))
-                    foreach ($row in $t.Rows) {
-                        Write-Host ($format -f $row.ItemArray)
-                    }
-                    Write-Host ([string]::new('-', $totalLength))
-                    # totals
-                    Write-Host ("{0, $totalLength}" -f "($($t.Rows.Count) rows)")
-                }
+                Write-HostTable -Table $ds.Tables[0]
             }
             else {
                 # output as object

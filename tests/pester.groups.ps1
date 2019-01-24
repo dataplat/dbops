@@ -6,6 +6,12 @@ $TestsRunGroups = @{
         "$ModuleBase\tests\*"
         "$ModuleBase\tests\mysql\*"
         "$ModuleBase\tests\postgresql\*"
+        "$ModuleBase\tests\oracle\*"
+    )
+    "windows"    = @(
+        "$ModuleBase\tests\*"
+        "$ModuleBase\tests\mysql\*"
+        "$ModuleBase\tests\postgresql\*"
     )
     "default"    = @(
         "$ModuleBase\tests\*"
@@ -15,6 +21,9 @@ $TestsRunGroups = @{
     )
     "postgresql" = @(
         "$ModuleBase\tests\postgresql\*"
+    )
+    "oracle"     = @(
+        "$ModuleBase\tests\oracle\*"
     )
     # do not run everywhere
     "disabled"   = @()
