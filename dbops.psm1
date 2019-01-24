@@ -1,16 +1,16 @@
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$moduleCatalog = Get-Content "$PSScriptRoot\internal\json\dbops.json" -Raw | ConvertFrom-Json
-foreach ($bin in $moduleCatalog.Libraries) {
+. $PSScriptRoot\functions\Get-DBOModuleFileList.ps1
+foreach ($bin in (Get-DBOModuleFileList -Type Libraries -Edition $PSVersionTable.PSEdition).FullName) {
     if ($PSVersionTable.Platform -eq 'Win32NT') {
-        Unblock-File -Path "$PSScriptRoot\$bin" -ErrorAction SilentlyContinue
+        Unblock-File -Path $bin -ErrorAction SilentlyContinue
     }
-    Add-Type -Path "$PSScriptRoot\$bin"
+    Add-Type -Path $bin
 }
 
 'Functions', 'Internal' | ForEach-Object {
-    foreach ($function in $moduleCatalog.$_) {
-        . "$PSScriptRoot\$function"
+    foreach ($function in (Get-DBOModuleFileList -Type $_).FullName) {
+        . $function
     }
 }
 
@@ -138,6 +138,7 @@ Set-PSFConfig -FullName dbops.Silent -Value $false -Initialize -Validation bool 
 Set-PSFConfig -FullName dbops.Credential -Value $null -Initialize -Description "Database credentials to authenticate with."
 Set-PSFConfig -FullName dbops.Variables -Value $null -Initialize -Validation hashtable -Description "A hashtable with key/value pairs representing #{variables} that will be swapped during execution."
 Set-PSFConfig -FullName dbops.ConnectionString -Value $null -Initialize -Description "Connection string to the target database. If specified, overrides SqlInstance and Database parameters."
+Set-PSFConfig -FullName dbops.ConnectionAttribute -Value $null -Validation hashtable -Initialize -Description "Additional connection string parameters. Existing connection string will be augmented."
 Set-PSFConfig -FullName dbops.CreateDatabase -Value $false -Validation bool -Initialize -Description "Determines whether to create an empty database upon deployment if it haven't been created yet."
 Set-PSFConfig -FullName dbops.mail.Template -Value "bin\mail_template.htm" -Initialize -Description "Relative or absolute path to the email template file."
 Set-PSFConfig -FullName dbops.mail.SmtpServer -Value "" -Initialize -Description "Smtp server address."

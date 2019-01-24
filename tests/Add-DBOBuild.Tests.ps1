@@ -18,9 +18,9 @@ else {
 $workFolder = Join-PSFPath $here etc "$commandName.Tests.dbops"
 $unpackedFolder = Join-Path $workFolder 'unpacked'
 
-$scriptFolder =  Get-Item (Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success")
+$scriptFolder = Get-Item (Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success")
 $v1scripts = Get-Item (Join-Path $scriptFolder '1.sql')
-$v2scripts =  Get-Item (Join-Path $scriptFolder '2.sql')
+$v2scripts = Get-Item (Join-Path $scriptFolder '2.sql')
 $packageName = Join-Path $workFolder 'TempDeployment.zip'
 $packageNameTest = "$packageName.test.zip"
 $packageNoPkgFile = Join-Path $workFolder "pkg_nopkgfile.zip"
@@ -58,9 +58,9 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
             Join-PSFPath -Normalize 'content\2.0\1.sql' | Should Not BeIn $testResults.Path
         }
         It "should contain module files" {
-            Join-PSFPath -Normalize 'Modules\dbops\dbops.psd1' | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize 'Modules\dbops\bin\dbup-sqlserver.dll' | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize 'Modules\dbops\bin\dbup-core.dll' | Should BeIn $testResults.Path
+            foreach ($file in Get-DBOModuleFileList) {
+                Join-PSFPath -Normalize Modules\dbops $file.Path | Should BeIn $testResults.Path
+            }
         }
         It "should contain config files" {
             'dbops.config.json' | Should BeIn $testResults.Path
@@ -97,9 +97,9 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
             Join-PSFPath -Normalize "content\2.0\$(Split-Path $scriptFolder -Leaf)\1.sql" | Should Not BeIn $testResults.Path
         }
         It "should contain module files" {
-            Join-PSFPath -Normalize 'Modules\dbops\dbops.psd1' | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize 'Modules\dbops\bin\dbup-sqlserver.dll' | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize 'Modules\dbops\bin\dbup-core.dll' | Should BeIn $testResults.Path
+            foreach ($file in Get-DBOModuleFileList) {
+                Join-PSFPath -Normalize Modules\dbops $file.Path | Should BeIn $testResults.Path
+            }
         }
         It "should contain config files" {
             'dbops.config.json' | Should BeIn $testResults.Path
@@ -161,9 +161,9 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
             Join-PSFPath -Normalize "content\3.0\$(Split-Path $scriptFolder -Leaf)\1.sql" | Should Not BeIn $testResults.Path
         }
         It "should contain module files" {
-            Join-PSFPath -Normalize 'Modules\dbops\dbops.psd1' | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize 'Modules\dbops\bin\dbup-sqlserver.dll' | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize 'Modules\dbops\bin\dbup-core.dll' | Should BeIn $testResults.Path
+            foreach ($file in Get-DBOModuleFileList) {
+                Join-PSFPath -Normalize Modules\dbops $file.Path | Should BeIn $testResults.Path
+            }
         }
         It "should contain config files" {
             'dbops.config.json' | Should BeIn $testResults.Path
@@ -181,7 +181,7 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
             Remove-Item $packageNoPkgFile
         }
         It "should show warning when there are no new files" {
-            $null= Add-DBOBuild -Name $packageNameTest -ScriptPath $v1scripts -Type 'Unique' -WarningVariable warningResult 3>$null
+            $null = Add-DBOBuild -Name $packageNameTest -ScriptPath $v1scripts -Type 'Unique' -WarningVariable warningResult 3>$null
             $warningResult.Message -join ';' | Should BeLike '*No scripts have been selected, the original file is unchanged.*'
         }
         It "should throw error when package data file does not exist" {

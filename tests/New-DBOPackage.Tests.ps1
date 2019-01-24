@@ -53,8 +53,9 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
         }
         It "should contain module files" {
             $testResults = Get-ArchiveItem $packageName
-            Join-PSFPath -Normalize 'Modules\dbops\dbops.psd1' | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize 'Modules\dbops\bin\dbup-sqlserver.dll' | Should BeIn $testResults.Path
+            foreach ($file in Get-DBOModuleFileList) {
+                Join-PSFPath -Normalize Modules\dbops $file.Path | Should BeIn $testResults.Path
+            }
         }
         It "should contain config files" {
             $testResults = Get-ArchiveItem $packageName
@@ -66,7 +67,7 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
             'Deploy.ps1' | Should BeIn $testResults.Path
         }
         It "should create a zip package based on name without extension" {
-            $testResults = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -Name ($packageName -replace '\.zip$','') -Force
+            $testResults = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -Name ($packageName -replace '\.zip$', '') -Force
             $testResults | Should Not Be $null
             $testResults.Name | Should Be (Split-Path $packageName -Leaf)
             $testResults.FullName | Should Be (Get-Item $packageName).FullName

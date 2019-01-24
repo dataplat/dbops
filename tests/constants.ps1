@@ -24,4 +24,8 @@ else {
     # PostgreSQL
     $script:postgresqlInstance = 'localhost'
     $script:postgresqlCredential = [pscredential]::new('sa', $appveyorPassword)
+
+    # Oracle
+    $script:oracleInstance = 'localhost'
+    $script:oracleCredential = [pscredential]::new('sys', (ConvertTo-SecureString 'oracle' -AsPlainText -Force))
 }
