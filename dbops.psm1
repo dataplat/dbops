@@ -93,10 +93,7 @@ Register-PSFConfigValidation -Name "connectionType" -ScriptBlock {
     Param (
         $Value
     )
-    $allowedTypes = @(
-        SQLServer
-        Oracle
-    )
+    $allowedTypes = [DBOps.ConnectionType].GetEnumNames()
     $failMessage = "Only the following values are allowed: $($allowedTypes -join ', ')"
     $Result = New-Object PSObject -Property @{
         Success = $True
