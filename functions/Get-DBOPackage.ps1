@@ -54,8 +54,9 @@ Function Get-DBOPackage {
                     [DBOpsPackage]::new($InputObject.FullName)
                 }
                 elseif ($InputObject -is [String]) {
-                    Write-PSFMessage -Level Verbose -Message "Loading package file from the archive $($InputObject)"
-                    [DBOpsPackage]::new($InputObject)
+                    $packageFile = Get-Item $InputObject -ErrorAction Stop
+                    Write-PSFMessage -Level Verbose -Message "Loading package file from the archive $($packageFile)"
+                    [DBOpsPackage]::new($packageFile.FullName)
                 }
                 else {
                     Stop-PSFFunction -EnableException $true -Message "The following object type is not supported: $($InputObject.GetType().Name). The only supported types are DBOpsPackage, FileInfo and String"

@@ -31,7 +31,7 @@
     Get-Item 'mypackage.zip'| Export-DBOConfig .\config.json
     
     #>
-    [CmdletBinding(SupportsShouldProcess = $true)]
+    [CmdletBinding(SupportsShouldProcess)]
     Param (
         [Parameter(Mandatory, ValueFromPipeline)]
         [object]$InputObject,

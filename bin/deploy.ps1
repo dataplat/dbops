@@ -1,4 +1,5 @@
-[CmdletBinding(SupportsShouldProcess = $true)]
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSShouldProcess", "")]
+[CmdletBinding(SupportsShouldProcess)]
 Param (
     [Alias('Server', 'SqlServer', 'DBServer', 'Instance')]
     [string]$SqlInstance,
@@ -20,13 +21,14 @@ Param (
     [switch]$Append,
     [Alias('Config')]
     [object]$Configuration,
+    [string[]]$Build,
     [string]$Schema,
     [switch]$CreateDatabase,
     [AllowNull()]
     [string]$ConnectionString,
-    [ValidateSet('SQLServer', 'Oracle')]
-    [Alias('Type', 'ServerType')]
-    [string]$ConnectionType = 'SQLServer'
+    [ValidateSet('SqlServer', 'Oracle', 'MySQL', 'PostgreSQL')]
+    [Alias('ConnectionType', 'ServerType')]
+    [string]$Type = 'SQLServer'
 )
 
 #Import module
@@ -37,22 +39,23 @@ If (-not (Get-Module dbops)) {
 
 $config = Get-DBOConfig -Path "$PSScriptRoot\dbops.config.json" -Configuration $Configuration
 
-#Convert custom parameters into a package configuration, excluding variables
+#Merge custom parameters into a configuration
+$newConfig = @{}
 foreach ($key in ($PSBoundParameters.Keys)) {
-    if ($key -in [DBOpsConfigProperty].GetEnumNames() -and $key -ne 'Variables') {
-        Write-PSFMessage -Level Debug -Message "Overriding parameter $key with $($PSBoundParameters[$key])"
-        $config.SetValue($key, $PSBoundParameters[$key])
+    if ($key -in [DBOpsConfig]::EnumProperties()) {
+        $newConfig.$key = $PSBoundParameters[$key]
     }
 }
+$config.Merge($newConfig)
 
 #Prepare deployment function call parameters
 $params = @{
-    PackageFile = "$PSScriptRoot\dbops.package.json"
+    PackageFile   = "$PSScriptRoot\dbops.package.json"
     Configuration = $config
 }
 foreach ($key in ($PSBoundParameters.Keys)) {
     #If any custom properties were specified
-    if ($key -in @('OutputFile', 'Append', 'Variables', 'ConnectionType')) {
+    if ($key -in @('OutputFile', 'Append', 'Type', 'Build')) {
         $params += @{ $key = $PSBoundParameters[$key] }
     }
 }

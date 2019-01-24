@@ -1,17 +1,17 @@
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$moduleCatalog = Get-Content "$PSScriptRoot\internal\json\dbops.json" -Raw | ConvertFrom-Json
-foreach ($bin in $moduleCatalog.Libraries) {
-    Unblock-File -Path "$PSScriptRoot\$bin" -ErrorAction SilentlyContinue
-    Add-Type -Path "$PSScriptRoot\$bin"
+. $PSScriptRoot\functions\Get-DBOModuleFileList.ps1
+foreach ($bin in (Get-DBOModuleFileList -Type Libraries -Edition $PSVersionTable.PSEdition).FullName) {
+    if ($PSVersionTable.Platform -eq 'Win32NT') {
+        Unblock-File -Path $bin -ErrorAction SilentlyContinue
+    }
+    Add-Type -Path $bin
 }
 
-foreach ($function in $moduleCatalog.Functions) {
-    . "$PSScriptRoot\$function"
-}
-
-foreach ($function in $moduleCatalog.Internal) {
-    . "$PSScriptRoot\$function"
+'Functions', 'Internal' | ForEach-Object {
+    foreach ($function in (Get-DBOModuleFileList -Type $_).FullName) {
+        . $function
+    }
 }
 
 # defining validations
@@ -20,8 +20,8 @@ Register-PSFConfigValidation -Name "transaction" -ScriptBlock {
     Param (
         $Value
     )
-    
-    $Result = New-Object PSOBject -Property @{
+
+    $Result = New-Object PSObject -Property @{
         Success = $True
         Value   = $null
         Message = ""
@@ -39,7 +39,7 @@ Register-PSFConfigValidation -Name "transaction" -ScriptBlock {
         $Result.Message = "Failed to convert value to string"
         $Result.Success = $False
     }
-    
+
     return $Result
 }
 
@@ -47,8 +47,8 @@ Register-PSFConfigValidation -Name "securestring" -ScriptBlock {
     Param (
         $Value
     )
-    
-    $Result = New-Object PSOBject -Property @{
+
+    $Result = New-Object PSObject -Property @{
         Success = $True
         Value   = $null
         Message = ""
@@ -67,8 +67,8 @@ Register-PSFConfigValidation -Name "hashtable" -ScriptBlock {
     Param (
         $Value
     )
-    
-    $Result = New-Object PSOBject -Property @{
+
+    $Result = New-Object PSObject -Property @{
         Success = $True
         Value   = $null
         Message = ""
@@ -84,6 +84,33 @@ Register-PSFConfigValidation -Name "hashtable" -ScriptBlock {
     }
     catch {
         $Result.Message = "Failed to convert value to hashtable. Only hashtables are allowed."
+        $Result.Success = $False
+    }
+    return $Result
+}
+
+Register-PSFConfigValidation -Name "connectionType" -ScriptBlock {
+    Param (
+        $Value
+    )
+    $allowedTypes = [DBOps.ConnectionType].GetEnumNames()
+    $failMessage = "Only the following values are allowed: $($allowedTypes -join ', ')"
+    $Result = New-Object PSObject -Property @{
+        Success = $True
+        Value   = $null
+        Message = ""
+    }
+    try {
+        if (([string]$Value) -is [string] -and [string]$Value -in $allowedTypes) {
+            $Result.Value = [string]$Value
+        }
+        else {
+            $Result.Message = $failMessage
+            $Result.Success = $False
+        }
+    }
+    catch {
+        $Result.Message = "Failed to convert value to string. $failMessage"
         $Result.Success = $False
     }
     return $Result
@@ -108,17 +135,16 @@ Set-PSFConfig -FullName dbops.Silent -Value $false -Initialize -Validation bool 
 Set-PSFConfig -FullName dbops.Credential -Value $null -Initialize -Description "Database credentials to authenticate with."
 Set-PSFConfig -FullName dbops.Variables -Value $null -Initialize -Validation hashtable -Description "A hashtable with key/value pairs representing #{variables} that will be swapped during execution."
 Set-PSFConfig -FullName dbops.ConnectionString -Value $null -Initialize -Description "Connection string to the target database. If specified, overrides SqlInstance and Database parameters."
+Set-PSFConfig -FullName dbops.ConnectionAttribute -Value $null -Validation hashtable -Initialize -Description "Additional connection string parameters. Existing connection string will be augmented."
 Set-PSFConfig -FullName dbops.CreateDatabase -Value $false -Validation bool -Initialize -Description "Determines whether to create an empty database upon deployment if it haven't been created yet."
 Set-PSFConfig -FullName dbops.mail.Template -Value "bin\mail_template.htm" -Initialize -Description "Relative or absolute path to the email template file."
 Set-PSFConfig -FullName dbops.mail.SmtpServer -Value "" -Initialize -Description "Smtp server address."
 Set-PSFConfig -FullName dbops.mail.From -Value "" -Initialize -Description "'From' field in the outgoing emails."
 Set-PSFConfig -FullName dbops.mail.To -Value "" -Initialize -Description "'To' field in the outgoing emails."
 Set-PSFConfig -FullName dbops.mail.Subject -Value "DBOps deployment status" -Initialize -Description "'Subject' field in the outgoing emails."
-
-# defining aliases
-
-New-Alias -Name Write-Message -Value Write-PSFMessage
-New-Alias -Name Stop-Function -Value Stop-PSFFunction
+Set-PSFConfig -FullName dbops.security.encryptionkey -Value "~/.dbops.key" -Initialize -Description "Path to a custom encryption key used to encrypt/decrypt passwords. The key should be a binary file with a length of 128, 192 or 256 bits. Key will be generated automatically if not exists."
+Set-PSFConfig -FullName dbops.security.usecustomencryptionkey -Value ($PSVersionTable.Platform -eq 'Unix') -Validation bool -Initialize -Description "Determines whether to use a custom encryption key for storing passwords. Enabled by default only on Unix platforms."
+Set-PSFConfig -FullName dbops.rdbms.type -Value 'SqlServer' -Validation connectionType -Initialize -Description "Assumes a certain RDBMS as a default one for each command. SQLServer by default"
 
 # extensions for SMO
 $typeData = Get-TypeData -TypeName 'Microsoft.SqlServer.Management.Smo.Database'

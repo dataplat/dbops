@@ -53,14 +53,19 @@
             $config = $package.Configuration
         }
     }
-    if ($config -and $Configuration) {
+    if (Test-PSFParameterBinding -ParameterName Configuration) {
         if ($Configuration -is [DBOpsConfig] -or $Configuration -is [hashtable]) {
-            Write-PSFMessage -Level Verbose -Message "Merging configuration"
+            Write-PSFMessage -Level Verbose -Message "Merging configuration from a $($Configuration.GetType().Name) object"
             $config.Merge($Configuration)
         }
-        else {
-            Stop-PSFFunction -EnableException $true -Message "The following object type is not supported: $($InputObject.GetType().Name). The only supported types are DBOpsConfig and Hashtable."
+        elseif ($Configuration -is [String] -or $Configuration -is [System.IO.FileInfo]) {
+            $configFromFile = Get-DBOConfig -Path $Configuration
+            Write-PSFMessage -Level Verbose -Message "Merging configuration from file $($Configuration)"
+            $config.Merge($configFromFile)
+        }
+        elseif ($Configuration) {
+            Stop-PSFFunction -EnableException $true -Message "The following object type is not supported: $($Configuration.GetType().Name). The only supported types are DBOpsConfig, Hashtable, FileInfo and String"
         }
     }
-    $config
+    return $config
 }

@@ -1,5 +1,6 @@
 using namespace System.IO
 using namespace System.IO.Compression
+using namespace System.Data
 
 class DBOpsHelper {
     # Only keeps N last items in the path - helps to build relative paths
@@ -24,7 +25,7 @@ class DBOpsHelper {
         return $b
     }
     # Converts a deflate stream into a memory stream - aka reads zip contents and writes them into memory
-    static [System.IO.MemoryStream] ReadDeflateStream ([DeflateStream]$stream) {
+    static [System.IO.MemoryStream] ReadDeflateStream ([Stream]$stream) {
         $memStream = [System.IO.MemoryStream]::new()
         $stream.CopyTo($memStream)
         $stream.Close()
@@ -103,37 +104,55 @@ class DBOpsHelper {
     }
     static [string] DecodeBinaryText ([byte[]]$Array) {
         $skipBytes = 0
+        # null
+        if ($Array.Length -eq 0) {
+            return [NullString]::Value
+        }
         # EF BB BF (UTF8)
-        if ( $Array[0] -eq 0xef -and $Array[1] -eq 0xbb -and $Array[2] -eq 0xbf ) {
+        if ($Array.Length -ge 3 -and $Array[0] -eq 0xef -and $Array[1] -eq 0xbb -and $Array[2] -eq 0xbf) {
             $encoding = [System.Text.Encoding]::UTF8
             $skipBytes = 3
         }
         # 00 00 FE FF (UTF32 Big-Endian)
-        elseif ($Array[0] -eq 0 -and $Array[1] -eq 0 -and $Array[2] -eq 0xfe -and $Array[3] -eq 0xff) {
+        elseif ($Array.Length -ge 4 -and $Array[0] -eq 0 -and $Array[1] -eq 0 -and $Array[2] -eq 0xfe -and $Array[3] -eq 0xff) {
             $encoding = [System.Text.Encoding]::UTF32
             $skipBytes = 4
         }
         # FF FE 00 00 (UTF32 Little-Endian)
-        elseif ($Array[0] -eq 0xff -and $Array[1] -eq 0xfe -and $Array[2] -eq 0 -and $Array[3] -eq 0) {
+        elseif ($Array.Length -ge 4 -and $Array[0] -eq 0xff -and $Array[1] -eq 0xfe -and $Array[2] -eq 0 -and $Array[3] -eq 0) {
             $encoding = [System.Text.Encoding]::UTF32
             $skipBytes = 4
         }
         # FE FF  (UTF-16 Big-Endian)
-        elseif ($Array[0] -eq 0xfe -and $Array[1] -eq 0xff) {
+        elseif ($Array.Length -ge 2 -and $Array[0] -eq 0xfe -and $Array[1] -eq 0xff) {
             $encoding = [System.Text.Encoding]::BigEndianUnicode
             $skipBytes = 2
         }
         # FF FE  (UTF-16 Little-Endian)
-        elseif ($Array[0] -eq 0xff -and $Array[1] -eq 0xfe) {
+        elseif ($Array.Length -ge 2 -and $Array[0] -eq 0xff -and $Array[1] -eq 0xfe) {
             $encoding = [System.Text.Encoding]::Unicode
             $skipBytes = 2
         }
-        elseif ($Array[0] -eq 0x2b -and $Array[1] -eq 0x2f -and $Array[2] -eq 0x76 -and ($Array[3] -eq 0x38 -or $Array[3] -eq 0x39 -or $Array[3] -eq 0x2b -or $Array[3] -eq 0x2f)) {
+        elseif ($Array.Length -ge 4 -and $Array[0] -eq 0x2b -and $Array[1] -eq 0x2f -and $Array[2] -eq 0x76 -and ($Array[3] -eq 0x38 -or $Array[3] -eq 0x39 -or $Array[3] -eq 0x2b -or $Array[3] -eq 0x2f)) {
             $encoding = [System.Text.Encoding]::UTF7
         }
         else {
             $encoding = [System.Text.Encoding]::ASCII
         }
         return $encoding.GetString($Array, $skipBytes, $Array.Length - $skipBytes)
+    }
+    # scrubs nulls from the datatable
+    static [PSObject] DataRowToPSObject([DataRow] $row){
+        $psObject = [PSObject]::new()
+        if ($null -ne $row -and $row.RowState -and $row.RowState -ne [DataRowState]::Detached) {
+            foreach ($column in $row.Table.Columns) {
+                $value = $null
+                if (-Not $row.IsNull($column)) {
+                    $value = $row[$column]
+                }
+                Add-Member -InputObject $psObject -MemberType NoteProperty -Name $column.ColumnName -Value $value
+            }
+        }
+        return $psObject
     }
 }

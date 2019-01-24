@@ -8,7 +8,7 @@ else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
 if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force
+    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
@@ -20,10 +20,10 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 . "$here\..\internal\classes\DBOpsHelper.class.ps1"
 . "$here\..\internal\classes\DBOps.class.ps1"
 
-$packageName = "$here\etc\$commandName.zip"
-$script1 = "$here\etc\install-tests\success\1.sql"
-$script2 = "$here\etc\install-tests\success\2.sql"
-$script3 = "$here\etc\install-tests\success\3.sql"
+$packageName = Join-PSFPath -Normalize "$here\etc\$commandName.zip"
+$script1 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
+$script2 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
+$script3 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\3.sql"
 
 Describe "dbopsScriptFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
     AfterAll {
@@ -57,14 +57,14 @@ Describe "dbopsScriptFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
             $f.Hash | Should Not BeNullOrEmpty
             $f.Parent | Should BeNullOrEmpty
             #Negative tests
-            { [DBOpsScriptFile]::new('Nonexisting\path', '1.sql') } | Should Throw
+            { [DBOpsScriptFile]::new((Join-PSFPath -Normalize 'Nonexisting\path'), '1.sql') } | Should Throw
             { [DBOpsScriptFile]::new($script1, '') } | Should Throw
             { [DBOpsScriptFile]::new('', '1.sql') } | Should Throw
         }
         It "Should create new dbopsScriptFile object using custom object" {
             $obj = @{
                 SourcePath  = $script1
-                packagePath = '1.sql'
+                PackagePath = '1.sql'
                 Hash        = 'MyHash'
             }
             $f = [DBOpsScriptFile]::new($obj)
@@ -93,10 +93,10 @@ Describe "dbopsScriptFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
                 #Open zip file
                 $zip = [ZipArchive]::new($stream, [ZipArchiveMode]::Read)
                 try {
-                    $zipEntry = $zip.Entries | Where-Object FullName -eq 'content\1.0\success\1.sql'
+                    $zipEntry = $zip.Entries | Where-Object FullName -eq (Join-PSFPath -Normalize 'content\1.0\success\1.sql')
                     $obj = @{
                         SourcePath  = $script1
-                        packagePath = '1.sql'
+                        PackagePath = '1.sql'
                         Hash        = 'MyHash'
                     }
                     { [DBOpsScriptFile]::new($obj, $zipEntry) } | Should Throw #hash is invalid
@@ -138,7 +138,7 @@ Describe "dbopsScriptFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
         BeforeEach {
             $pkg = [DBOpsPackage]::new()
             $build = $pkg.NewBuild('1.0')
-            $file = $build.NewFile($script1, 'success\1.sql', 'Scripts', [DBOpsScriptFile])
+            $file = $build.NewFile($script1, (Join-PSFPath -Normalize 'success\1.sql'), 'Scripts', [DBOpsScriptFile])
             $pkg.SaveToFile($packageName, $true)
         }
         AfterAll {
@@ -155,14 +155,14 @@ Describe "dbopsScriptFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
         }
         It "should test ExportToJson method" {
             $j = $file.ExportToJson() | ConvertFrom-Json
-            $j.PackagePath | Should Be 'success\1.sql'
+            $j.PackagePath | Should Be (Join-PSFPath -Normalize 'success\1.sql')
             $j.Hash | Should Be ([DBOpsHelper]::ToHexString([Security.Cryptography.HashAlgorithm]::Create( "MD5" ).ComputeHash([DBOpsHelper]::GetBinaryFile($script1))))
             $j.SourcePath | Should Be $script1
             $j.psobject.properties.name | Should -BeIn @('SourcePath', 'Hash', 'PackagePath')
         }
         It "should test Save method" {
             #Save old file parameters
-            $oldResults = Get-ArchiveItem $packageName | Where-Object Path -eq 'content\1.0\success\1.sql'
+            $oldResults = Get-ArchiveItem $packageName -Item (Join-PSFPath -Normalize 'content\1.0\success\1.sql')
             #Sleep 2 seconds to ensure that modification date is changed
             Start-Sleep -Seconds 2
             #Modify file content
@@ -192,22 +192,28 @@ Describe "dbopsScriptFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
                 #Close archive
                 $stream.Dispose()
             }
-            $results = Get-ArchiveItem $packageName | Where-Object Path -eq 'content\1.0\success\1.sql'
-            $oldResults.LastWriteTime -lt ($results | Where-Object Path -eq $oldResults.Path).LastWriteTime | Should Be $true
+            $testResults = Get-ArchiveItem $packageName -Item (Join-PSFPath -Normalize 'content\1.0\success\1.sql')
+            $oldResults.LastWriteTime | Should -BeLessThan $testResults.LastWriteTime
             { [DBOpsPackage]::new($packageName) } | Should Throw #Because of the hash mismatch - package file is not updated in Save()
         }
         It "should test Alter method" {
             #Save old file parameters
-            $oldResults = Get-ArchiveItem $packageName | Where-Object Path -eq 'content\1.0\success\1.sql'
+            $oldResults = Get-ArchiveItem $packageName -Item (Join-PSFPath -Normalize 'content\1.0\success\1.sql')
             #Sleep 2 seconds to ensure that modification date is changed
             Start-Sleep -Seconds 2
             #Modify file content
             $file.SetContent([DBOpsHelper]::GetBinaryFile($script2))
             { $file.Alter() } | Should Not Throw
-            $results = Get-ArchiveItem $packageName | Where-Object Path -eq 'content\1.0\success\1.sql'
-            $oldResults.LastWriteTime -lt ($results | Where-Object Path -eq $oldResults.Path).LastWriteTime | Should Be $true
+            $testResults = Get-ArchiveItem $packageName -Item (Join-PSFPath -Normalize 'content\1.0\success\1.sql')
+            $oldResults.LastWriteTime | Should -BeLessThan $testResults.LastWriteTime
             $p = [DBOpsPackage]::new($packageName)
             $p.Builds[0].Scripts[0].GetContent() | Should BeLike 'CREATE TABLE c (a int)*'
+        }
+        It "should test GetPackagePath method" {
+            $file.GetPackagePath() | Should Be (Join-PSFPath -Normalize 'content\1.0\success\1.sql')
+        }
+        It "should test GetDeploymentPath method" {
+            $file.GetDeploymentPath() | Should Be '1.0\success\1.sql'
         }
     }
 }

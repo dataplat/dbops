@@ -2,48 +2,48 @@ function Register-DBOPackage {
     <#
     .SYNOPSIS
         Registers scripts of the existing DBOps package as 'already deployed' in the target database without executing them
-    
+
     .DESCRIPTION
         Registers scripts of the existing DBOps package in a schema verion table with optional parameters.
-    
+
     .PARAMETER Path
         Path to the existing DBOpsPackage.
         Aliases: Name, FileName, Package
 
     .PARAMETER InputObject
         Pipeline implementation of Path. Can also contain a DBOpsPackage object.
-    
+
     .PARAMETER SqlInstance
         Database server to connect to. SQL Server only for now.
         Aliases: Server, SQLServer, DBServer, Instance
-    
+
     .PARAMETER Database
         Name of the database to execute the scripts in. Optional - will use default database if not specified.
-    
+
     .PARAMETER ConnectionTimeout
         Database server connection timeout in seconds. Only affects connection attempts. Does not affect execution timeout.
         If 0, will wait for connection until the end of times.
-        
+
         Default: 30
-        
+
     .PARAMETER ExecutionTimeout
         Script execution timeout. The script will be aborted if the execution takes more than specified number of seconds.
         If 0, the script is allowed to run until the end of times.
 
         Default: 0
-    
+
     .PARAMETER Encrypt
         Enables connection encryption.
-    
+
     .PARAMETER Credential
         PSCredential object with username and password to login to the database server.
-    
+
     .PARAMETER UserName
         An alternative to -Credential - specify username explicitly
-    
+
     .PARAMETER Password
         An alternative to -Credential - specify password explicitly
-    
+
     .PARAMETER SchemaVersionTable
         A table that will hold the history of script execution. This table is used to choose what scripts are going to be
         run during the deployment, preventing the scripts from being execured twice.
@@ -51,26 +51,26 @@ function Register-DBOPackage {
         and all the builds from the package are going to be deployed regardless of any previous deployment history.
 
         Default: SchemaVersions
-    
+
     .PARAMETER Silent
         Will supress all output from the command.
-    
+
     .PARAMETER Variables
         Hashtable with variables that can be used inside the scripts and deployment parameters.
         Proper format of the variable tokens is #{MyVariableName}
         Can also be provided as a part of Configuration hashtable: -Configuration @{ Variables = @{ Var1 = ...; Var2 = ...}}
         Will augment and/or overwrite Variables defined inside the package.
-    
+
     .PARAMETER OutputFile
         Log output into specified file.
-    
+
     .PARAMETER Append
         Append output to the -OutputFile instead of overwriting it.
 
     .PARAMETER ConnectionString
         Custom connection string that will override other connection parameters.
         IMPORTANT: Will also ignore user/password/credential parameters, so make sure to include proper authentication credentials into the string.
-    
+
     .PARAMETER Configuration
         A custom configuration that will be used during a deployment, overriding existing parameters inside the package.
         Can be a Hashtable, a DBOpsConfig object, or a path to a json file.
@@ -81,13 +81,17 @@ function Register-DBOPackage {
     .PARAMETER CreateDatabase
         Will create an empty database if missing on supported RDMBS
 
-    .PARAMETER ConnectionType
+    .PARAMETER Type
         Defines the driver to use when connecting to the database server.
         Available options: SqlServer (default), Oracle
-    
+
     .PARAMETER Build
         Only register certain builds from the package.
-        
+
+    .PARAMETER ConnectionAttribute
+        Additional connection string attributes that should be added to the existing connection string, provided as a hashtable.
+        For example to enable SYSDBA permissions in Oracle, use the following: -ConnectionAttribute @{ 'DBA Privilege' = 'SYSDBA' }
+
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -97,11 +101,11 @@ function Register-DBOPackage {
     .EXAMPLE
         # Register package scripts in a target database with predefined configuration inside the package
         Register-DBOPackage .\MyPackage.zip
-    
+
     .EXAMPLE
         # Register package scripts in a target database using specific connection parameters
         .\MyPackage.zip | Register-DBOPackage -SqlInstance 'myserver\instance1' -Database 'MyDb' -ExecutionTimeout 3600
-        
+
     .EXAMPLE
         # Register package scripts in a target database using custom logging parameters and schema tracking table
         .\MyPackage.zip | Register-DBOPackage -SchemaVersionTable dbo.SchemaHistory -OutputFile .\out.log -Append
@@ -114,8 +118,8 @@ function Register-DBOPackage {
         # Register package scripts in a target database using variables instead of specifying values directly
         .\MyPackage.zip | Register-DBOPackage -SqlInstance '#{server}' -Database '#{db}' -Variables @{server = 'myserver\instance1'; db = 'MyDb'}
 #>
-    
-    [CmdletBinding(SupportsShouldProcess = $true, DefaultParameterSetName = 'Default')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSShouldProcess", "")]
+    [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'Default')]
     param
     (
         [Parameter(Mandatory = $true,
@@ -153,11 +157,11 @@ function Register-DBOPackage {
         [switch]$CreateDatabase,
         [AllowNull()]
         [string]$ConnectionString,
-        [ValidateSet('SQLServer', 'Oracle')]
-        [Alias('Type', 'ServerType')]
-        [string]$ConnectionType = 'SQLServer'
+        [Alias('ConnectionType', 'ServerType')]
+        [DBOps.ConnectionType]$Type = (Get-DBODefaultSetting -Name rdbms.type -Value),
+        [hashtable]$ConnectionAttribute
     )
-    
+
     begin {
     }
     process {
@@ -167,35 +171,37 @@ function Register-DBOPackage {
         elseif ($PsCmdlet.ParameterSetName -eq 'Pipeline') {
             $package = Get-DBOPackage -InputObject $InputObject
         }
+        #Getting new config with package defaults
+        $config = New-DBOConfig -Configuration $package.Configuration
 
-        #Convert custom parameters into a package configuration, excluding variables
+        #Merging the custom configuration provided
+        $config = $config | Get-DBOConfig -Configuration $Configuration
+
+        #Merge custom parameters into a configuration
+        $newConfig = @{}
         foreach ($key in ($PSBoundParameters.Keys)) {
-            if ($key -in [DBOpsConfig]::EnumProperties() -and $key -ne 'Variables') {
-                Write-PSFMessage -Level Debug -Message "Overriding parameter $key with $($PSBoundParameters[$key])"
-                $package.Configuration.SetValue($key, $PSBoundParameters[$key])
+            if ($key -in [DBOpsConfig]::EnumProperties()) {
+                $newConfig.$key = $PSBoundParameters[$key]
             }
         }
-        
+        $config.Merge($newConfig)
+
         #Prepare deployment function call parameters
         $params = @{
-            InputObject  = $package
-            RegisterOnly = $true
+            InputObject   = $package
+            Configuration = $config
+            RegisterOnly  = $true
         }
         foreach ($key in ($PSBoundParameters.Keys)) {
             #If any custom properties were specified
-            if ($key -in @('OutputFile', 'Append', 'Configuration', 'Variables', 'ConnectionType', 'Build')) {
+            if ($key -in @('OutputFile', 'Append', 'Type', 'Build')) {
                 $params += @{ $key = $PSBoundParameters[$key] }
             }
         }
-        Write-PSFMessage -Level Verbose -Message "Preparing to register with custom parameters: $($params.Keys -join ', ')"
-        if ($PSCmdlet.ShouldProcess($package, "Registering the package")) {
-            Invoke-DBODeployment @params
-        }
-        else {
-            Invoke-DBODeployment @params -WhatIf
-        }
+        Write-PSFMessage -Level Verbose -Message "Preparing to register the package $($package.FileName)"
+        Invoke-DBODeployment @params
     }
     end {
-        
+
     }
 }

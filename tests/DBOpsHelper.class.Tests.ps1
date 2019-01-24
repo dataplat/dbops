@@ -8,7 +8,7 @@ $here = if ($PSScriptRoot) { $PSScriptRoot } else {	(Get-Item . ).FullName }
 if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force
+    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
@@ -18,10 +18,10 @@ else {
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 . "$here\..\internal\classes\DBOpsHelper.class.ps1"
-$script1 = "$here\etc\install-tests\success\1.sql"
-$script2 = "$here\etc\install-tests\success\2.sql"
-$archiveName = "$here\etc\dbopsHelper.zip"
-$sqlName = "$here\etc\dbopsHelper.sql"
+$script1 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
+$script2 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
+$archiveName = Join-PSFPath -Normalize "$here\etc\dbopsHelper.zip"
+$sqlName = Join-PSFPath -Normalize "$here\etc\dbopsHelper.sql"
 
 $encodings = @(
     'ASCII'
@@ -32,24 +32,24 @@ $encodings = @(
     'UTF8'
 )
 $encodedFiles = @(
-    "$here\etc\encoding-tests\1252.txt"
-    "$here\etc\encoding-tests\UTF8-BOM.txt"
-    "$here\etc\encoding-tests\UTF8-NoBOM.txt"
-    "$here\etc\encoding-tests\UTF16-BE.txt"
-    "$here\etc\encoding-tests\UTF16-LE.txt"
-    "$here\etc\encoding-tests\UTF16-NoBOM.txt"
+    Join-PSFPath -Normalize "$here\etc\encoding-tests\1252.txt"
+    Join-PSFPath -Normalize "$here\etc\encoding-tests\UTF8-BOM.txt"
+    Join-PSFPath -Normalize "$here\etc\encoding-tests\UTF8-NoBOM.txt"
+    Join-PSFPath -Normalize "$here\etc\encoding-tests\UTF16-BE.txt"
+    Join-PSFPath -Normalize "$here\etc\encoding-tests\UTF16-LE.txt"
+    Join-PSFPath -Normalize "$here\etc\encoding-tests\UTF16-NoBOM.txt"
 )
 
 
 Describe "dbopsHelper class tests" -Tag $commandName, UnitTests, dbopsHelper {
     Context "tests SplitRelativePath method" {
         It "should validate positive tests" {
-            [DBOpsHelper]::SplitRelativePath('3\2\1\file.txt', 0) | Should Be 'file.txt'
-            [DBOpsHelper]::SplitRelativePath('3\2\1\file.txt', 1) | Should Be '1\file.txt'
-            [DBOpsHelper]::SplitRelativePath('3\2\1\file.txt', 3) | Should Be '3\2\1\file.txt'
+            [DBOpsHelper]::SplitRelativePath((Join-PSFPath -Normalize '3\2\1\file.txt'), 0) | Should Be 'file.txt'
+            [DBOpsHelper]::SplitRelativePath((Join-PSFPath -Normalize '3\2\1\file.txt'), 1) | Should Be (Join-PSFPath -Normalize '1\file.txt')
+            [DBOpsHelper]::SplitRelativePath((Join-PSFPath -Normalize '3\2\1\file.txt'), 3) | Should Be (Join-PSFPath -Normalize '3\2\1\file.txt')
         }
         It "should validate negative tests" {
-            { [DBOpsHelper]::SplitRelativePath('3\2\1\file.txt', 4) } | Should Throw
+            { [DBOpsHelper]::SplitRelativePath((Join-PSFPath -Normalize '3\2\1\file.txt'), 4) } | Should Throw
             { [DBOpsHelper]::SplitRelativePath($null, 1) } | Should Throw
         }
     }
@@ -60,7 +60,7 @@ Describe "dbopsHelper class tests" -Tag $commandName, UnitTests, dbopsHelper {
             { [DBOpsHelper]::GetBinaryFile($script1) } | Should Not Throw
         }
         It "should validate negative tests" {
-            { [DBOpsHelper]::GetBinaryFile('nonexisting\path') } | Should Throw
+            { [DBOpsHelper]::GetBinaryFile((Join-PSFPath -Normalize 'nonexisting\path')) } | Should Throw
             { [DBOpsHelper]::SplitRelativePath($null) } | Should Throw
         }
     }
@@ -80,7 +80,7 @@ Describe "dbopsHelper class tests" -Tag $commandName, UnitTests, dbopsHelper {
             }
             catch { throw $_ }
             finally { $zip.Dispose() }
-        
+
             #Verifying that the threads are closed
             $zip = [Zipfile]::OpenRead($archiveName)
             try {
@@ -105,16 +105,16 @@ Describe "dbopsHelper class tests" -Tag $commandName, UnitTests, dbopsHelper {
             Remove-Item $archiveName
         }
         It "should validate positive tests" {
-            $results = [DBOpsHelper]::GetArchiveItems($archiveName)
-            '1.sql' | Should BeIn $results.FullName
-            '2.sql' | Should BeIn $results.FullName
-        
+            $testResults = [DBOpsHelper]::GetArchiveItems($archiveName)
+            '1.sql' | Should BeIn $testResults.FullName
+            '2.sql' | Should BeIn $testResults.FullName
+
             #Verifying that the threads are closed
             { [DBOpsHelper]::GetArchiveItems($archiveName) } | Should Not Throw
         }
         It "should validate negative tests" {
             { [DBOpsHelper]::GetArchiveItems($null) } | Should Throw
-            { [DBOpsHelper]::GetArchiveItems('nonexisting\path') } | Should Throw
+            { [DBOpsHelper]::GetArchiveItems((Join-PSFPath -Normalize 'nonexisting\path')) } | Should Throw
         }
     }
     Context "tests GetArchiveItem method" {
@@ -127,25 +127,25 @@ Describe "dbopsHelper class tests" -Tag $commandName, UnitTests, dbopsHelper {
             Remove-Item $archiveName
         }
         It "should validate positive tests" {
-            $results = [DBOpsHelper]::GetArchiveItem($archiveName, '1.sql')
-            '1.sql' | Should BeIn $results.FullName
-            '2.sql' | Should Not BeIn $results.FullName
-            foreach ($result in $results) {
-                $result.ByteArray | Should Not BeNullOrEmpty
+            $testResults = [DBOpsHelper]::GetArchiveItem($archiveName, '1.sql')
+            '1.sql' | Should BeIn $testResults.FullName
+            '2.sql' | Should Not BeIn $testResults.FullName
+            foreach ($testResult in $testResults) {
+                $testResult.ByteArray | Should Not BeNullOrEmpty
             }
 
-            $results = [DBOpsHelper]::GetArchiveItem($archiveName, @('1.sql', '2.sql'))
-            '1.sql' | Should BeIn $results.FullName
-            '2.sql' | Should BeIn $results.FullName
-            foreach ($result in $results) {
-                $result.ByteArray | Should Not BeNullOrEmpty
+            $testResults = [DBOpsHelper]::GetArchiveItem($archiveName, @('1.sql', '2.sql'))
+            '1.sql' | Should BeIn $testResults.FullName
+            '2.sql' | Should BeIn $testResults.FullName
+            foreach ($testResult in $testResults) {
+                $testResult.ByteArray | Should Not BeNullOrEmpty
             }
         }
         It "should validate negative tests" {
             { [DBOpsHelper]::GetArchiveItem($null, '1.sql') } | Should Throw
-            { [DBOpsHelper]::GetArchiveItem('nonexisting\path', '1.sql') } | Should Throw
+            { [DBOpsHelper]::GetArchiveItem((Join-PSFPath -Normalize 'nonexisting\path'), '1.sql') } | Should Throw
             [DBOpsHelper]::GetArchiveItem($archiveName, $null) | Should BeNullOrEmpty
-            [DBOpsHelper]::GetArchiveItem($archiveName, 'nonexisting\path') | Should BeNullOrEmpty
+            [DBOpsHelper]::GetArchiveItem($archiveName, (Join-PSFPath -Normalize 'nonexisting\path')) | Should BeNullOrEmpty
             [DBOpsHelper]::GetArchiveItem($archiveName, '') | Should BeNullOrEmpty
         }
     }
@@ -164,18 +164,18 @@ Describe "dbopsHelper class tests" -Tag $commandName, UnitTests, dbopsHelper {
                 $zip = [ZipArchive]::new($stream, [ZipArchiveMode]::Create)
                 try {
                     [DBOpsHelper]::WriteZipFile($zip, 'asd.txt', $content)
-                    [DBOpsHelper]::WriteZipFile($zip, 'folder\asd.txt', $content)
-                    [DBOpsHelper]::WriteZipFile($zip, 'folder1\folder2\null.txt', [byte[]]::new(0))
+                    [DBOpsHelper]::WriteZipFile($zip, (Join-PSFPath -Normalize 'folder\asd.txt'), $content)
+                    [DBOpsHelper]::WriteZipFile($zip, (Join-PSFPath -Normalize 'folder1\folder2\null.txt'), [byte[]]::new(0))
                 }
                 catch { throw $_ }
                 finally { $zip.Dispose() }
             }
             catch { throw $_ }
             finally { $stream.Dispose()	}
-            $results = [DBOpsHelper]::GetArchiveItems($archiveName)
-            'asd.txt' | Should BeIn $results.FullName
-            'folder\asd.txt' | Should BeIn $results.FullName
-            'folder1\folder2\null.txt' | Should BeIn $results.FullName
+            $testResults = [DBOpsHelper]::GetArchiveItems($archiveName)
+            'asd.txt' | Should BeIn $testResults.FullName
+            Join-PSFPath -Normalize 'folder\asd.txt' | Should BeIn $testResults.FullName
+            Join-PSFPath -Normalize 'folder1\folder2\null.txt' | Should BeIn $testResults.FullName
         }
         It "should validate negative tests" {
             #Create the archive
@@ -187,25 +187,25 @@ Describe "dbopsHelper class tests" -Tag $commandName, UnitTests, dbopsHelper {
                 $zip = [ZipArchive]::new($stream, [ZipArchiveMode]::Create)
                 try {
                     [DBOpsHelper]::WriteZipFile($zip, 'asd.txt', $content)
-                    { [DBOpsHelper]::WriteZipFile($zip, 'folder\asd.txt', 'asd') } | Should Throw
+                    { [DBOpsHelper]::WriteZipFile($zip, (Join-PSFPath -Normalize 'folder\asd.txt'), 'asd') } | Should Throw
                     { [DBOpsHelper]::WriteZipFile($zip, 'null2.txt', $null) } | Should Throw
-                    { [DBOpsHelper]::WriteZipFile($zip, '..\2.txt', $content) } | Should Throw
-                    { [DBOpsHelper]::WriteZipFile($zip, '.\2.txt', $content) } | Should Throw
-                    { [DBOpsHelper]::WriteZipFile($zip, '\2.txt', $content) } | Should Throw
+                    { [DBOpsHelper]::WriteZipFile($zip, (Join-PSFPath -Normalize '..\2.txt'), $content) } | Should Throw
+                    { [DBOpsHelper]::WriteZipFile($zip, (Join-PSFPath -Normalize '.\2.txt'), $content) } | Should Throw
+                    { [DBOpsHelper]::WriteZipFile($zip, (Join-PSFPath -Normalize '\2.txt'), $content) } | Should Throw
                 }
                 catch { throw $_ }
                 finally { $zip.Dispose() }
             }
             catch { throw $_ }
             finally { $stream.Dispose()	}
-            $results = [DBOpsHelper]::GetArchiveItems($archiveName)
-            'asd.txt' | Should BeIn $results.FullName
-            'folder\asd.txt' | Should Not BeIn $results.FullName
-            'null2.txt' | Should BeIn $results.FullName #This is weird, but that's how it works
-            '2.txt' | Should Not BeIn $results.FullName
-            '..\2.txt' | Should Not BeIn $results.FullName
-            '.\2.txt' | Should Not BeIn $results.FullName
-            '\2.txt' | Should Not BeIn $results.FullName
+            $testResults = [DBOpsHelper]::GetArchiveItems($archiveName)
+            'asd.txt' | Should BeIn $testResults.FullName
+            Join-PSFPath -Normalize 'folder\asd.txt' | Should Not BeIn $testResults.FullName
+            'null2.txt' | Should BeIn $testResults.FullName #This is weird, but that's how it works
+            '2.txt' | Should Not BeIn $testResults.FullName
+            Join-PSFPath -Normalize '..\2.txt' | Should Not BeIn $testResults.FullName
+            Join-PSFPath -Normalize '.\2.txt' | Should Not BeIn $testResults.FullName
+            Join-PSFPath -Normalize '\2.txt' | Should Not BeIn $testResults.FullName
         }
     }
     Context "tests ToHexString method" {
@@ -243,12 +243,43 @@ Describe "dbopsHelper class tests" -Tag $commandName, UnitTests, dbopsHelper {
                 $encodedFile | Should -FileContentMatchExactly ([regex]::Escape($h::DecodeBinaryText($h::GetBinaryFile($encodedFile))))
             }
         }
-
+        It "Should return empty string when byte array is empty" {
+            $h::DecodeBinaryText([byte[]]::new(0)) | Should -BeNullOrEmpty
+            { $h::DecodeBinaryText([byte[]]::new(0)) } | Should Not Throw
+        }
         It "should validate negative tests" {
-            $h = [DBOpsHelper]
             { $h::DecodeBinaryText('0xAAAA') } | Should Throw
             { $h::DecodeBinaryText('NotAByte') } | Should Throw
-            { $h::DecodeBinaryText($enc::UTF8.GetBytes($null)) } | Should Throw
+        }
+    }
+    Context "tests DataRowToPSObject method" {
+        It "should process normal dataset with nulls" {
+            $ds = [System.Data.DataSet]::new()
+            $dt = [System.Data.DataTable]::new()
+            $null = $dt.Columns.Add('a')
+            1, 2, $null | ForEach-Object {
+                $dr = $dt.NewRow()
+                $dr['a'] = $_
+                $null = $dt.Rows.Add($dr);
+            }
+            $null = $ds.Tables.Add($dt);
+            $output = @()
+            foreach ($row in $ds.Tables[0].Rows) {
+                $output += [DBOpsHelper]::DataRowToPSObject($row)
+            }
+            $output.a | Should -Be 1, 2, $null
+        }
+        It "should process empty dataset" {
+            $ds = [System.Data.DataSet]::new()
+            $dt = [System.Data.DataTable]::new()
+            $null = $dt.Columns.Add('a')
+            $dr = $dt.NewRow()
+            $output = [DBOpsHelper]::DataRowToPSObject($dr)
+            $output | Should -BeNullOrEmpty
+        }
+        It "should process null" {
+            $output = [DBOpsHelper]::DataRowToPSObject($null)
+            $output | Should -BeNullOrEmpty
         }
     }
 }

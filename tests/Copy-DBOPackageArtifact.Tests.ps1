@@ -8,7 +8,7 @@ else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
 if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force
+    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
@@ -16,7 +16,7 @@ else {
 }
 $workFolder = Join-Path "$here\etc" "$commandName.Tests.dbops"
 $packageName = Join-Path $workFolder 'TempDeployment.zip'
-$scriptFolder = Join-Path $here 'etc\install-tests\success'
+$scriptFolder = Join-Path $here 'etc\sqlserver-tests\success'
 $v1scripts = Join-Path $scriptFolder '1.sql'
 $v2scripts = Join-Path $scriptFolder '2.sql'
 $v3scripts = Join-Path $scriptFolder '3.sql'
@@ -43,19 +43,19 @@ Describe "Copy-DBOPackageArtifact tests" -Tag $commandName, UnitTests {
     }
     Context "Regular tests" {
         It "should copy the last version of the artifact" {
-            $result = Copy-DBOPackageArtifact -Repository $workFolder -Name TempDeployment -Passthru -Destination $workFolder
-            Get-DBOPackage $result | % Version | Should Be '3.0'
-            $result.FullName | Should Be "$workFolder\TempDeployment.zip"
+            $testResult = Copy-DBOPackageArtifact -Repository $workFolder -Name TempDeployment -Passthru -Destination $workFolder
+            Get-DBOPackage $testResult | Foreach-Object Version | Should Be '3.0'
+            $testResult.FullName | Should Be (Join-PSFPath -Normalize $workFolder TempDeployment.zip)
         }
         It "should copy the custom version of the artifact" {
-            $result = Copy-DBOPackageArtifact -Repository $workFolder -Name TempDeployment -Version 2.0 -Passthru -Destination $workFolder
-            Get-DBOPackage $result | % Version | Should Be '2.0'
-            $result.FullName | Should Be "$workFolder\TempDeployment.zip"
+            $testResult = Copy-DBOPackageArtifact -Repository $workFolder -Name TempDeployment -Version 2.0 -Passthru -Destination $workFolder
+            Get-DBOPackage $testResult | Foreach-Object Version | Should Be '2.0'
+            $testResult.FullName | Should Be (Join-PSFPath -Normalize $workFolder TempDeployment.zip)
         }
         It "should copy the artifact when project folder is specified" {
-            $result = Copy-DBOPackageArtifact -Repository $projectPath -Name TempDeployment -Passthru -Destination $workFolder
-            Get-DBOPackage $result | % Version | Should Be '3.0'
-            $result.FullName | Should Be "$workFolder\TempDeployment.zip"
+            $testResult = Copy-DBOPackageArtifact -Repository $projectPath -Name TempDeployment -Passthru -Destination $workFolder
+            Get-DBOPackage $testResult | Foreach-Object Version | Should Be '3.0'
+            $testResult.FullName | Should Be (Join-PSFPath -Normalize $workFolder TempDeployment.zip)
         }
     }
     Context "Negative tests" {

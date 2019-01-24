@@ -8,7 +8,7 @@ else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
 if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force
+    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
@@ -16,67 +16,72 @@ else {
 }
 
 . "$here\constants.ps1"
-. "$here\etc\Invoke-SqlCmd2.ps1"
 
-$workFolder = Join-Path "$here\etc" "$commandName.Tests.dbops"
+$workFolder = Join-PSFPath -Normalize "$here\etc" "$commandName.Tests.dbops"
 $unpackedFolder = Join-Path $workFolder 'unpacked'
 $logTable = "testdeploymenthistory"
-$cleanupScript = "$here\etc\install-tests\Cleanup.sql"
-$tranFailScripts = "$here\etc\install-tests\transactional-failure"
-$v1scripts = "$here\etc\install-tests\success\1.sql"
-$v2scripts = "$here\etc\install-tests\success\2.sql"
-$verificationScript = "$here\etc\install-tests\verification\select.sql"
+$cleanupScript = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\Cleanup.sql"
+$tranFailScripts = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\transactional-failure"
+$v1scripts = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
+$v1Journal = Get-Item $v1scripts | ForEach-Object { '1.0\' + $_.Name }
+$v2scripts = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
+$v2Journal = Get-Item $v2scripts | ForEach-Object { '2.0\' + $_.Name }
+$verificationScript = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\verification\select.sql"
 $packageName = Join-Path $workFolder "TempDeployment.zip"
 $packageNamev1 = Join-Path $workFolder "TempDeployment_v1.zip"
-$fullConfig = "$here\etc\tmp_full_config.json"
-$fullConfigSource = "$here\etc\full_config.json"
+$fullConfig = Join-PSFPath -Normalize "$here\etc\tmp_full_config.json"
+$fullConfigSource = Join-PSFPath -Normalize "$here\etc\full_config.json"
 $testPassword = 'TestPassword'
-$fromSecureString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertFrom-SecureString
+$encryptedString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertTo-EncryptedString
 $newDbName = "_test_$commandName"
+$dropDatabaseScript = 'IF EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{0}]; END' -f $newDbName
+$createDatabaseScript = 'IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN CREATE DATABASE [{0}]; END' -f $newDbName
 
 Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = New-Item $workFolder -ItemType Directory -Force
         $null = New-Item $unpackedFolder -ItemType Directory -Force
-        (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $fromSecureString | Out-File $fullConfig -Force
-        $dropDatabaseScript = 'IF EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{0}]; END' -f $newDbName
-        $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database master -Query $dropDatabaseScript
+        (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $encryptedString | Out-File $fullConfig -Force
+        $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database master -Query $dropDatabaseScript
+        $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database master -Query $createDatabaseScript
     }
     AfterAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         if (Test-Path $fullConfig) { Remove-Item $fullConfig }
-        $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database master -Query $dropDatabaseScript
+        $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database master -Query $dropDatabaseScript
     }
     Context "testing regular deployment with CreateDatabase specified" {
         BeforeAll {
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
         }
         It "should deploy version 1.0 to a new database using -CreateDatabase switch" {
-            $results = Install-DBOPackage $p1 -CreateDatabase -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
-            $results.Successful | Should Be $true
-            $results.Scripts.Name | Should Be ((Get-Item $v1scripts).Name | ForEach-Object {'1.0\' + $_})
-            $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $newDbName
-            $results.SourcePath | Should Be "$workFolder\pv1.zip"
-            $results.ConnectionType | Should Be 'SQLServer'
-            $results.Configuration.SchemaVersionTable | Should Be $logTable
-            $results.Configuration.CreateDatabase | Should Be $true
-            $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $results.StartTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
-            'Upgrade successful' | Should BeIn $results.DeploymentLog
-            "Created database $newDbName" | Should BeIn $results.DeploymentLog
+            # Drop database and allow the function to create it
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database master -Query $dropDatabaseScript
+            $testResults = Install-DBOPackage $p1 -CreateDatabase -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $testResults.Successful | Should Be $true
+            $testResults.Scripts.Name | Should Be $v1Journal
+            $testResults.SqlInstance | Should Be $script:mssqlInstance
+            $testResults.Database | Should Be $newDbName
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
+            $testResults.ConnectionType | Should Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+            $testResults.Configuration.CreateDatabase | Should Be $true
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
+            "Created database $newDbName" | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
-            $logTable | Should BeIn $results.name
-            'a' | Should BeIn $results.name
-            'b' | Should BeIn $results.name
-            'c' | Should Not BeIn $results.name
-            'd' | Should Not BeIn $results.name
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $logTable | Should BeIn $testResults.name
+            'a' | Should BeIn $testResults.name
+            'b' | Should BeIn $testResults.name
+            'c' | Should Not BeIn $testResults.name
+            'd' | Should Not BeIn $testResults.name
         }
     }
     Context "testing transactional deployment" {
@@ -84,27 +89,27 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $null = New-DBOPackage -ScriptPath $tranFailScripts -Name $packageName -Build 1.0 -Force
         }
         AfterAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         BeforeEach {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "Should throw an error and not create any objects" {
             #Running package
             try {
-                $null = Install-DBOPackage $packageName -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod SingleTransaction -Silent
+                $null = Install-DBOPackage $packageName -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod SingleTransaction -Silent
             }
             catch {
-                $results = $_
+                $testResults = $_
             }
-            $results.Exception.Message | Should Be "There is already an object named 'a' in the database."
+            $testResults.Exception.Message | Should Be "There is already an object named 'a' in the database."
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
-            $logTable | Should Not BeIn $results.name
-            'a' | Should Not BeIn $results.name
-            'b' | Should Not BeIn $results.name
-            'c' | Should Not BeIn $results.name
-            'd' | Should Not BeIn $results.name
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $logTable | Should Not BeIn $testResults.name
+            'a' | Should Not BeIn $testResults.name
+            'b' | Should Not BeIn $testResults.name
+            'c' | Should Not BeIn $testResults.name
+            'd' | Should Not BeIn $testResults.name
         }
 
     }
@@ -113,24 +118,24 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $null = New-DBOPackage -ScriptPath $tranFailScripts -Name $packageName -Build 1.0 -Force
         }
         AfterAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "Should throw an error and create one object" {
             #Running package
             try {
-                $null = Install-DBOPackage $packageName -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent
+                $null = Install-DBOPackage $packageName -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent
             }
             catch {
-                $results = $_
+                $testResults = $_
             }
-            $results.Exception.Message | Should Be "There is already an object named 'a' in the database."
+            $testResults.Exception.Message | Should Be "There is already an object named 'a' in the database."
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
-            $logTable | Should BeIn $results.name
-            'a' | Should BeIn $results.name
-            'b' | Should Not BeIn $results.name
-            'c' | Should Not BeIn $results.name
-            'd' | Should Not BeIn $results.name
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $logTable | Should BeIn $testResults.name
+            'a' | Should BeIn $testResults.name
+            'b' | Should Not BeIn $testResults.name
+            'c' | Should Not BeIn $testResults.name
+            'd' | Should Not BeIn $testResults.name
         }
     }
     Context "testing regular deployment" {
@@ -140,193 +145,193 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             #versions should not be sorted by default - creating a package where 1.0 is the second build
             $p3 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv3" -Build 2.0 -Force
             $null = Add-DBOBuild -ScriptPath $v2scripts -Name $p3 -Build 1.0
-            $outputFile = "$workFolder\log.txt"
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
+            $outputFile = Join-PSFPath -Normalize "$workFolder\log.txt"
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy version 1.0" {
-            $results = Install-DBOPackage $p1 -Build '1.0' -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
-            $results.Successful | Should Be $true
-            $results.Scripts.Name | Should Be ((Get-Item $v1scripts).Name | ForEach-Object {'1.0\' + $_})
-            $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $newDbName
-            $results.SourcePath | Should Be "$workFolder\pv1.zip"
-            $results.ConnectionType | Should Be 'SQLServer'
-            $results.Configuration.SchemaVersionTable | Should Be $logTable
-            $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $results.StartTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
-            'Upgrade successful' | Should BeIn $results.DeploymentLog
+            $testResults = Install-DBOPackage $p1 -Build '1.0' -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $testResults.Successful | Should Be $true
+            $testResults.Scripts.Name | Should Be $v1Journal
+            $testResults.SqlInstance | Should Be $script:mssqlInstance
+            $testResults.Database | Should Be $newDbName
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
+            $testResults.ConnectionType | Should Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
             $output | Should Be (Get-Content "$here\etc\log1.txt")
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
-            $logTable | Should BeIn $results.name
-            'a' | Should BeIn $results.name
-            'b' | Should BeIn $results.name
-            'c' | Should Not BeIn $results.name
-            'd' | Should Not BeIn $results.name
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $logTable | Should BeIn $testResults.name
+            'a' | Should BeIn $testResults.name
+            'b' | Should BeIn $testResults.name
+            'c' | Should Not BeIn $testResults.name
+            'd' | Should Not BeIn $testResults.name
         }
         It "should re-deploy version 1.0 pipelining a string" {
-            $results = "$workFolder\pv1.zip" | Install-DBOPackage -Build '1.0' -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
-            $results.Successful | Should Be $true
-            $results.Scripts.Name | Should BeNullOrEmpty
-            $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $newDbName
-            $results.SourcePath | Should Be "$workFolder\pv1.zip"
-            $results.ConnectionType | Should Be 'SQLServer'
-            $results.Configuration.SchemaVersionTable | Should Be $logTable
-            $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $results.StartTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
-            'No new scripts need to be executed - completing.' | Should BeIn $results.DeploymentLog
+            $testResults = "$workFolder\pv1.zip" | Install-DBOPackage -Build '1.0' -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $testResults.Successful | Should Be $true
+            $testResults.Scripts.Name | Should BeNullOrEmpty
+            $testResults.SqlInstance | Should Be $script:mssqlInstance
+            $testResults.Database | Should Be $newDbName
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
+            $testResults.ConnectionType | Should Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+            'No new scripts need to be executed - completing.' | Should BeIn $testResults.DeploymentLog
 
             'No new scripts need to be executed - completing.' | Should BeIn (Get-Content "$workFolder\log.txt" | Select-Object -Skip 1)
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
-            $logTable | Should BeIn $results.name
-            'a' | Should BeIn $results.name
-            'b' | Should BeIn $results.name
-            'c' | Should Not BeIn $results.name
-            'd' | Should Not BeIn $results.name
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $logTable | Should BeIn $testResults.name
+            'a' | Should BeIn $testResults.name
+            'b' | Should BeIn $testResults.name
+            'c' | Should Not BeIn $testResults.name
+            'd' | Should Not BeIn $testResults.name
         }
         It "should deploy version 2.0 using pipelined Get-DBOPackage" {
-            $results = Get-DBOPackage "$workFolder\pv1.zip" | Install-DBOPackage -Build '1.0','2.0' -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
-            $results.Successful | Should Be $true
-            $results.Scripts.Name | Should Be ((Get-Item $v2scripts).Name | ForEach-Object { '2.0\' + $_ })
-            $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $newDbName
-            $results.SourcePath | Should Be "$workFolder\pv1.zip"
-            $results.ConnectionType | Should Be 'SQLServer'
-            $results.Configuration.SchemaVersionTable | Should Be $logTable
-            $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $results.StartTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
-            'Upgrade successful' | Should BeIn $results.DeploymentLog
+            $testResults = Get-DBOPackage "$workFolder\pv1.zip" | Install-DBOPackage -Build '1.0', '2.0' -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $testResults.Successful | Should Be $true
+            $testResults.Scripts.Name | Should Be $v2Journal
+            $testResults.SqlInstance | Should Be $script:mssqlInstance
+            $testResults.Database | Should Be $newDbName
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
+            $testResults.ConnectionType | Should Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
             $output | Should Be (Get-Content "$here\etc\log2.txt")
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
-            $logTable | Should BeIn $results.name
-            'a' | Should BeIn $results.name
-            'b' | Should BeIn $results.name
-            'c' | Should BeIn $results.name
-            'd' | Should BeIn $results.name
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $logTable | Should BeIn $testResults.name
+            'a' | Should BeIn $testResults.name
+            'b' | Should BeIn $testResults.name
+            'c' | Should BeIn $testResults.name
+            'd' | Should BeIn $testResults.name
         }
         It "should re-deploy version 2.0 using pipelined FileSystemObject" {
-            $results = Get-Item "$workFolder\pv1.zip" | Install-DBOPackage -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
-            $results.Successful | Should Be $true
-            $results.Scripts.Name | Should BeNullOrEmpty
-            $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $newDbName
-            $results.SourcePath | Should Be "$workFolder\pv1.zip"
-            $results.ConnectionType | Should Be 'SQLServer'
-            $results.Configuration.SchemaVersionTable | Should Be $logTable
-            $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $results.StartTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
-            'No new scripts need to be executed - completing.' | Should BeIn $results.DeploymentLog
+            $testResults = Get-Item "$workFolder\pv1.zip" | Install-DBOPackage -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $testResults.Successful | Should Be $true
+            $testResults.Scripts.Name | Should BeNullOrEmpty
+            $testResults.SqlInstance | Should Be $script:mssqlInstance
+            $testResults.Database | Should Be $newDbName
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
+            $testResults.ConnectionType | Should Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+            'No new scripts need to be executed - completing.' | Should BeIn $testResults.DeploymentLog
 
             'No new scripts need to be executed - completing.' | Should BeIn (Get-Content "$workFolder\log.txt" | Select-Object -Skip 1)
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
-            $logTable | Should BeIn $results.name
-            'a' | Should BeIn $results.name
-            'b' | Should BeIn $results.name
-            'c' | Should BeIn $results.name
-            'd' | Should BeIn $results.name
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $logTable | Should BeIn $testResults.name
+            'a' | Should BeIn $testResults.name
+            'b' | Should BeIn $testResults.name
+            'c' | Should BeIn $testResults.name
+            'd' | Should BeIn $testResults.name
         }
         It "should deploy in a reversed order: 2.0 before 1.0" {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
-            $results = Install-DBOPackage "$workFolder\pv3.zip" -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
-            $results.Successful | Should Be $true
-            $results.Scripts.Name | Should Be (@((Get-Item $v1scripts).Name | ForEach-Object { '2.0\' + $_ }), ((Get-Item $v2scripts).Name | ForEach-Object { '1.0\' + $_ }))
-            $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $newDbName
-            $results.SourcePath | Should Be "$workFolder\pv3.zip"
-            $results.ConnectionType | Should Be 'SQLServer'
-            $results.Configuration.SchemaVersionTable | Should Be $logTable
-            $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $results.StartTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
-            'Upgrade successful' | Should BeIn $results.DeploymentLog
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+            $testResults = Install-DBOPackage "$workFolder\pv3.zip" -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $testResults.Successful | Should Be $true
+            $testResults.Scripts.Name | Should Be (@((Get-Item $v1scripts).Name | ForEach-Object { "2.0\$_" }), ((Get-Item $v2scripts).Name | ForEach-Object { "1.0\$_" }))
+            $testResults.SqlInstance | Should Be $script:mssqlInstance
+            $testResults.Database | Should Be $newDbName
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv3.zip")
+            $testResults.ConnectionType | Should Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
-            $logTable | Should BeIn $results.name
-            'a' | Should BeIn $results.name
-            'b' | Should BeIn $results.name
-            'c' | Should BeIn $results.name
-            'd' | Should BeIn $results.name
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $logTable | Should BeIn $testResults.name
+            'a' | Should BeIn $testResults.name
+            'b' | Should BeIn $testResults.name
+            'c' | Should BeIn $testResults.name
+            'd' | Should BeIn $testResults.name
         }
     }
     Context "testing timeouts" {
         BeforeAll {
-            $file = "$workFolder\delay.sql"
+            $file = Join-PSFPath -Normalize "$workFolder\delay.sql"
             "WAITFOR DELAY '00:00:03'; PRINT ('Successful!')" | Out-File $file
             $null = New-DBOPackage -ScriptPath $file -Name "$workFolder\delay" -Build 1.0 -Force -Configuration @{ ExecutionTimeout = 2 }
         }
         BeforeEach {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "should throw timeout error " {
             try {
-                $null = Install-DBOPackage "$workFolder\delay.zip" -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+                $null = Install-DBOPackage "$workFolder\delay.zip" -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             }
             catch {
-                $results = $_
+                $testResults = $_
             }
-            $results | Should Not Be $null
-            $results.Exception.Message | Should BeLike '*Timeout Expired.*'
+            $testResults | Should Not Be $null
+            $testResults.Exception.Message | Should BeLike '*Timeout Expired.*'
             $output = Get-Content "$workFolder\log.txt" -Raw
             $output | Should BeLike '*Timeout Expired*'
             $output | Should Not BeLike '*Successful!*'
         }
         It "should successfully run within specified timeout" {
-            $results = Install-DBOPackage "$workFolder\delay.zip" -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 6
-            $results.Successful | Should Be $true
-            $results.Scripts.Name | Should Be '1.0\delay.sql'
-            $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $newDbName
-            $results.SourcePath | Should Be "$workFolder\delay.zip"
-            $results.ConnectionType | Should Be 'SQLServer'
-            $results.Configuration.SchemaVersionTable | Should Be $logTable
-            $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterThan 3000
-            $results.StartTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterThan $results.StartTime
-            'Upgrade successful' | Should BeIn $results.DeploymentLog
+            $testResults = Install-DBOPackage "$workFolder\delay.zip" -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 6
+            $testResults.Successful | Should Be $true
+            $testResults.Scripts.Name | Should Be '1.0\delay.sql'
+            $testResults.SqlInstance | Should Be $script:mssqlInstance
+            $testResults.Database | Should Be $newDbName
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\delay.zip")
+            $testResults.ConnectionType | Should Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterThan 3000
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterThan $testResults.StartTime
+            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" -Raw
             $output | Should Not BeLike '*Timeout Expired*'
             $output | Should BeLike '*Successful!*'
         }
         It "should successfully run with infinite timeout" {
-            $results = Install-DBOPackage "$workFolder\delay.zip" -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 0
-            $results.Successful | Should Be $true
-            $results.Scripts.Name | Should Be '1.0\delay.sql'
-            $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $newDbName
-            $results.SourcePath | Should Be "$workFolder\delay.zip"
-            $results.ConnectionType | Should Be 'SQLServer'
-            $results.Configuration.SchemaVersionTable | Should Be $logTable
-            $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $results.StartTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
-            'Upgrade successful' | Should BeIn $results.DeploymentLog
+            $testResults = Install-DBOPackage "$workFolder\delay.zip" -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 0
+            $testResults.Successful | Should Be $true
+            $testResults.Scripts.Name | Should Be '1.0\delay.sql'
+            $testResults.SqlInstance | Should Be $script:mssqlInstance
+            $testResults.Database | Should Be $newDbName
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\delay.zip")
+            $testResults.ConnectionType | Should Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" -Raw
             $output | Should Not BeLike '*Timeout Expired*'
@@ -336,35 +341,35 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
     Context  "$commandName whatif tests" {
         BeforeAll {
             $null = New-DBOPackage -ScriptPath $v1scripts -Name $packageNamev1 -Build 1.0
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         AfterAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
             Remove-Item $packageNamev1
         }
         It "should deploy nothing" {
-            $results = Install-DBOPackage $packageNamev1 -SqlInstance $script:instance1 -Database $newDbName -SchemaVersionTable $logTable -Silent -WhatIf
-            $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $newDbName
-            $results.Scripts.Name | Should Be ((Get-Item $v1scripts).Name | ForEach-Object { '1.0\' + $_ })
-            $results.SourcePath | Should Be $packageNamev1
-            $results.ConnectionType | Should Be 'SQLServer'
-            $results.Configuration.SchemaVersionTable | Should Be $logTable
-            $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $results.StartTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
-            "No deployment performed - WhatIf mode." | Should BeIn $results.DeploymentLog
-            ((Get-Item $v1scripts).Name | ForEach-Object { '1.0\' + $_ }) + " would have been executed - WhatIf mode." | Should BeIn $results.DeploymentLog
+            $testResults = Install-DBOPackage $packageNamev1 -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent -WhatIf
+            $testResults.SqlInstance | Should Be $script:mssqlInstance
+            $testResults.Database | Should Be $newDbName
+            $testResults.Scripts.Name | Should Be $v1Journal
+            $testResults.SourcePath | Should Be $packageNamev1
+            $testResults.ConnectionType | Should Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+            "No deployment performed - WhatIf mode." | Should BeIn $testResults.DeploymentLog
+            $v1Journal | ForEach-Object { "$_ would have been executed - WhatIf mode." } | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
-            $logTable | Should Not BeIn $results.name
-            'a' | Should Not BeIn $results.name
-            'b' | Should Not BeIn $results.name
-            'c' | Should Not BeIn $results.name
-            'd' | Should Not BeIn $results.name
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $logTable | Should Not BeIn $testResults.name
+            'a' | Should Not BeIn $testResults.name
+            'b' | Should Not BeIn $testResults.name
+            'c' | Should Not BeIn $testResults.name
+            'd' | Should Not BeIn $testResults.name
         }
     }
     Context "testing regular deployment with configuration overrides" {
@@ -377,73 +382,74 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
                 DeploymentMethod   = "SingleTransaction"
             }
             $outputFile = "$workFolder\log.txt"
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy version 1.0 using -Configuration file override" {
             $configFile = "$workFolder\config.custom.json"
             @{
-                SqlInstance        = $script:instance1
+                SqlInstance        = $script:mssqlInstance
                 Database           = $newDbName
                 SchemaVersionTable = $logTable
                 Silent             = $true
                 DeploymentMethod   = 'NoTransaction'
             } | ConvertTo-Json -Depth 2 | Out-File $configFile -Force
-            $results = Install-DBOPackage "$workFolder\pv1.zip" -Configuration $configFile -OutputFile "$workFolder\log.txt"
-            $results.Successful | Should Be $true
-            $results.Scripts.Name | Should Be ((Get-Item $v1scripts).Name | ForEach-Object {'1.0\' + $_})
-            $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $newDbName
-            $results.SourcePath | Should Be "$workFolder\pv1.zip"
-            $results.ConnectionType | Should Be 'SQLServer'
-            $results.Configuration.SchemaVersionTable | Should Be $logTable
-            $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $results.StartTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
-            'Upgrade successful' | Should BeIn $results.DeploymentLog
+            $testResults = Install-DBOPackage "$workFolder\pv1.zip" -Configuration $configFile -OutputFile "$workFolder\log.txt" -Credential $script:mssqlCredential
+            $testResults.Successful | Should Be $true
+            $testResults.Scripts.Name | Should Be $v1Journal
+            $testResults.SqlInstance | Should Be $script:mssqlInstance
+            $testResults.Database | Should Be $newDbName
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
+            $testResults.ConnectionType | Should Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
             $output | Should Be (Get-Content "$here\etc\log1.txt")
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
-            $logTable | Should BeIn $results.name
-            'a' | Should BeIn $results.name
-            'b' | Should BeIn $results.name
-            'c' | Should Not BeIn $results.name
-            'd' | Should Not BeIn $results.name
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $logTable | Should BeIn $testResults.name
+            'a' | Should BeIn $testResults.name
+            'b' | Should BeIn $testResults.name
+            'c' | Should Not BeIn $testResults.name
+            'd' | Should Not BeIn $testResults.name
         }
         It "should deploy version 2.0 using -Configuration object override" {
-            $results = Install-DBOPackage "$workFolder\pv2.zip" -Configuration @{
-                SqlInstance        = $script:instance1
+            $testResults = Install-DBOPackage "$workFolder\pv2.zip" -Configuration @{
+                SqlInstance        = $script:mssqlInstance
+                Credential         = $script:mssqlCredential
                 Database           = $newDbName
                 SchemaVersionTable = $logTable
                 Silent             = $true
                 DeploymentMethod   = 'NoTransaction'
             } -OutputFile "$workFolder\log.txt"
-            $results.Successful | Should Be $true
-            $results.Scripts.Name | Should Be ((Get-Item $v2scripts).Name | ForEach-Object { '2.0\' + $_ })
-            $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $newDbName
-            $results.SourcePath | Should Be "$workFolder\pv2.zip"
-            $results.ConnectionType | Should Be 'SQLServer'
-            $results.Configuration.SchemaVersionTable | Should Be $logTable
-            $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $results.StartTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
-            'Upgrade successful' | Should BeIn $results.DeploymentLog
+            $testResults.Successful | Should Be $true
+            $testResults.Scripts.Name | Should Be $v2Journal
+            $testResults.SqlInstance | Should Be $script:mssqlInstance
+            $testResults.Database | Should Be $newDbName
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv2.zip")
+            $testResults.ConnectionType | Should Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
             $output | Should Be (Get-Content "$here\etc\log2.txt")
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
-            $logTable | Should BeIn $results.name
-            'a' | Should BeIn $results.name
-            'b' | Should BeIn $results.name
-            'c' | Should BeIn $results.name
-            'd' | Should BeIn $results.name
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $logTable | Should BeIn $testResults.name
+            'a' | Should BeIn $testResults.name
+            'b' | Should BeIn $testResults.name
+            'c' | Should BeIn $testResults.name
+            'd' | Should BeIn $testResults.name
         }
     }
     Context "testing deployment without specifying SchemaVersion table" {
@@ -451,207 +457,213 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
             $p2 = New-DBOPackage -ScriptPath $v2scripts -Name "$workFolder\pv2" -Build 2.0 -Force
             $outputFile = "$workFolder\log.txt"
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         AfterAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
         }
         It "should deploy version 1.0" {
-            $before = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
+            $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $results = Install-DBOPackage "$workFolder\pv1.zip" -SqlInstance $script:instance1 -Database $newDbName -Silent
-            $results.Successful | Should Be $true
-            $results.Scripts.Name | Should Be ((Get-Item $v1scripts).Name | ForEach-Object {'1.0\' + $_})
-            $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $newDbName
-            $results.SourcePath | Should Be "$workFolder\pv1.zip"
-            $results.ConnectionType | Should Be 'SQLServer'
-            $results.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
-            $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $results.StartTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
-            'Upgrade successful' | Should BeIn $results.DeploymentLog
+            $testResults = Install-DBOPackage "$workFolder\pv1.zip" -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Silent
+            $testResults.Successful | Should Be $true
+            $testResults.Scripts.Name | Should Be $v1Journal
+            $testResults.SqlInstance | Should Be $script:mssqlInstance
+            $testResults.Database | Should Be $newDbName
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
+            $testResults.ConnectionType | Should Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
-            'SchemaVersions' | Should BeIn $results.name
-            'a' | Should BeIn $results.name
-            'b' | Should BeIn $results.name
-            'c' | Should Not BeIn $results.name
-            'd' | Should Not BeIn $results.name
-            ($results | Measure-Object).Count | Should Be ($rowsBefore + 3)
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            'SchemaVersions' | Should BeIn $testResults.name
+            'a' | Should BeIn $testResults.name
+            'b' | Should BeIn $testResults.name
+            'c' | Should Not BeIn $testResults.name
+            'd' | Should Not BeIn $testResults.name
+            ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 3)
         }
         It "should deploy version 2.0" {
-            $before = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
+            $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $results = Install-DBOPackage "$workFolder\pv2.zip" -SqlInstance $script:instance1 -Database $newDbName -Silent
-            $results.Successful | Should Be $true
-            $results.Scripts.Name | Should Be ((Get-Item $v2scripts).Name | ForEach-Object { '2.0\' + $_ })
-            $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $newDbName
-            $results.SourcePath | Should Be "$workFolder\pv2.zip"
-            $results.ConnectionType | Should Be 'SQLServer'
-            $results.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
-            $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $results.StartTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
-            'Upgrade successful' | Should BeIn $results.DeploymentLog
+            $testResults = Install-DBOPackage "$workFolder\pv2.zip" -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Silent
+            $testResults.Successful | Should Be $true
+            $testResults.Scripts.Name | Should Be $v2Journal
+            $testResults.SqlInstance | Should Be $script:mssqlInstance
+            $testResults.Database | Should Be $newDbName
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv2.zip")
+            $testResults.ConnectionType | Should Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
-            'SchemaVersions' | Should BeIn $results.name
-            'a' | Should BeIn $results.name
-            'b' | Should BeIn $results.name
-            'c' | Should BeIn $results.name
-            'd' | Should BeIn $results.name
-            ($results | Measure-Object).Count | Should Be ($rowsBefore + 2)
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            'SchemaVersions' | Should BeIn $testResults.name
+            'a' | Should BeIn $testResults.name
+            'b' | Should BeIn $testResults.name
+            'c' | Should BeIn $testResults.name
+            'd' | Should BeIn $testResults.name
+            ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 2)
         }
     }
     Context "testing deployment with no history`: SchemaVersion is null" {
         BeforeEach {
             $null = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         AfterEach {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
         }
         It "should deploy version 1.0 without creating SchemaVersions" {
-            $before = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
+            $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $results = Install-DBOPackage "$workFolder\pv1.zip" -SqlInstance $script:instance1 -Database $newDbName -Silent -SchemaVersionTable $null
-            $results.Successful | Should Be $true
-            $results.Scripts.Name | Should Be ((Get-Item $v1scripts).Name | ForEach-Object {'1.0\' + $_})
-            $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $newDbName
-            $results.SourcePath | Should Be "$workFolder\pv1.zip"
-            $results.ConnectionType | Should Be 'SQLServer'
-            $results.Configuration.SchemaVersionTable | Should BeNullOrEmpty
-            $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $results.StartTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
-            'Upgrade successful' | Should BeIn $results.DeploymentLog
+            $testResults = Install-DBOPackage "$workFolder\pv1.zip" -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Silent -SchemaVersionTable $null
+            $testResults.Successful | Should Be $true
+            $testResults.Scripts.Name | Should Be $v1Journal
+            $testResults.SqlInstance | Should Be $script:mssqlInstance
+            $testResults.Database | Should Be $newDbName
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
+            $testResults.ConnectionType | Should Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should BeNullOrEmpty
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
-            'SchemaVersions' | Should Not BeIn $results.name
-            'a' | Should BeIn $results.name
-            'b' | Should BeIn $results.name
-            'c' | Should Not BeIn $results.name
-            'd' | Should Not BeIn $results.name
-            ($results | Measure-Object).Count | Should Be ($rowsBefore + 2)
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            'SchemaVersions' | Should Not BeIn $testResults.name
+            'a' | Should BeIn $testResults.name
+            'b' | Should BeIn $testResults.name
+            'c' | Should Not BeIn $testResults.name
+            'd' | Should Not BeIn $testResults.name
+            ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 2)
         }
     }
     Context "testing deployment with defined schema" {
         BeforeEach {
             $null = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -Query "CREATE SCHEMA testschema"
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -Query "CREATE SCHEMA testschema"
         }
         AfterEach {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
         }
         It "should deploy version 1.0 into testschema" {
-            $before = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
+            $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $results = Install-DBOPackage "$workFolder\pv1.zip" -SqlInstance $script:instance1 -Database $newDbName -Silent -Schema testschema
-            $results.Successful | Should Be $true
-            $results.Scripts.Name | Should Be ((Get-Item $v1scripts).Name | ForEach-Object {'1.0\' + $_})
-            $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $newDbName
-            $results.SourcePath | Should Be "$workFolder\pv1.zip"
-            $results.ConnectionType | Should Be 'SQLServer'
-            $results.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
-            $results.Configuration.Schema | Should Be 'testschema'
-            $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $results.StartTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
-            'Upgrade successful' | Should BeIn $results.DeploymentLog
+            $testResults = Install-DBOPackage "$workFolder\pv1.zip" -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Silent -Schema testschema
+            $testResults.Successful | Should Be $true
+            $testResults.Scripts.Name | Should Be $v1Journal
+            $testResults.SqlInstance | Should Be $script:mssqlInstance
+            $testResults.Database | Should Be $newDbName
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
+            $testResults.ConnectionType | Should Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
+            $testResults.Configuration.Schema | Should Be 'testschema'
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
-            $results | Where-Object Name -eq 'SchemaVersions' | Select-Object -ExpandProperty schema | Should Be 'testschema'
+            $after = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $after | Where-Object name -eq 'SchemaVersions' | Select-Object -ExpandProperty schema | Should Be 'testschema'
             # disabling for SQL Server, but leaving for other rdbms in perspective
-            # $results | Where-Object Name -eq 'a' | Select-Object -ExpandProperty schema | Should Be 'testschema'
-            # $results | Where-Object Name -eq 'b' | Select-Object -ExpandProperty schema | Should Be 'testschema'
-            ($results | Measure-Object).Count | Should Be ($rowsBefore + 3)
+            # $testResults | Where-Object Name -eq 'a' | Select-Object -ExpandProperty schema | Should Be 'testschema'
+            # $testResults | Where-Object Name -eq 'b' | Select-Object -ExpandProperty schema | Should Be 'testschema'
+            ($after | Measure-Object).Count | Should Be ($rowsBefore + 3)
         }
     }
     Context "testing deployment using variables in config" {
         BeforeAll {
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force -Configuration @{SqlInstance = '#{srv}'; Database = '#{db}'}
             $outputFile = "$workFolder\log.txt"
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         AfterAll {
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
         }
         It "should deploy version 1.0" {
-            $before = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
+            $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $results = Install-DBOPackage "$workFolder\pv1.zip" -Variables @{srv = $script:instance1; db = $newDbName} -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
-            $results.Successful | Should Be $true
-            $results.Scripts.Name | Should Be ((Get-Item $v1scripts).Name | ForEach-Object {'1.0\' + $_})
-            $results.SqlInstance | Should Be $script:instance1
-            $results.Database | Should Be $newDbName
-            $results.SourcePath | Should Be "$workFolder\pv1.zip"
-            $results.ConnectionType | Should Be 'SQLServer'
-            $results.Configuration.SchemaVersionTable | Should Be $logTable
-            $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $results.StartTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
-            'Upgrade successful' | Should BeIn $results.DeploymentLog
+            $testResults = Install-DBOPackage "$workFolder\pv1.zip" -Credential $script:mssqlCredential -Variables @{srv = $script:mssqlInstance; db = $newDbName} -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $testResults.Successful | Should Be $true
+            $testResults.Scripts.Name | Should Be $v1Journal
+            $testResults.SqlInstance | Should Be $script:mssqlInstance
+            $testResults.Database | Should Be $newDbName
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
+            $testResults.ConnectionType | Should Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
             $output | Should Be (Get-Content "$here\etc\log1.txt")
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
-            $logTable | Should BeIn $results.name
-            'a' | Should BeIn $results.name
-            'b' | Should BeIn $results.name
-            ($results | Measure-Object).Count | Should Be ($rowsBefore + 3)
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $logTable | Should BeIn $testResults.name
+            'a' | Should BeIn $testResults.name
+            'b' | Should BeIn $testResults.name
+            ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 3)
         }
     }
     Context "testing deployment with custom connection string" {
         BeforeAll {
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
-            $null = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy version 1.0" {
-            $connectionString = "Server=$script:instance1;Database=$newDbName;Trusted_Connection=True"
-            $results = Install-DBOPackage "$workFolder\pv1.zip" -ConnectionString $connectionString -SqlInstance willBeIgnored -Database IgnoredAsWell -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
-            $results.Successful | Should Be $true
-            $results.Scripts.Name | Should Be ((Get-Item $v1scripts).Name | ForEach-Object {'1.0\' + $_})
-            $results.SqlInstance | Should BeNullOrEmpty
-            $results.Database | Should BeNullOrEmpty
-            $results.SourcePath | Should Be "$workFolder\pv1.zip"
-            $results.ConnectionType | Should Be 'SQLServer'
-            $results.Configuration.SchemaVersionTable | Should Be $logTable
-            $results.Error | Should BeNullOrEmpty
-            $results.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $results.StartTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should Not BeNullOrEmpty
-            $results.EndTime | Should -BeGreaterOrEqual $results.StartTime
-            'Upgrade successful' | Should BeIn $results.DeploymentLog
+            $connectionString = "Server=$script:mssqlInstance;Database=$newDbName;"
+            if ($script:mssqlCredential) {
+                $connectionString += "User ID=$($script:mssqlCredential.UserName);Password=$($script:mssqlCredential.GetNetworkCredential().Password)"
+            }
+            else {
+                $connectionString += "Trusted_Connection=True"
+            }
+            $testResults = Install-DBOPackage "$workFolder\pv1.zip" -ConnectionString $connectionString -SqlInstance willBeIgnored -Database IgnoredAsWell -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $testResults.Successful | Should Be $true
+            $testResults.Scripts.Name | Should Be $v1Journal
+            $testResults.SqlInstance | Should BeNullOrEmpty
+            $testResults.Database | Should BeNullOrEmpty
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
+            $testResults.ConnectionType | Should Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
             $output | Should Be (Get-Content "$here\etc\log1.txt")
             #Verifying objects
-            $results = Invoke-SqlCmd2 -ServerInstance $script:instance1 -Database $newDbName -InputFile $verificationScript
-            $logTable | Should BeIn $results.name
-            'a' | Should BeIn $results.name
-            'b' | Should BeIn $results.name
-            'c' | Should Not BeIn $results.name
-            'd' | Should Not BeIn $results.name
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $logTable | Should BeIn $testResults.name
+            'a' | Should BeIn $testResults.name
+            'b' | Should BeIn $testResults.name
+            'c' | Should Not BeIn $testResults.name
+            'd' | Should Not BeIn $testResults.name
         }
     }
 }

@@ -2,7 +2,7 @@ class DBOpsDeploymentStatus {
     [string] $SqlInstance
     [string] $Database
     [string[]] $SourcePath
-    [System.Nullable[DBOpsConnectionType]] $ConnectionType
+    [System.Nullable[DBOps.ConnectionType]] $ConnectionType
     [DBOpsConfig] $Configuration
     [DbUp.Engine.SqlScript[]] $Scripts
     [Exception] $Error

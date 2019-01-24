@@ -8,7 +8,7 @@ $here = if ($PSScriptRoot) { $PSScriptRoot } else {	(Get-Item . ).FullName }
 if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force
+    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
@@ -129,7 +129,8 @@ foreach ($command in $commands) {
                             $testparamserrors += 1
                         }
                     }
-                    elseif ($parameter.ParameterType.FullName -in $HelpTestEnumeratedArrays) {
+                    #removing the [] in the end to properly identify enums
+                    elseif ((Invoke-Expression "[$($parameter.ParameterType.FullName.Trim('[]'))]").IsEnum) {
                         # Enumerations often have issues with the typename not being reliably available
                         $names = [Enum]::GetNames($parameter.ParameterType.DeclaredMembers[0].ReturnType)
                         if ($parameterHelp.parameterValueGroup.parameterValue -ne $names) {

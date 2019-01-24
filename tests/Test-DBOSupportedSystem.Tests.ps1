@@ -7,7 +7,7 @@ else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
 
 if (!$Batch) {
     # Is not a part of the global batch => import module
-    Import-Module "$here\..\dbops.psd1" -Force
+    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
@@ -16,13 +16,16 @@ else {
 
 Describe "Test-DBOSupportedSystem tests" -Tag $commandName, UnitTests {
     Context "Testing support for different RDBMS" {
-        It "should test SQL Server support" {
-            Test-DBOSupportedSystem -Type SQLServer | Should Be $true
-        }
-        It "should test Oracle support" {
-            $expectedResult = [bool](Get-Package Oracle.ManagedDataAccess -MinimumVersion 12.2.1100 -ErrorAction SilentlyContinue)
-            $result = Test-DBOSupportedSystem -Type Oracle 3>$null
-            $result | Should Be $expectedResult
+        # all packages should be already installed by this time in Install-DBOSupportLibrary.Tests.ps1
+        $dependencies = Get-ExternalLibrary
+        foreach ($d in ($dependencies | Get-Member | Where-Object MemberType -eq NoteProperty | Select-Object -ExpandProperty Name)) {
+            It "should test $d support" {
+                $testResult = Test-DBOSupportedSystem -Type $d 3>$null
+                foreach ($package in $dependencies.$d) {
+                    $expectedResult = $null -ne (Get-Package $package.Name -MinimumVersion $package.Version -ProviderName nuget)
+                    $testResult | Should Be $expectedResult
+                }
+            }
         }
     }
 }

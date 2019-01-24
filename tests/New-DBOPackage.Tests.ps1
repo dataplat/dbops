@@ -8,28 +8,28 @@ else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
 if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force
+    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
     Write-Host "Running $commandName tests" -ForegroundColor Cyan
 }
 
-$workFolder = Join-Path "$here\etc" "$commandName.Tests.dbops"
+$workFolder = Join-PSFPath -Normalize "$here\etc" "$commandName.Tests.dbops"
 $unpackedFolder = Join-Path $workFolder 'unpacked'
-$packageName = "$workFolder\dbopsTest.zip"
-$scriptFolder = "$here\etc\install-tests\success"
-$fullConfig = "$here\etc\tmp_full_config.json"
-$fullConfigSource = "$here\etc\full_config.json"
+$packageName = Join-PSFPath -Normalize "$workFolder\dbopsTest.zip"
+$scriptFolder = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success"
+$fullConfig = Join-PSFPath -Normalize "$here\etc\tmp_full_config.json"
+$fullConfigSource = Join-PSFPath -Normalize "$here\etc\full_config.json"
 $testPassword = 'TestPassword'
-$fromSecureString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertFrom-SecureString
+$encryptedString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertTo-EncryptedString
 
 Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
     BeforeAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = New-Item $workFolder -ItemType Directory -Force
         $null = New-Item $unpackedFolder -ItemType Directory -Force
-        (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $fromSecureString | Out-File $fullConfig -Force
+        (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $encryptedString | Out-File $fullConfig -Force
     }
     AfterAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
@@ -40,37 +40,38 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
             if ((Test-Path $workFolder\*) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder\* }
         }
         It "should create a package file" {
-            $results = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -Name $packageName
-            $results | Should Not Be $null
-            $results.Name | Should Be (Split-Path $packageName -Leaf)
-            $results.FullName | Should Be (Get-Item $packageName).FullName
-            $results.ModuleVersion | Should Be (Get-Module dbops).Version
+            $testResults = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -Name $packageName
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageName -Leaf)
+            $testResults.FullName | Should Be (Get-Item $packageName).FullName
+            $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
             Test-Path $packageName | Should Be $true
         }
         It "should contain query files" {
-            $results = Get-ArchiveItem $packageName
-            'query1.sql' | Should BeIn $results.Name
+            $testResults = Get-ArchiveItem $packageName
+            'query1.sql' | Should BeIn $testResults.Name
         }
         It "should contain module files" {
-            $results = Get-ArchiveItem $packageName
-            'Modules\dbops\dbops.psd1' | Should BeIn $results.Path
-            'Modules\dbops\bin\dbup-sqlserver.dll' | Should BeIn $results.Path
+            $testResults = Get-ArchiveItem $packageName
+            foreach ($file in Get-DBOModuleFileList) {
+                Join-PSFPath -Normalize Modules\dbops $file.Path | Should BeIn $testResults.Path
+            }
         }
         It "should contain config files" {
-            $results = Get-ArchiveItem $packageName
-            'dbops.config.json' | Should BeIn $results.Path
-            'dbops.package.json' | Should BeIn $results.Path
+            $testResults = Get-ArchiveItem $packageName
+            'dbops.config.json' | Should BeIn $testResults.Path
+            'dbops.package.json' | Should BeIn $testResults.Path
         }
         It "should contain deploy files" {
-            $results = Get-ArchiveItem $packageName
-            'Deploy.ps1' | Should BeIn $results.Path
+            $testResults = Get-ArchiveItem $packageName
+            'Deploy.ps1' | Should BeIn $testResults.Path
         }
         It "should create a zip package based on name without extension" {
-            $results = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -Name ($packageName -replace '\.zip$','') -Force
-            $results | Should Not Be $null
-            $results.Name | Should Be (Split-Path $packageName -Leaf)
-            $results.FullName | Should Be (Get-Item $packageName).FullName
-            $results.ModuleVersion | Should Be (Get-Module dbops).Version
+            $testResults = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -Name ($packageName -replace '\.zip$', '') -Force
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageName -Leaf)
+            $testResults.FullName | Should Be (Get-Item $packageName).FullName
+            $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
             Test-Path $packageName | Should Be $true
         }
     }
@@ -82,11 +83,11 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
             Pop-Location
         }
         It "should create a package file in the current folder" {
-            $results = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -Name (Split-Path $packageName -Leaf)
-            $results | Should Not Be $null
-            $results.Name | Should Be (Split-Path $packageName -Leaf)
-            $results.FullName | Should Be (Get-Item $packageName).FullName
-            $results.ModuleVersion | Should Be (Get-Module dbops).Version
+            $testResults = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -Name (Split-Path $packageName -Leaf)
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageName -Leaf)
+            $testResults.FullName | Should Be (Get-Item $packageName).FullName
+            $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
             Test-Path $packageName | Should Be $true
         }
     }
@@ -107,12 +108,13 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
             $config.ConnectionTimeout | Should Be 40
             $config.Encrypt | Should Be $null
             $config.Credential.UserName | Should Be "CredentialUser"
-            [PSCredential]::new('test', ($config.Credential.Password | ConvertTo-SecureString)).GetNetworkCredential().Password | Should Be "TestPassword"
+            [PSCredential]::new('test', ($config.Credential.Password | ConvertFrom-EncryptedString)).GetNetworkCredential().Password | Should Be "TestPassword"
             $config.Username | Should Be "TestUser"
-            [PSCredential]::new('test', ($config.Password | ConvertTo-SecureString)).GetNetworkCredential().Password | Should Be "TestPassword"
+            [PSCredential]::new('test', ($config.Password | ConvertFrom-EncryptedString)).GetNetworkCredential().Password | Should Be "TestPassword"
             $config.SchemaVersionTable | Should Be "test.Table"
             $config.Silent | Should Be $true
-            $config.Variables | Should Be $null
+            $config.Variables.foo | Should -Be 'bar'
+            $config.Variables.boo | Should -Be 'far'
             $config.Schema | Should Be 'testschema'
         }
         It "should be able to apply custom config" {
@@ -156,112 +158,112 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
     }
     Context "testing input scenarios" {
         BeforeAll {
-            Push-Location -Path "$here\etc\install-tests"
+            Push-Location -Path "$here\etc\sqlserver-tests"
         }
         AfterAll {
             Pop-Location
         }
         It "should accept wildcard input" {
-            $results = New-DBOPackage -ScriptPath "$here\etc\install-tests\*" -Build 'abracadabra' -Name $packageName -Force
-            $results | Should Not Be $null
-            $results.Name | Should Be (Split-Path $packageName -Leaf)
-            $results.FullName | Should Be (Get-Item $packageName).FullName
-            $results.ModuleVersion | Should Be (Get-Module dbops).Version
-            $results.Version | Should Be 'abracadabra'
+            $testResults = New-DBOPackage -ScriptPath "$here\etc\sqlserver-tests\*" -Build 'abracadabra' -Name $packageName -Force
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageName -Leaf)
+            $testResults.FullName | Should Be (Get-Item $packageName).FullName
+            $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
+            $testResults.Version | Should Be 'abracadabra'
             Test-Path $packageName | Should Be $true
-            $results = Get-ArchiveItem $packageName
-            'content\abracadabra\Cleanup.sql' | Should BeIn $results.Path
-            'content\abracadabra\success\1.sql' | Should BeIn $results.Path
-            'content\abracadabra\success\2.sql' | Should BeIn $results.Path
-            'content\abracadabra\success\3.sql' | Should BeIn $results.Path
-            'content\abracadabra\transactional-failure\1.sql' | Should BeIn $results.Path
-            'content\abracadabra\transactional-failure\2.sql' | Should BeIn $results.Path
-            'content\abracadabra\verification\select.sql' | Should BeIn $results.Path
+            $testResults = Get-ArchiveItem $packageName
+            Join-PSFPath -Normalize 'content\abracadabra\Cleanup.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\abracadabra\success\1.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\abracadabra\success\2.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\abracadabra\success\3.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\abracadabra\transactional-failure\1.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\abracadabra\transactional-failure\2.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\abracadabra\verification\select.sql' | Should BeIn $testResults.Path
         }
         It "should accept Get-Item <files> pipeline input" {
-            $results = Get-Item "$scriptFolder\*" | New-DBOPackage -Build 'abracadabra' -Name $packageName -Force
-            $results | Should Not Be $null
-            $results.Name | Should Be (Split-Path $packageName -Leaf)
-            $results.FullName | Should Be (Get-Item $packageName).FullName
-            $results.ModuleVersion | Should Be (Get-Module dbops).Version
-            $results.Version | Should Be 'abracadabra'
+            $testResults = Get-Item "$scriptFolder\*" | New-DBOPackage -Build 'abracadabra' -Name $packageName -Force
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageName -Leaf)
+            $testResults.FullName | Should Be (Get-Item $packageName).FullName
+            $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
+            $testResults.Version | Should Be 'abracadabra'
             Test-Path $packageName | Should Be $true
-            $results = Get-ArchiveItem $packageName
-            'content\abracadabra\1.sql' | Should BeIn $results.Path
-            'content\abracadabra\2.sql' | Should BeIn $results.Path
-            'content\abracadabra\3.sql' | Should BeIn $results.Path
+            $testResults = Get-ArchiveItem $packageName
+            Join-PSFPath -Normalize 'content\abracadabra\1.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\abracadabra\2.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\abracadabra\3.sql' | Should BeIn $testResults.Path
         }
         It "should accept Get-Item <files and folders> pipeline input" {
-            $results = Get-Item "$here\etc\install-tests\*" | New-DBOPackage -Build 'abracadabra' -Name $packageName -Force
-            $results | Should Not Be $null
-            $results.Name | Should Be (Split-Path $packageName -Leaf)
-            $results.FullName | Should Be (Get-Item $packageName).FullName
-            $results.ModuleVersion | Should Be (Get-Module dbops).Version
-            $results.Version | Should Be 'abracadabra'
+            $testResults = Get-Item "$here\etc\sqlserver-tests\*" | New-DBOPackage -Build 'abracadabra' -Name $packageName -Force
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageName -Leaf)
+            $testResults.FullName | Should Be (Get-Item $packageName).FullName
+            $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
+            $testResults.Version | Should Be 'abracadabra'
             Test-Path $packageName | Should Be $true
-            $results = Get-ArchiveItem $packageName
-            'content\abracadabra\Cleanup.sql' | Should BeIn $results.Path
-            'content\abracadabra\success\1.sql' | Should BeIn $results.Path
-            'content\abracadabra\success\2.sql' | Should BeIn $results.Path
-            'content\abracadabra\success\3.sql' | Should BeIn $results.Path
-            'content\abracadabra\transactional-failure\1.sql' | Should BeIn $results.Path
-            'content\abracadabra\transactional-failure\2.sql' | Should BeIn $results.Path
-            'content\abracadabra\verification\select.sql' | Should BeIn $results.Path
+            $testResults = Get-ArchiveItem $packageName
+            Join-PSFPath -Normalize 'content\abracadabra\Cleanup.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\abracadabra\success\1.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\abracadabra\success\2.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\abracadabra\success\3.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\abracadabra\transactional-failure\1.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\abracadabra\transactional-failure\2.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\abracadabra\verification\select.sql' | Should BeIn $testResults.Path
         }
         It "should accept Get-ChildItem pipeline input" {
-            $results = Get-ChildItem "$scriptFolder" -File -Recurse | New-DBOPackage -Build 'abracadabra' -Name $packageName -Force
-            $results | Should Not Be $null
-            $results.Name | Should Be (Split-Path $packageName -Leaf)
-            $results.FullName | Should Be (Get-Item $packageName).FullName
-            $results.ModuleVersion | Should Be (Get-Module dbops).Version
-            $results.Version | Should Be 'abracadabra'
+            $testResults = Get-ChildItem "$scriptFolder" -File -Recurse | New-DBOPackage -Build 'abracadabra' -Name $packageName -Force
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageName -Leaf)
+            $testResults.FullName | Should Be (Get-Item $packageName).FullName
+            $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
+            $testResults.Version | Should Be 'abracadabra'
             Test-Path $packageName | Should Be $true
-            $results = Get-ArchiveItem $packageName
-            'content\abracadabra\1.sql' | Should BeIn $results.Path
-            'content\abracadabra\2.sql' | Should BeIn $results.Path
-            'content\abracadabra\3.sql' | Should BeIn $results.Path
+            $testResults = Get-ArchiveItem $packageName
+            Join-PSFPath -Normalize 'content\abracadabra\1.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\abracadabra\2.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\abracadabra\3.sql' | Should BeIn $testResults.Path
         }
         It "should accept relative paths" {
-            $results = New-DBOPackage -ScriptPath ".\success\*" -Build 'abracadabra' -Name $packageName -Force
-            $results | Should Not Be $null
-            $results.Name | Should Be (Split-Path $packageName -Leaf)
-            $results.FullName | Should Be (Get-Item $packageName).FullName
-            $results.ModuleVersion | Should Be (Get-Module dbops).Version
-            $results.Version | Should Be 'abracadabra'
-            $results.Builds[0].Scripts.SourcePath | Should Be @(
-                '.\success\1.sql',
-                '.\success\2.sql',
-                '.\success\3.sql'
+            $testResults = New-DBOPackage -ScriptPath ".\success\*" -Build 'abracadabra' -Name $packageName -Force
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageName -Leaf)
+            $testResults.FullName | Should Be (Get-Item $packageName).FullName
+            $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
+            $testResults.Version | Should Be 'abracadabra'
+            $testResults.Builds[0].Scripts.SourcePath | Should Be @(
+                Join-PSFPath -Normalize '.\success\1.sql'
+                Join-PSFPath -Normalize '.\success\2.sql'
+                Join-PSFPath -Normalize '.\success\3.sql'
             )
             Test-Path $packageName | Should Be $true
-            $results = Get-ArchiveItem $packageName
-            'content\abracadabra\1.sql' | Should BeIn $results.Path
-            'content\abracadabra\2.sql' | Should BeIn $results.Path
-            'content\abracadabra\3.sql' | Should BeIn $results.Path
+            $testResults = Get-ArchiveItem $packageName
+            Join-PSFPath -Normalize 'content\abracadabra\1.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\abracadabra\2.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\abracadabra\3.sql' | Should BeIn $testResults.Path
         }
     }
     Context "runs negative tests" {
         It "should throw error when scripts with the same relative path is being added" {
-            $result = $null
+            $testResult = $null
             try {
-                $result = New-DBOPackage -Name $packageName -ScriptPath "$scriptFolder\*", "$scriptFolder\..\transactional-failure\*"
+                $testResult = New-DBOPackage -Name $packageName -ScriptPath "$scriptFolder\*", "$scriptFolder\..\transactional-failure\*"
             }
             catch {
                 $errorResult = $_
             }
             $errorResult.Exception.Message -join ';' | Should BeLike '*File * already exists in*'
-            $result | Should Be $null
+            $testResult | Should Be $null
         }
         It "should throw error when package already exists" {
-            $result = $null
+            $testResult = $null
             try {
-                $result = New-DBOPackage -Name $packageName -ScriptPath "$scriptFolder\*"
+                $testResult = New-DBOPackage -Name $packageName -ScriptPath "$scriptFolder\*"
             }
             catch {
                 $errorResult = $_
             }
             $errorResult.Exception.Message -join ';' | Should BeLike '*The file * already exists*'
-            $result | Should Be $null
+            $testResult | Should Be $null
         }
         It "returns error when path does not exist" {
             try {

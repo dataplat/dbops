@@ -12,7 +12,7 @@
             else {
                 Add-Member -InputObject $childItem -MemberType NoteProperty -Name Depth -Value $Depth
                 # if a relative path can be build to the file item, use relative paths, otherwise, use absolute
-                if ($childItem.FullName -like "$(Get-Location)\*" -and !$IsAbsolute) {
+                if ($childItem.FullName -like (Join-Path (Get-Location) *) -and !$IsAbsolute) {
                     $srcPath = Resolve-Path $childItem.FullName -Relative
                 }
                 else {

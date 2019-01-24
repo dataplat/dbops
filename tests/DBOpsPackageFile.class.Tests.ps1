@@ -8,7 +8,7 @@ else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
 if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force
+    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
@@ -20,10 +20,10 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 . "$here\..\internal\classes\DBOpsHelper.class.ps1"
 . "$here\..\internal\classes\DBOps.class.ps1"
 
-$packageName = "$here\etc\$commandName.zip"
-$script1 = "$here\etc\install-tests\success\1.sql"
-$script2 = "$here\etc\install-tests\success\2.sql"
-$script3 = "$here\etc\install-tests\success\3.sql"
+$packageName = Join-PSFPath -Normalize "$here\etc\$commandName.zip"
+$script1 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
+$script2 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
+$script3 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\3.sql"
 
 Describe "DBOpsPackageFile class tests" -Tag $commandName, UnitTests, DBOpsPackage, DBOpsPackageFile {
     AfterAll {
@@ -45,39 +45,42 @@ Describe "DBOpsPackageFile class tests" -Tag $commandName, UnitTests, DBOpsPacka
             Expand-Archive $p.FullName "$here\etc\LoadFromFile"
         }
         It "should load package from file" {
-            $p = [DBOpsPackageFile]::new("$here\etc\LoadFromFile\dbops.package.json")
+            $p = [DBOpsPackageFile]::new((Join-PSFPath -Normalize "$here\etc\LoadFromFile\dbops.package.json"))
             $p.ScriptDirectory | Should Be 'content'
             $p.DeployFile.ToString() | Should Be 'Deploy.ps1'
             $p.DeployFile.GetContent() | Should BeLike '*Invoke-DBODeployment @params*'
             $p.ConfigurationFile.ToString() | Should Be 'dbops.config.json'
             ($p.ConfigurationFile.GetContent() | ConvertFrom-Json).SchemaVersionTable | Should Be 'SchemaVersions'
             $p.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
-            $p.FileName | Should Be "$here\etc\LoadFromFile"
-            $p.PackagePath | Should Be "$here\etc\LoadFromFile"
+            $p.FileName | Should Be (Join-PSFPath -Normalize "$here\etc\LoadFromFile")
+            $p.PackagePath | Should Be (Join-PSFPath -Normalize "$here\etc\LoadFromFile")
             $p.Version | Should Be '2.0'
             $p.Builds.Build | Should Be @('1.0', '2.0')
-            $p.Builds.Scripts | Should Be @('success\1.sql', 'success\2.sql')
+            $p.Builds.Scripts | Should Be @(
+                Join-PSFPath -Normalize 'success\1.sql'
+                Join-PSFPath -Normalize 'success\2.sql'
+            )
         }
         It "should override Save/Alter methods" {
-            $p = [DBOpsPackageFile]::new("$here\etc\LoadFromFile\dbops.package.json")
+            $p = [DBOpsPackageFile]::new((Join-PSFPath -Normalize "$here\etc\LoadFromFile\dbops.package.json"))
             { $p.Save() } | Should Throw
             { $p.Alter() } | Should Throw
         }
         It "should still save the package using SaveToFile method" {
-            $p = [DBOpsPackageFile]::new("$here\etc\LoadFromFile\dbops.package.json")
+            $p = [DBOpsPackageFile]::new((Join-PSFPath -Normalize "$here\etc\LoadFromFile\dbops.package.json"))
             $p.SaveToFile($packageName, $true)
-            $results = Get-ArchiveItem $packageName
+            $testResults = Get-ArchiveItem $packageName
             foreach ($file in (Get-DBOModuleFileList)) {
-                Join-Path 'Modules\dbops' $file.Path | Should BeIn $results.Path
+                Join-PSFPath -Normalize 'Modules\dbops' $file.Path | Should BeIn $testResults.Path
             }
-            'dbops.config.json' | Should BeIn $results.Path
-            'dbops.package.json' | Should BeIn $results.Path
-            'Deploy.ps1' | Should BeIn $results.Path
-            'content\1.0\success\1.sql' | Should BeIn $results.Path
-            'content\2.0\success\2.sql' | Should BeIn $results.Path
+            'dbops.config.json' | Should BeIn $testResults.Path
+            'dbops.package.json' | Should BeIn $testResults.Path
+            'Deploy.ps1' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\1.0\success\1.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\2.0\success\2.sql' | Should BeIn $testResults.Path
         }
         It "Should test RefreshFileProperties method" {
-            $p = [DBOpsPackageFile]::new("$here\etc\LoadFromFile\dbops.package.json")
+            $p = [DBOpsPackageFile]::new((Join-PSFPath -Normalize "$here\etc\LoadFromFile\dbops.package.json"))
             $p.RefreshFileProperties()
             $FileObject = Get-Item "$here\etc\LoadFromFile"
             $p.PSPath | Should Be $FileObject.PSPath.ToString()

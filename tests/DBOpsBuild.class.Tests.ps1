@@ -8,7 +8,7 @@ else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
 if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force
+    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
@@ -20,10 +20,10 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 . "$here\..\internal\classes\DBOpsHelper.class.ps1"
 . "$here\..\internal\classes\DBOps.class.ps1"
 
-$packageName = "$here\etc\$commandName.zip"
-$script1 = "$here\etc\install-tests\success\1.sql"
-$script2 = "$here\etc\install-tests\success\2.sql"
-$script3 = "$here\etc\install-tests\success\3.sql"
+$packageName = Join-PSFPath -Normalize "$here\etc\$commandName.zip"
+$script1 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
+$script2 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
+$script3 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\3.sql"
 
 Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
     Context "tests DBOpsBuild object creation" {
@@ -63,7 +63,7 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             ($build.Scripts | Measure-Object).Count | Should Be 1
             #test the file returned to have all the necessary properties
             $so.SourcePath | Should Be $script1
-            $so.PackagePath | Should Be 'success\1.sql'
+            $so.PackagePath | Should Be (Join-PSFPath -Normalize 'success\1.sql')
             $so.Length -gt 0 | Should Be $true
             $so.Name | Should Be '1.sql'
             $so.LastWriteTime | Should Not BeNullOrEmpty
@@ -74,7 +74,7 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             $so = $build.NewScript(@{FullName = $script1; Depth = 1})
             ($build.Scripts | Measure-Object).Count | Should Be 1
             $so.SourcePath | Should Be $script1
-            $so.PackagePath | Should Be 'success\1.sql'
+            $so.PackagePath | Should Be (Join-PSFPath -Normalize 'success\1.sql')
             $so.Length -gt 0 | Should Be $true
             $so.Name | Should Be '1.sql'
             $so.LastWriteTime | Should Not BeNullOrEmpty
@@ -85,22 +85,22 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             { $build.NewScript($script1, 1) } | Should Throw
         }
         It "Should test AddScript([string]) method" {
-            $f = [DBOpsFile]::new($script1, 'success\1.sql')
+            $f = [DBOpsFile]::new($script1, (Join-PSFPath -Normalize 'success\1.sql'))
             $build.AddScript($f)
             #test build to contain the script
             '1.sql' | Should BeIn $build.Scripts.Name
             ($build.Scripts | Measure-Object).Count | Should Be 1
         }
         It "Should test AddScript([string],[bool]) method" {
-            $f = [DBOpsFile]::new($script1, 'success\1.sql')
+            $f = [DBOpsFile]::new($script1, (Join-PSFPath -Normalize 'success\1.sql'))
             $build.AddScript($f,$false)
             #test build to contain the script
             '1.sql' | Should BeIn $build.Scripts.Name
             ($build.Scripts | Measure-Object).Count | Should Be 1
-            $f2 = [DBOpsFile]::new($script1, 'success\1a.sql')
+            $f2 = [DBOpsFile]::new($script1, (Join-PSFPath -Normalize 'success\1a.sql'))
             { $build.AddScript($f2, $false) } | Should Throw
             ($build.Scripts | Measure-Object).Count | Should Be 1
-            $f3 = [DBOpsFile]::new($script1, 'success\1a.sql')
+            $f3 = [DBOpsFile]::new($script1, (Join-PSFPath -Normalize 'success\1a.sql'))
             $build.AddScript($f3, $true)
             ($build.Scripts | Measure-Object).Count | Should Be 2
         }
@@ -109,7 +109,7 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
         BeforeEach {
             $pkg = [DBOpsPackage]::new()
             $build = $pkg.NewBuild('1.0')
-            $f = [DBOpsScriptFile]::new($script1, 'success\1.sql')
+            $f = [DBOpsScriptFile]::new($script1, (Join-PSFPath -Normalize 'success\1.sql'))
             $build.AddScript($f)
             $pkg.SaveToFile($packageName, $true)
         }
@@ -130,7 +130,7 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
         }
         It "should test ScriptExists method" {
             $build.ScriptExists($script1) | Should Be $true
-            $build.ScriptExists("$here\etc\install-tests\transactional-failure\1.sql") | Should Be $false
+            $build.ScriptExists((Join-PSFPath -Normalize "$here\etc\sqlserver-tests\transactional-failure\1.sql")) | Should Be $false
             { $build.ScriptExists("Nonexisting\path") } | Should Throw
         }
         It "should test ScriptModified method" {
@@ -144,16 +144,16 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             $build.SourcePathExists('') | Should Be $false
         }
         It "should test PackagePathExists method" {
-            $s1 = "success\1.sql"
-            $s2 = "success\2.sql"
+            $s1 = Join-PSFPath -Normalize "success\1.sql"
+            $s2 = Join-PSFPath -Normalize "success\2.sql"
             $build.PackagePathExists($s1) | Should Be $true
             $build.PackagePathExists($s2) | Should Be $false
             #Overloads
-            $build.PackagePathExists("a\$s1", 1) | Should Be $true
-            $build.PackagePathExists("a\$s2", 1) | Should Be $false
+            $build.PackagePathExists((Join-PSFPath -Normalize "a\$s1"), 1) | Should Be $true
+            $build.PackagePathExists((Join-PSFPath -Normalize "a\$s2"), 1) | Should Be $false
         }
         It "should test GetPackagePath method" {
-            $build.GetPackagePath() | Should Be 'content\1.0'
+            $build.GetPackagePath() | Should Be (Join-PSFPath -Normalize 'content\1.0')
         }
         It "should test ExportToJson method" {
             $j = $build.ExportToJson() | ConvertFrom-Json
@@ -180,9 +180,9 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             $pkg = [DBOpsPackage]::new()
             $pkg.SaveToFile($packageName, $true)
             $build = $pkg.NewBuild('1.0')
-            $f = [DBOpsScriptFile]::new($script1, 'success\1.sql')
+            $f = [DBOpsScriptFile]::new($script1, (Join-PSFPath -Normalize 'success\1.sql'))
             $build.AddScript($f)
-            $f = [DBOpsScriptFile]::new($script2, 'success\2.sql')
+            $f = [DBOpsScriptFile]::new($script2, (Join-PSFPath -Normalize 'success\2.sql'))
             $build.AddScript($f)
             #Open zip file stream
             $writeMode = [System.IO.FileMode]::Open
@@ -209,15 +209,15 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
                 #Close archive
                 $stream.Dispose()
             }
-            $results = Get-ArchiveItem $packageName
+            $testResults = Get-ArchiveItem $packageName
             foreach ($file in (Get-DBOModuleFileList)) {
-                Join-Path 'Modules\dbops' $file.Path | Should BeIn $results.Path
+                Join-PSFPath -Normalize 'Modules\dbops' $file.Path | Should BeIn $testResults.Path
             }
-            'dbops.config.json' | Should BeIn $results.Path
-            'dbops.package.json' | Should BeIn $results.Path
-            'Deploy.ps1' | Should BeIn $results.Path
-            'content\1.0\success\1.sql' | Should BeIn $results.Path
-            'content\1.0\success\2.sql' | Should BeIn $results.Path
+            'dbops.config.json' | Should BeIn $testResults.Path
+            'dbops.package.json' | Should BeIn $testResults.Path
+            'Deploy.ps1' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\1.0\success\1.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\1.0\success\2.sql' | Should BeIn $testResults.Path
         }
         It "Should load package successfully after saving it" {
             $p = [DBOpsPackage]::new($packageName)
@@ -228,9 +228,9 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             $pkg = [DBOpsPackage]::new()
             $pkg.SaveToFile($packageName, $true)
             $b = $pkg.NewBuild('1.0')
-            $f = [DBOpsScriptFile]::new($script1, 'success\1.sql')
+            $f = [DBOpsScriptFile]::new($script1, (Join-PSFPath -Normalize 'success\1.sql'))
             $b.AddScript($f)
-            $f = [DBOpsScriptFile]::new($script2, 'success\2.sql')
+            $f = [DBOpsScriptFile]::new($script2, (Join-PSFPath -Normalize 'success\2.sql'))
             $b.AddScript($f)
             $pkg.SaveToFile("$packageName.test.zip")
             $pkg = [DBOpsPackage]::new("$packageName.test.zip")
@@ -245,35 +245,36 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             $f = [DBOpsScriptFile]::new($script3, 'success\3.sql')
             $build.AddScript($f)
             { $build.Alter() } | Should Not Throw
-            $results = Get-ArchiveItem "$packageName.test.zip"
+            $testResults = Get-ArchiveItem "$packageName.test.zip"
             foreach ($file in (Get-DBOModuleFileList)) {
-                Join-Path 'Modules\dbops' $file.Path | Should BeIn $results.Path
+                Join-PSFPath -Normalize  'Modules\dbops' $file.Path | Should BeIn $testResults.Path
             }
-            'dbops.config.json' | Should BeIn $results.Path
-            'dbops.package.json' | Should BeIn $results.Path
-            'Deploy.ps1' | Should BeIn $results.Path
-            'content\1.0\success\1.sql' | Should BeIn $results.Path
-            'content\1.0\success\2.sql' | Should BeIn $results.Path
+            'dbops.config.json' | Should BeIn $testResults.Path
+            'dbops.package.json' | Should BeIn $testResults.Path
+            'Deploy.ps1' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\1.0\success\1.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\1.0\success\2.sql' | Should BeIn $testResults.Path
         }
         It "Should load package successfully after saving it" {
             $p = [DBOpsPackage]::new("$packageName.test.zip")
             $p.Builds.Scripts.Name | Should Be @('1.sql', '2.sql', '3.sql')
         }
         # Testing file contents to be updated by the Save method
-        $results = Get-ArchiveItem "$packageName.test.zip"
+        $testResults = Get-ArchiveItem "$packageName.test.zip"
         $saveTestsErrors = 0
         #should trigger file updates for build files and module files
-        foreach ($result in ($oldResults | Where-Object { $_.Path -like 'content\1.0\success\*' -or $_.Path -like 'Modules\dbops\*'  } )) {
-            if ($result.LastWriteTime -ge ($results | Where-Object Path -eq $result.Path).LastWriteTime) {
-                It "Should have updated Modified date for file $($result.Path)" {
-                    $result.LastWriteTime -lt ($results | Where-Object Path -eq $result.Path).LastWriteTime | Should Be $true
+        foreach ($testResult in ($oldResults | Where-Object { $_.Path -like (Join-PSFPath -Normalize 'content\1.0\success\*') -or $_.Path -like (Join-PSFPath -Normalize 'Modules\dbops\*')  } )) {
+            if ($testResult.LastWriteTime -ge ($testResults | Where-Object Path -eq $testResult.Path).LastWriteTime) {
+                It "Should have updated Modified date for file $($testResult.Path)" {
+                    $testResult.LastWriteTime -lt ($testResults | Where-Object Path -eq $testResult.Path).LastWriteTime | Should Be $true
                 }
                 $saveTestsErrors++
             }
         }
         if ($saveTestsErrors -eq 0) {
             It "Ran silently $($oldResults.Length) file modification tests" {
-                $saveTestsErrors | Should be 0
+                $saveTestsErrors | Should -Be 0
+                $oldResults.Length | Should -BeGreaterThan 0
             }
         }
     }

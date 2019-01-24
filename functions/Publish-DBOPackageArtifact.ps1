@@ -59,7 +59,7 @@ Function Publish-DBOPackageArtifact {
     .NOTES
     
     #>
-    [CmdletBinding(SupportsShouldProcess = $true, DefaultParameterSetName = 'Default')]
+    [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'Default')]
     Param(
         [Parameter(Mandatory = $true, Position = 1)]
         [Alias('RepositoryPath')]
@@ -85,12 +85,12 @@ Function Publish-DBOPackageArtifact {
             $package = Get-DBOPackage -InputObject $InputObject
         }
         $pkgName = Split-Path ($package.FullName -replace '\.zip$', '') -Leaf
-        if ((Test-Path $repo\Current) -and (Test-Path $repo\Versions)) {
-            Write-Message -Level Verbose -Message "Valid folder structure found in $repo"
+        if ((Test-Path (Join-Path $repo Current)) -and (Test-Path (Join-Path $repo Versions))) {
+            Write-PSFMessage -Level Verbose -Message "Valid folder structure found in $repo"
             $repoFolder = $repo
         }
         else {
-            Write-Message -Level Verbose -Message "Assuming $repo is a top-level repo folder"
+            Write-PSFMessage -Level Verbose -Message "Assuming $repo is a top-level repo folder"
             if (Test-Path (Join-Path $repo $pkgName)) {
                 $repoFolder = Get-Item (Join-Path $repo $pkgName) -ErrorAction Stop
             }
@@ -103,17 +103,17 @@ Function Publish-DBOPackageArtifact {
                 $null = Get-Item (Join-Path $repoFolder $_) -ErrorAction Stop -OutVariable "repo$($_)Folder"
             }
             else {
-                Write-Message -Level Verbose -Message "Creating folder $_ inside the repo"
+                Write-PSFMessage -Level Verbose -Message "Creating folder $_ inside the repo"
                 $null = New-Item (Join-Path $repoFolder $_) -ItemType Directory -ErrorAction Stop -OutVariable "repo$($_)Folder"
             }
         }
         $zipPkgName = "$pkgName.zip"
-        Write-Message -Level Verbose -Message "Copying package to the versions folder"
+        Write-PSFMessage -Level Verbose -Message "Copying package to the versions folder"
         $versionFolder = New-Item (Join-Path $repoVersionsFolder $package.Version) -ItemType Directory -Force -ErrorAction Stop
         Copy-Item $package.FullName (Join-Path $versionFolder $zipPkgName) -ErrorAction Stop
 
         if (!$VersionOnly) {
-            Write-Message -Level Verbose -Message "Copying package to the current version folder"
+            Write-PSFMessage -Level Verbose -Message "Copying package to the current version folder"
             Copy-Item $package.FullName (Join-Path $repoCurrentFolder $zipPkgName) -ErrorAction Stop
             Get-DBOPackageArtifact -Repository $Repository -Name $pkgName
         }

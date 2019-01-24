@@ -8,15 +8,15 @@ else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
 if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force
+    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
     Write-Host "Running $commandName tests" -ForegroundColor Cyan
 }
-$workFolder = Join-Path "$here\etc" "$commandName.Tests.dbops"
+$workFolder = Join-PSFPath -Normalize "$here\etc" "$commandName.Tests.dbops"
 $packageName = Join-Path $workFolder 'TempDeployment.zip'
-$scriptFolder = Join-Path $here 'etc\install-tests\success'
+$scriptFolder = Join-PSFPath -Normalize $here 'etc\sqlserver-tests\success'
 $v1scripts = Join-Path $scriptFolder '1.sql'
 $v2scripts = Join-Path $scriptFolder '2.sql'
 $v3scripts = Join-Path $scriptFolder '3.sql'
@@ -43,19 +43,19 @@ Describe "Get-DBOPackageArtifact tests" -Tag $commandName, UnitTests {
     }
     Context "Regular tests" {
         It "should return the last version of the artifact" {
-            $result = Get-DBOPackageArtifact -Repository $workFolder -Name TempDeployment
-            Get-DBOPackage $result | % Version | Should Be '3.0'
-            $result.FullName | Should Be "$projectPath\Current\TempDeployment.zip"
+            $testResult = Get-DBOPackageArtifact -Repository $workFolder -Name TempDeployment
+            Get-DBOPackage $testResult | Foreach-Object Version | Should Be '3.0'
+            $testResult.FullName | Should Be (Join-PSFPath -Normalize "$projectPath\Current\TempDeployment.zip")
         }
         It "should return the custom version of the artifact" {
-            $result = Get-DBOPackageArtifact -Repository $workFolder -Name TempDeployment -Version 2.0
-            Get-DBOPackage $result | % Version | Should Be '2.0'
-            $result.FullName | Should Be "$projectPath\Versions\2.0\TempDeployment.zip"
+            $testResult = Get-DBOPackageArtifact -Repository $workFolder -Name TempDeployment -Version 2.0
+            Get-DBOPackage $testResult | Foreach-Object Version | Should Be '2.0'
+            $testResult.FullName | Should Be (Join-PSFPath -Normalize "$projectPath\Versions\2.0\TempDeployment.zip")
         }
         It "should return the artifact when project folder is specified" {
-            $result = Get-DBOPackageArtifact -Repository $projectPath -Name TempDeployment
-            Get-DBOPackage $result | % Version | Should Be '3.0'
-            $result.FullName | Should Be "$projectPath\Current\TempDeployment.zip"
+            $testResult = Get-DBOPackageArtifact -Repository $projectPath -Name TempDeployment
+            Get-DBOPackage $testResult | Foreach-Object Version | Should Be '3.0'
+            $testResult.FullName | Should Be (Join-PSFPath -Normalize "$projectPath\Current\TempDeployment.zip")
         }
     }
     Context "Negative tests" {

@@ -2,25 +2,25 @@
     <#
     .SYNOPSIS
     Updates configuration file inside the existing DBOps package
-    
+
     .DESCRIPTION
     Overwrites configuration file inside the existing DBOps package with the new values provided by user
-    
+
     .PARAMETER Path
     Path to the existing DBOpsPackage.
     Aliases: Name, FileName, Package
-    
+
     .PARAMETER ConfigurationFile
     A path to the custom configuration json file
     Alias: ConfigFile
-    
+
     .PARAMETER Configuration
     Object containing several configuration items at once
     Alias: Config
-    
+
     .PARAMETER ConfigName
     Name of the configuration item to update
-    
+
     .PARAMETER Value
     Value of the parameter specified in -ConfigName
 
@@ -28,7 +28,7 @@
     Hashtable with variables that can be used inside the scripts and deployment parameters.
     Proper format of the variable tokens is #{MyVariableName}
     Can also be provided as a part of Configuration Object: -Configuration @{ Variables = @{ Var1 = ...; Var2 = ...}}
-    
+
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -46,14 +46,14 @@
     .EXAMPLE
     # Update parameters based on the contents of the json file myconfig.json
     Update-DBOConfig Package.zip -ConfigurationFile 'myconfig.json'
-    
+
     .EXAMPLE
     # Specifically update values of the Variables parameter
     Update-DBOConfig Package.zip -Variables @{ foo = 'bar' }
-    
+
     #>
     [CmdletBinding(DefaultParameterSetName = 'Value',
-        SupportsShouldProcess = $true)]
+        SupportsShouldProcess)]
     Param (
         [Parameter(Mandatory = $true,
             ValueFromPipeline = $true,
@@ -63,11 +63,7 @@
         [Parameter(ParameterSetName = 'Value',
             Mandatory = $true,
             Position = 2 )]
-        [ValidateSet('ApplicationName', 'SqlInstance', 'Database', 'DeploymentMethod',
-            'ConnectionTimeout', 'ExecutionTimeout', 'Encrypt', 'Credential', 'Username',
-            'Password', 'SchemaVersionTable', 'Silent', 'Variables'
-        )]
-        [string]$ConfigName,
+        [DBOps.ConfigProperty]$ConfigName,
         [Parameter(ParameterSetName = 'Value',
             Mandatory = $true,
             Position = 3 )]

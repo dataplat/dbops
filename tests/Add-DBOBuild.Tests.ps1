@@ -8,19 +8,19 @@ else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
 if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force
+    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
     Write-Host "Running $commandName tests" -ForegroundColor Cyan
 }
 
-$workFolder = Join-Path "$here\etc" "$commandName.Tests.dbops"
+$workFolder = Join-PSFPath $here etc "$commandName.Tests.dbops"
 $unpackedFolder = Join-Path $workFolder 'unpacked'
 
-$scriptFolder = "$here\etc\install-tests\success"
-$v1scripts = Join-Path $scriptFolder '1.sql'
-$v2scripts = Join-Path $scriptFolder '2.sql'
+$scriptFolder = Get-Item (Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success")
+$v1scripts = Get-Item (Join-Path $scriptFolder '1.sql')
+$v2scripts = Get-Item (Join-Path $scriptFolder '2.sql')
 $packageName = Join-Path $workFolder 'TempDeployment.zip'
 $packageNameTest = "$packageName.test.zip"
 $packageNoPkgFile = Join-Path $workFolder "pkg_nopkgfile.zip"
@@ -43,28 +43,28 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
             $null = Remove-Item $packageNameTest
         }
         It "should add new build to existing package" {
-            $results = Add-DBOBuild -ScriptPath $v2scripts -Name $packageNameTest -Build 2.0
-            $results | Should Not Be $null
-            $results.Name | Should Be (Split-Path $packageNameTest -Leaf)
+            $testResults = Add-DBOBuild -ScriptPath $v2scripts -Name $packageNameTest -Build 2.0
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageNameTest -Leaf)
             Test-Path $packageNameTest | Should Be $true
         }
-        $results = Get-ArchiveItem $packageNameTest
+        $testResults = Get-ArchiveItem $packageNameTest
         It "build 1.0 should only contain scripts from 1.0" {
-            'content\1.0\1.sql' | Should BeIn $results.Path
-            'content\1.0\2.sql' | Should Not BeIn $results.Path
+            Join-PSFPath -Normalize 'content\1.0\1.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\1.0\2.sql' | Should Not BeIn $testResults.Path
         }
         It "build 2.0 should only contain scripts from 2.0" {
-            'content\2.0\2.sql' | Should BeIn $results.Path
-            'content\2.0\1.sql' | Should Not BeIn $results.Path
+            Join-PSFPath -Normalize 'content\2.0\2.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\2.0\1.sql' | Should Not BeIn $testResults.Path
         }
         It "should contain module files" {
-            'Modules\dbops\dbops.psd1' | Should BeIn $results.Path
-            'Modules\dbops\bin\dbup-sqlserver.dll' | Should BeIn $results.Path
-            'Modules\dbops\bin\dbup-core.dll' | Should BeIn $results.Path
+            foreach ($file in Get-DBOModuleFileList) {
+                Join-PSFPath -Normalize Modules\dbops $file.Path | Should BeIn $testResults.Path
+            }
         }
         It "should contain config files" {
-            'dbops.config.json' | Should BeIn $results.Path
-            'dbops.package.json' | Should BeIn $results.Path
+            'dbops.config.json' | Should BeIn $testResults.Path
+            'dbops.package.json' | Should BeIn $testResults.Path
         }
     }
     Context "adding new files only based on source path (Type = New)" {
@@ -75,35 +75,35 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
             $null = Remove-Item $packageNameTest
         }
         It "should add new build to existing package" {
-            $results = Add-DBOBuild -ScriptPath $scriptFolder -Name $packageNameTest -Build 2.0 -Type 'New'
-            $results | Should Not Be $null
-            $results.Name | Should Be (Split-Path $packageNameTest -Leaf)
-            $results.Configuration | Should Not Be $null
-            $results.Version | Should Be '2.0'
-            $results.ModuleVersion | Should Be (Get-Module dbops).Version
-            $results.Builds | Where-Object Build -eq '1.0' | Should Not Be $null
-            $results.Builds | Where-Object Build -eq '2.0' | Should Not Be $null
-            $results.FullName | Should Be $packageNameTest
-            $results.Length -gt 0 | Should Be $true
+            $testResults = Add-DBOBuild -ScriptPath $scriptFolder -Name $packageNameTest -Build 2.0 -Type 'New'
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageNameTest -Leaf)
+            $testResults.Configuration | Should Not Be $null
+            $testResults.Version | Should Be '2.0'
+            $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
+            $testResults.Builds | Where-Object Build -eq '1.0' | Should Not Be $null
+            $testResults.Builds | Where-Object Build -eq '2.0' | Should Not Be $null
+            $testResults.FullName | Should Be $packageNameTest
+            $testResults.Length -gt 0 | Should Be $true
             Test-Path $packageNameTest | Should Be $true
         }
-        $results = Get-ArchiveItem $packageNameTest
+        $testResults = Get-ArchiveItem $packageNameTest
         It "build 1.0 should only contain scripts from 1.0" {
-            'content\1.0\1.sql' | Should BeIn $results.Path
-            'content\1.0\2.sql' | Should Not BeIn $results.Path
+            Join-PSFPath -Normalize 'content\1.0\1.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\1.0\2.sql' | Should Not BeIn $testResults.Path
         }
         It "build 2.0 should only contain scripts from 2.0" {
-            "content\2.0\$(Split-Path $scriptFolder -Leaf)\2.sql" | Should BeIn $results.Path
-            "content\2.0\$(Split-Path $scriptFolder -Leaf)\1.sql" | Should Not BeIn $results.Path
+            Join-PSFPath -Normalize "content\2.0\$(Split-Path $scriptFolder -Leaf)\2.sql" | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize "content\2.0\$(Split-Path $scriptFolder -Leaf)\1.sql" | Should Not BeIn $testResults.Path
         }
         It "should contain module files" {
-            'Modules\dbops\dbops.psd1' | Should BeIn $results.Path
-            'Modules\dbops\bin\dbup-sqlserver.dll' | Should BeIn $results.Path
-            'Modules\dbops\bin\dbup-core.dll' | Should BeIn $results.Path
+            foreach ($file in Get-DBOModuleFileList) {
+                Join-PSFPath -Normalize Modules\dbops $file.Path | Should BeIn $testResults.Path
+            }
         }
         It "should contain config files" {
-            'dbops.config.json' | Should BeIn $results.Path
-            'dbops.package.json' | Should BeIn $results.Path
+            'dbops.config.json' | Should BeIn $testResults.Path
+            'dbops.package.json' | Should BeIn $testResults.Path
         }
     }
     Context "adding new files only based on hash (Type = Unique/Modified)" {
@@ -116,58 +116,58 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
             $null = Remove-Item "$workFolder\Test.sql"
         }
         It "should add new build to existing package" {
-            $results = Add-DBOBuild -ScriptPath $scriptFolder, "$workFolder\Test.sql" -Name $packageNameTest -Build 2.0 -Type 'Unique'
-            $results | Should Not Be $null
-            $results.Name | Should Be (Split-Path $packageNameTest -Leaf)
-            $results.Configuration | Should Not Be $null
-            $results.Version | Should Be '2.0'
-            $results.ModuleVersion | Should Be (Get-Module dbops).Version
-            '1.0' | Should BeIn $results.Builds.Build
-            '2.0' | Should BeIn $results.Builds.Build
-            $results.FullName | Should Be $packageNameTest
-            $results.Length -gt 0 | Should Be $true
+            $testResults = Add-DBOBuild -ScriptPath $scriptFolder, "$workFolder\Test.sql" -Name $packageNameTest -Build 2.0 -Type 'Unique'
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageNameTest -Leaf)
+            $testResults.Configuration | Should Not Be $null
+            $testResults.Version | Should Be '2.0'
+            $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
+            '1.0' | Should BeIn $testResults.Builds.Build
+            '2.0' | Should BeIn $testResults.Builds.Build
+            $testResults.FullName | Should Be $packageNameTest
+            $testResults.Length -gt 0 | Should Be $true
             Test-Path $packageNameTest | Should Be $true
         }
         It "should add new build to existing package based on changes in the file" {
             $null = Add-DBOBuild -ScriptPath "$workFolder\Test.sql" -Name $packageNameTest -Build 2.1
             "nope" | Out-File "$workFolder\Test.sql" -Append
-            $results = Add-DBOBuild -ScriptPath $scriptFolder, "$workFolder\Test.sql" -Name $packageNameTest -Build 3.0 -Type 'Modified'
-            $results | Should Not Be $null
-            $results.Name | Should Be (Split-Path $packageNameTest -Leaf)
-            $results.Configuration | Should Not Be $null
-            $results.Version | Should Be '3.0'
-            $results.ModuleVersion | Should Be (Get-Module dbops).Version
-            '1.0' | Should BeIn $results.Builds.Build
-            '2.0' | Should BeIn $results.Builds.Build
-            '2.1' | Should BeIn $results.Builds.Build
-            '3.0' | Should BeIn $results.Builds.Build
-            $results.FullName | Should Be $packageNameTest
-            $results.Length -gt 0 | Should Be $true
+            $testResults = Add-DBOBuild -ScriptPath $scriptFolder, "$workFolder\Test.sql" -Name $packageNameTest -Build 3.0 -Type 'Modified'
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageNameTest -Leaf)
+            $testResults.Configuration | Should Not Be $null
+            $testResults.Version | Should Be '3.0'
+            $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
+            '1.0' | Should BeIn $testResults.Builds.Build
+            '2.0' | Should BeIn $testResults.Builds.Build
+            '2.1' | Should BeIn $testResults.Builds.Build
+            '3.0' | Should BeIn $testResults.Builds.Build
+            $testResults.FullName | Should Be $packageNameTest
+            $testResults.Length -gt 0 | Should Be $true
             Test-Path $packageNameTest | Should Be $true
         }
-        $results = Get-ArchiveItem $packageNameTest
+        $testResults = Get-ArchiveItem $packageNameTest
         It "build 1.0 should only contain scripts from 1.0" {
-            'content\1.0\1.sql' | Should BeIn $results.Path
-            'content\1.0\2.sql' | Should Not BeIn $results.Path
+            Join-PSFPath -Normalize 'content\1.0\1.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\1.0\2.sql' | Should Not BeIn $testResults.Path
         }
         It "build 2.0 should only contain scripts from 2.0" {
-            "content\2.0\$(Split-Path $scriptFolder -Leaf)\2.sql" | Should BeIn $results.Path
-            "content\2.0\$(Split-Path $scriptFolder -Leaf)\1.sql" | Should Not BeIn $results.Path
-            'content\2.0\Test.sql' | Should Not BeIn $results.Path
+            Join-PSFPath -Normalize "content\2.0\$(Split-Path $scriptFolder -Leaf)\2.sql" | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize "content\2.0\$(Split-Path $scriptFolder -Leaf)\1.sql" | Should Not BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\2.0\Test.sql' | Should Not BeIn $testResults.Path
         }
         It "build 3.0 should only contain scripts from 3.0" {
-            'content\3.0\Test.sql' | Should BeIn $results.Path
-            "content\3.0\$(Split-Path $scriptFolder -Leaf)\2.sql" | Should Not BeIn $results.Path
-            "content\3.0\$(Split-Path $scriptFolder -Leaf)\1.sql" | Should Not BeIn $results.Path
+            Join-PSFPath -Normalize 'content\3.0\Test.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize "content\3.0\$(Split-Path $scriptFolder -Leaf)\2.sql" | Should Not BeIn $testResults.Path
+            Join-PSFPath -Normalize "content\3.0\$(Split-Path $scriptFolder -Leaf)\1.sql" | Should Not BeIn $testResults.Path
         }
         It "should contain module files" {
-            'Modules\dbops\dbops.psd1' | Should BeIn $results.Path
-            'Modules\dbops\bin\dbup-sqlserver.dll' | Should BeIn $results.Path
-            'Modules\dbops\bin\dbup-core.dll' | Should BeIn $results.Path
+            foreach ($file in Get-DBOModuleFileList) {
+                Join-PSFPath -Normalize Modules\dbops $file.Path | Should BeIn $testResults.Path
+            }
         }
         It "should contain config files" {
-            'dbops.config.json' | Should BeIn $results.Path
-            'dbops.package.json' | Should BeIn $results.Path
+            'dbops.config.json' | Should BeIn $testResults.Path
+            'dbops.package.json' | Should BeIn $testResults.Path
         }
     }
     Context "negative tests" {
@@ -181,7 +181,7 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
             Remove-Item $packageNoPkgFile
         }
         It "should show warning when there are no new files" {
-            $null= Add-DBOBuild -Name $packageNameTest -ScriptPath $v1scripts -Type 'Unique' -WarningVariable warningResult 3>$null
+            $null = Add-DBOBuild -Name $packageNameTest -ScriptPath $v1scripts -Type 'Unique' -WarningVariable warningResult 3>$null
             $warningResult.Message -join ';' | Should BeLike '*No scripts have been selected, the original file is unchanged.*'
         }
         It "should throw error when package data file does not exist" {

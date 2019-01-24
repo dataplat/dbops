@@ -2,18 +2,23 @@
 (
     [string[]]$Path = '.',
     [string[]]$Tag
-    
+
 )
 
-#Explicitly import the module for testing
-Import-Module "$PSScriptRoot\..\dbops.psd1" -Force
+$ModuleBase = Split-Path -Path $PSScriptRoot -Parent
+#removes previously imported dbatools, if any
+Remove-Module dbops -ErrorAction Ignore
+#imports the module making sure DLL is loaded ok
+Import-Module "$ModuleBase\dbops.psd1" -DisableNameChecking
+#import internal commands
+Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 #Import ZipHelper
 Import-Module ziphelper -Force
 
 #Run each module function
 $params = @{
     Script = @{
-        Path = $Path
+        Path       = $Path
         Parameters = @{
             Batch = $true
         }

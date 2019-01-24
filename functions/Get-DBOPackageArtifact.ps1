@@ -66,12 +66,12 @@ Function Get-DBOPackageArtifact {
     process {
         $pkgName = $Name -replace '\.zip$', ''
         $pkgName = Split-Path $pkgName -Leaf
-        if ((Test-Path $repo\Current) -and (Test-Path $repo\Versions)) {
-            Write-Message -Level Debug -Message "Valid folder structure found in $repo"
+        if ((Test-Path (Join-Path $repo Current)) -and (Test-Path (Join-Path $repo Versions))) {
+            Write-PSFMessage -Level Debug -Message "Valid folder structure found in $repo"
             $repoFolder = $repo
         }
         else {
-            Write-Message -Level Debug -Message "Assuming $repo is a top-level repo folder"
+            Write-PSFMessage -Level Debug -Message "Assuming $repo is a top-level repo folder"
             try {
                 $repoFolder = Get-Item (Join-Path $repo $pkgName) -ErrorAction Stop
             }
