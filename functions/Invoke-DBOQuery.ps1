@@ -173,11 +173,13 @@ function Invoke-DBOQuery {
             $totalLength = 0
             if ($Table) {
                 for ($i = 0; $i -lt $Table.Columns.Count; $i++) {
-                    $maxLength = if ($Table.Rows.Count -eq 0) { 0 } else {
-                        $Table.Rows | Foreach-Object { $len = 0 } {
+                    $maxLength = 0
+                    if ($Table.Rows.Count -gt 0) {
+                        $Table.Rows | Foreach-Object {
                             $itemLength = ([string]$_.ItemArray[$i]).Length
-                            if ($itemLength -gt $len) { $len = $itemLength }
-                        } { ($len + 2) }
+                            $maxLength = [Math]::Max($itemLength, $maxLength)
+                        }
+                        $maxLength += 2
                     }
                     if ($Table.Columns[$i].ColumnName.Length -gt $maxLength) { $maxLength = $Table.Columns[$i].ColumnName.Length }
                     $format += " {$i, $maxLength} |"
@@ -250,8 +252,8 @@ function Invoke-DBOQuery {
             $queryText = $fileObjects | Get-Content -Raw
         }
         $delimiter = switch ($Type) {
-            SqlServer { 'GO' }
-            PostgreSQL { 'semicolon (;)' }
+            SqlServer { '''GO'' on a new line' }
+            PostgreSQL { 'semicolon (;) on a new line' }
             Oracle { 'semicolon (;)' }
             MySQL { 'semicolon (;)' }
         }
