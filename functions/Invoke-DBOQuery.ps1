@@ -165,6 +165,13 @@ function Invoke-DBOQuery {
     )
 
     begin {
+        # description for different delimiters in different DBMS
+        $delimiter = switch ($Type) {
+            SqlServer { '''GO'' on a new line' }
+            PostgreSQL { 'semicolon (;) on a new line' }
+            Oracle { 'semicolon (;)' }
+            MySQL { 'semicolon (;)' }
+        }
         function Write-HostTable {
             Param (
                 $Table
@@ -185,18 +192,22 @@ function Invoke-DBOQuery {
                     $format += " {$i, $maxLength} |"
                     $totalLength += ($maxLength + 3)
                 }
-                $format = "|$format"
-                $totalLength += 1
+                if ($totalLength -gt 0) {
+                    $format = "|$format"
+                    $totalLength += 1
 
-                Write-Host ([string]::new('-', $totalLength))
-                Write-Host ($format -f $Table.Columns.ColumnName)
-                Write-Host ([string]::new('-', $totalLength))
-                foreach ($row in $Table.Rows) {
-                    Write-Host ($format -f $row.ItemArray)
+                    Write-Host ([string]::new('-', $totalLength))
+                    Write-Host ($format -f $Table.Columns.ColumnName)
+                    Write-Host ([string]::new('-', $totalLength))
+                    foreach ($row in $Table.Rows) {
+                        # we don't need no newlines
+                        $replacedValue = "$($format -f $row.ItemArray)".Replace("`r", " ").Replace("`n", " ")
+                        Write-Host $replacedValue
+                    }
+                    Write-Host ([string]::new('-', $totalLength))
+                    # totals
+                    Write-Host ("{0, $totalLength}" -f "($($Table.Rows.Count) rows)")
                 }
-                Write-Host ([string]::new('-', $totalLength))
-                # totals
-                Write-Host ("{0, $totalLength}" -f "($($Table.Rows.Count) rows)")
             }
         }
     }
@@ -225,14 +236,8 @@ function Invoke-DBOQuery {
         $dataConnection = Get-DatabaseConnection -Configuration $config -Type $Type # the 'real' connection
         $dbUpLog = [DBOpsLog]::new($config.Silent, $OutputFile, $Append)
         $dbUpLog.CallStack = (Get-PSCallStack)[0]
-        Write-PSFMessage -Level Verbose -Message "Establishing connection with $Type $($config.SqlInstance)"
-        try {
-            $dataConnection.Open()
-        }
-        catch {
-            Stop-PSFFunction -EnableException $true -Message "Failed to connect to the server" -ErrorRecord $_
-            return
-        }
+
+        # Define the queries
         if ($Query) {
             $queryText = $Query
         }
@@ -251,15 +256,6 @@ function Invoke-DBOQuery {
             }
             $queryText = $fileObjects | Get-Content -Raw
         }
-        $delimiter = switch ($Type) {
-            SqlServer { '''GO'' on a new line' }
-            PostgreSQL { 'semicolon (;) on a new line' }
-            Oracle { 'semicolon (;)' }
-            MySQL { 'semicolon (;)' }
-        }
-        if ($Interactive) {
-            Write-PSFMessage -Level Host -Message "Running in interactive mode. Finish the query with a $delimiter to execute it immediately. \q, exit, or quit to exit."
-        }
 
         #Replace tokens in the sql code if any
         $queryList = @()
@@ -267,156 +263,177 @@ function Invoke-DBOQuery {
             $queryList += Resolve-VariableToken $qText $config.Variables
         }
 
-        Write-PSFMessage -Level Debug -Message "Preparing to run $($queryList.Count) queries"
-        do {
-            if ($Interactive) {
-                # prompt for a query
-                Write-Host ">"
-                $queryList = $inputLine = ''
-                $interactiveQuery = @()
-                # read until user finishes with a ;
-                while ($true) {
-                    $inputLine = Read-Host
-                    # exit on \q
-                    if ($inputLine -in '\q', 'exit', 'quit') {
-                        $dataConnection.Dispose()
-                        return
+        # open the connection
+        Write-PSFMessage -Level Verbose -Message "Establishing connection with $Type $($config.SqlInstance)"
+        try {
+            $dataConnection.Open()
+        }
+        catch {
+            Stop-PSFFunction -EnableException $true -Message "Failed to connect to the server" -ErrorRecord $_
+            return
+        }
+        if ($Interactive) {
+            Write-PSFMessage -Level Host -Message "Running in interactive mode. Finish the query with a $delimiter to execute it immediately. \q, exit, or quit to exit."
+        }
+        else {
+            Write-PSFMessage -Level Debug -Message "Preparing to run $($queryList.Count) queries"
+        }
+        # wrapping everything in a big try {} to support graceful disconnect
+        try {
+            do {
+                if ($Interactive) {
+                    # prompt for a query
+                    Write-Host ">"
+                    $interactiveQuery = @()
+                    # read until user finishes with a ;
+                    while ($true) {
+                        $inputLine = Read-Host
+                        # exit on \q
+                        if ($inputLine -in '\q', 'exit', 'quit') {
+                            $dataConnection.Dispose()
+                            return
+                        }
+                        $interactiveQuery += $inputLine
+                        $fullQuery = ($interactiveQuery -join "`n").Trim()
+                        $queryList = $dbUpConnection.SplitScriptIntoCommands($fullQuery)
+                        if ($queryList[0] -and $queryList[0] -ne $fullQuery) { break }
                     }
-                    $interactiveQuery += $inputLine
-                    $fullQuery = ($interactiveQuery -join "`n").Trim()
-                    $queryList = $dbUpConnection.SplitScriptIntoCommands($fullQuery)
-                    if ($queryList[0] -and $queryList[0] -ne $fullQuery) { break }
+                    $queryList = $queryList[0]
                 }
-                $queryList = $queryList[0]
-            }
-            $ds = [System.Data.DataSet]::new()
-            $qCount = 0
-            foreach ($queryItem in $queryList) {
-                $qCount++
-                if ($PSCmdlet.ShouldProcess($config.SqlInstance, "Executing query $queryItem")) {
-                    # split commands using DbUp parser
-                    foreach ($splitQuery in $dbUpConnection.SplitScriptIntoCommands($queryItem)) {
-                        try {
-                            Write-PSFMessage -Level Verbose -Message "Executing sub-query $splitQuery"
-                            # only Sql Server supports messaging right now
-                            if ($Type -eq 'SqlServer') {
-                                # Add message events
-                                Unregister-Event -SourceIdentifier "DBOpsMessaging" -ErrorAction SilentlyContinue
-                                $eventOutput = Register-ObjectEvent -InputObject $dataConnection -EventName "InfoMessage" -SourceIdentifier "DBOpsMessaging" -Action { $EventArgs.Message }
-                            }
-                            # create a new command object and define text/parameters
-                            $command = $dataConnection.CreateCommand()
-                            $command.CommandText = $splitQuery
-                            foreach ($key in $Parameter.Keys) {
-                                $null = switch ($Type) {
-                                    Oracle {
-                                        $command.BindByName = $true
-                                        $command.Parameters.Add($key, $Parameter[$key])
-                                    }
-                                    default { $command.Parameters.AddWithValue($key, $Parameter[$key]) }
+                $ds = [System.Data.DataSet]::new()
+                $qCount = 0
+                foreach ($queryItem in $queryList) {
+                    $qCount++
+                    if ($PSCmdlet.ShouldProcess($config.SqlInstance, "Executing query $queryItem")) {
+                        # split commands using DbUp parser
+                        foreach ($splitQuery in $dbUpConnection.SplitScriptIntoCommands($queryItem)) {
+                            try {
+                                Write-PSFMessage -Level Verbose -Message "Executing sub-query $splitQuery"
+                                # only Sql Server supports messaging right now
+                                if ($Type -eq 'SqlServer') {
+                                    # Add message events
+                                    Unregister-Event -SourceIdentifier "DBOpsMessaging" -ErrorAction SilentlyContinue
+                                    $eventOutput = Register-ObjectEvent -InputObject $dataConnection -EventName "InfoMessage" -SourceIdentifier "DBOpsMessaging" -Action { $EventArgs.Message }
                                 }
-                            }
-                            # create an async reader and wait for output receiving logs in the process
-                            $readerTask = $command.ExecuteReaderAsync()
-                            if ($Type -eq 'SqlServer') {
-                                $logScript = {
-                                    # receive events we got so far and put them in the log
-                                    $events = $eventOutput | Receive-Job
-                                    foreach ($logEntry in $events) {
-                                        $dbUpLog.WriteInformation($logEntry, $null)
+                                # create a new command object and define text/parameters
+                                $command = $dataConnection.CreateCommand()
+                                $command.CommandText = $splitQuery
+                                foreach ($key in $Parameter.Keys) {
+                                    $null = switch ($Type) {
+                                        Oracle {
+                                            $command.BindByName = $true
+                                            $command.Parameters.Add($key, $Parameter[$key])
+                                        }
+                                        default { $command.Parameters.AddWithValue($key, $Parameter[$key]) }
                                     }
                                 }
-                                while (-not $readerTask.IsCompleted) {
+                                # create an async reader and wait for output receiving logs in the process
+                                $readerTask = $command.ExecuteReaderAsync()
+                                if ($Type -eq 'SqlServer') {
+                                    $logScript = {
+                                        # receive events we got so far and put them in the log
+                                        $events = $eventOutput | Receive-Job
+                                        foreach ($logEntry in $events) {
+                                            $dbUpLog.WriteInformation($logEntry, $null)
+                                        }
+                                    }
+                                    while (-not $readerTask.IsCompleted) {
+                                        $logScript.Invoke()
+                                        Start-Sleep -Milliseconds 50
+                                    }
+                                    # once completed, receive the final part and unregister the ivent
                                     $logScript.Invoke()
-                                    Start-Sleep -Milliseconds 50
+                                    # lastly, unregister the event
+                                    Unregister-Event -SourceIdentifier "DBOpsMessaging"
                                 }
-                                # once completed, receive the final part and unregister the ivent
-                                $logScript.Invoke()
-                                # lastly, unregister the event
-                                Unregister-Event -SourceIdentifier "DBOpsMessaging"
+                                $reader = $readerTask.GetAwaiter().GetResult()
+                                $setCounter = 0
+                                do {
+                                    $setCounter++
+                                    $table = [System.Data.DataTable]::new()
+                                    $definition = $reader.GetSchemaTable()
+                                    foreach ($column in $definition) {
+                                        $name = $column.ColumnName
+                                        $datatype = $column.DataType
+                                        for ($j = 1; -not $name; $j++) {
+                                            if ($table.Columns.ColumnName -notcontains "Column$j") { $name = "Column$j" }
+                                        }
+                                        if ($datatype.FullName -eq 'System.DBNull') {
+                                            $datatype = [string]
+                                        }
+                                        $null = $table.Columns.Add($name, $datatype)
+                                    }
+                                    # read rows async and assign values
+                                    $rowCount = 0
+                                    while ($reader.ReadAsync().GetAwaiter().GetResult()) {
+                                        $rowCount++
+                                        $row = $table.NewRow()
+                                        for ($i = 0; $i -lt $reader.FieldCount; $i++) {
+                                            $row[$table.Columns[$i].ColumnName] = $reader.GetValue($i);
+                                        }
+                                        $table.Rows.Add($row)
+                                    }
+                                    Write-PSFMessage -Level Debug -Message "Received $rowCount rows from resultset $setCounter"
+                                    $ds.Tables.Add($table)
+                                } while ($reader.NextResult())
+                                $reader.Close()
+                                $reader.Dispose()
+                                $command.Dispose()
                             }
-                            $reader = $readerTask.GetAwaiter().GetResult()
-                            $setCounter = 0
-                            do {
-                                $setCounter++
-                                $table = [System.Data.DataTable]::new()
-                                $definition = $reader.GetSchemaTable()
-                                foreach ($column in $definition) {
-                                    $name = $column.ColumnName
-                                    $datatype = $column.DataType
-                                    for ($j = 1; -not $name; $j++) {
-                                        if ($table.Columns.ColumnName -notcontains "Column$j") { $name = "Column$j" }
-                                    }
-                                    if ($datatype.FullName -eq 'System.DBNull') {
-                                        $datatype = [string]
-                                    }
-                                    $null = $table.Columns.Add($name, $datatype)
+                            catch {
+                                $dbUpLog.WriteError($_.Exception.InnerException.Message, $null)
+                                if ($Type -eq 'SqlServer') {
+                                    Unregister-Event -SourceIdentifier "DBOpsMessaging" -ErrorAction SilentlyContinue
                                 }
-                                # read rows async and assign values
-                                $rowCount = 0
-                                while ($reader.ReadAsync().GetAwaiter().GetResult()) {
-                                    $rowCount++
-                                    $row = $table.NewRow()
-                                    for ($i = 0; $i -lt $reader.FieldCount; $i++) {
-                                        $row[$table.Columns[$i].ColumnName] = $reader.GetValue($i);
-                                    }
-                                    $table.Rows.Add($row)
+                                if (-not $Interactive) {
+                                    Stop-PSFFunction -EnableException $true -Message "Failed to run the query" -ErrorRecord $_
                                 }
-                                Write-PSFMessage -Level Debug -Message "Received $rowCount rows from resultset $setCounter"
-                                $ds.Tables.Add($table)
-                            } while ($reader.NextResult())
-                            $reader.Close()
-                            $reader.Dispose()
-                            $command.Dispose()
-                        }
-                        catch {
-                            $dbUpLog.WriteError($_.Exception.InnerException.Message, $null)
-                            if ($Type -eq 'SqlServer') {
-                                Unregister-Event -SourceIdentifier "DBOpsMessaging" -ErrorAction SilentlyContinue
-                            }
-                            if (-not $Interactive) {
-                                $dataConnection.Dispose()
-                                Stop-PSFFunction -EnableException $true -Message "Failed to run the query" -ErrorRecord $_
                             }
                         }
                     }
                 }
-            }
-            if ($Interactive) {
-                # output right to the screen
-                Write-HostTable -Table $ds.Tables[0]
-            }
-            else {
-                # output as object
-                switch ($As) {
-                    'DataSet' {
-                        $ds
-                    }
-                    'DataTable' {
-                        $ds.Tables
-                    }
-                    'DataRow' {
-                        if ($ds.Tables.Count -gt 0) {
-                            $ds.Tables[0]
+                if ($Interactive) {
+                    # output right to the screen
+                    Write-HostTable -Table $ds.Tables[0]
+                }
+                else {
+                    # output as object
+                    switch ($As) {
+                        'DataSet' {
+                            $ds
                         }
-                    }
-                    'PSObject' {
-                        if ($ds.Tables.Count -gt 0) {
-                            foreach ($row in $ds.Tables[0].Rows) {
-                                [DBOpsHelper]::DataRowToPSObject($row)
+                        'DataTable' {
+                            $ds.Tables
+                        }
+                        'DataRow' {
+                            if ($ds.Tables.Count -gt 0) {
+                                $ds.Tables[0]
+                            }
+                        }
+                        'PSObject' {
+                            if ($ds.Tables.Count -gt 0) {
+                                foreach ($row in $ds.Tables[0].Rows) {
+                                    [DBOpsHelper]::DataRowToPSObject($row)
+                                }
+                            }
+                        }
+                        'SingleValue' {
+                            if ($ds.Tables.Count -ne 0) {
+                                $ds.Tables[0] | Select-Object -ExpandProperty $ds.Tables[0].Columns[0].ColumnName
                             }
                         }
                     }
-                    'SingleValue' {
-                        if ($ds.Tables.Count -ne 0) {
-                            $ds.Tables[0] | Select-Object -ExpandProperty $ds.Tables[0].Columns[0].ColumnName
-                        }
-                    }
                 }
-            }
-        } while ($Interactive)
-        # close the connection
-        $dataConnection.Dispose()
+            } while ($Interactive)
+        }
+        catch {
+            # don't really need anything else here
+            throw $_
+        }
+        finally {
+            # close the connection even when interrupted by Ctrl+C
+            $dataConnection.Dispose()
+        }
     }
     end {
 

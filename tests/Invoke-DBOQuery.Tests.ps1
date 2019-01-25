@@ -18,6 +18,7 @@ else {
 . "$here\constants.ps1"
 
 $workFolder = Join-Path "$here\etc" "$commandName.Tests.dbops"
+$connParams = @{ SqlInstance = $script:mssqlInstance; Credential = $script:mssqlCredential }
 
 Describe "Invoke-DBOQuery tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
@@ -167,6 +168,21 @@ Describe "Invoke-DBOQuery tests" -Tag $commandName, IntegrationTests {
             $result.A | Should Be 1
             $result.Column1 | Should Be 2
             $result.Column2 | Should Be 3
+        }
+        It "should work with configurations" {
+            $result = Invoke-DBOQuery -Query 'SELECT 1' -Configuration @{ SqlInstance = $script:mssqlInstance; Credential = $script:mssqlCredential } -As SingleValue
+            $result | Should -Be 1
+        }
+        It "should connect via connection string" {
+            $cString = "Data Source=$script:mssqlInstance"
+            if ($script:mssqlCredential) {
+                $cString += ";User ID=$($script:mssqlCredential.UserName); Password=$($script:mssqlCredential.GetNetworkCredential().Password)"
+            }
+            else {
+                $cString += ";Integrated Security=True"
+            }
+            $result = Invoke-DBOQuery -Query 'SELECT 1' -ConnectionString $cString -As SingleValue
+            $result | Should -Be 1
         }
     }
     Context "Negative tests" {
