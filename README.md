@@ -13,12 +13,15 @@ The deployment functionality of the module is provided by [DbUp](https://github.
 Currently supported RDBMS:
 * SQL Server
 * Oracle
+* PostgreSQL
+* MySQL
 
 ## Features
 The most notable features of the module:
 
 * Reliably deploy your scripts in a consistent and repeatable manner
 * Perform ad-hoc deployments with highly customizable deployment parameters
+* Run ad-hoc queries to any supported RDBMS on both Windows and Linux
 * Create ready-to-deploy versioned packages in a single command
 * Brings along all features of CI/CD pipelining functionality: builds, artifact management, deployment
 * Roll back the script (or a whole deployment!) in case of errors
@@ -53,7 +56,7 @@ Install-Module dbops
 * Versioned package deployment (e.g. Octopus Deployment)
 
 ## Examples
-### Simple deployment
+### Simple deployments and ad-hoc queries
 
 Perform plain-text script deployments using a single command:
 
@@ -65,6 +68,9 @@ Example code:
 ```powershell
 # Ad-hoc deployment of the scripts from a folder myscripts
 Install-DBOSqlScript -ScriptPath C:\temp\myscripts -SqlInstance server1 -Database MyDB
+
+# Execute a list of files as an Ad-hoc query
+Get-ChildItem C:\temp\myscripts | Invoke-DBOQuery -SqlInstance server1 -Database MyDB
 ```
 ### Package management
 
@@ -153,7 +159,6 @@ Publish-DBOPackageArtifact -Path myPackage.zip -Repository \\data\repo
 
 # Retrieve the latest package version from the repository and install it
 Get-DBOPackageArtifact -Path myPackage.zip -Repository \\data\repo | Install-DBOPackage -Server MyDBServer -Database MyDB
-
 ```
 
 ## Planned for future releases
@@ -162,7 +167,10 @@ Get-DBOPackageArtifact -Path myPackage.zip -Repository \\data\repo | Install-DBO
 * Support for other RDBMS (eventually, everything that DbUp libraries can talk with)
 * Integration with unit tests (tSQLt/Pester/...?)
 * Module for Ansible (right now can still be used as a powershell task)
-* Linux support
 * SQLCMD support
 * Deployments to multiple databases at once
 * Optional rollback scripts
+
+## Contacts
+Submitting issues - [GitHub issues](https://github.com/sqlcollaborative/dbops/issues)
+SQLCommunity Slack: https://sqlcommunity.slack.com #devops or @nvarscar
