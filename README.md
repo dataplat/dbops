@@ -13,12 +13,15 @@ The deployment functionality of the module is provided by [DbUp](https://github.
 Currently supported RDBMS:
 * SQL Server
 * Oracle
+* PostgreSQL
+* MySQL
 
 ## Features
 The most notable features of the module:
 
 * Reliably deploy your scripts in a consistent and repeatable manner
 * Perform ad-hoc deployments with highly customizable deployment parameters
+* Run ad-hoc queries to any supported RDBMS on both Windows and Linux
 * Create ready-to-deploy versioned packages in a single command
 * Brings along all features of CI/CD pipelining functionality: builds, artifact management, deployment
 * Roll back the script (or a whole deployment!) in case of errors
@@ -162,7 +165,6 @@ Get-DBOPackageArtifact -Path myPackage.zip -Repository \\data\repo | Install-DBO
 * Support for other RDBMS (eventually, everything that DbUp libraries can talk with)
 * Integration with unit tests (tSQLt/Pester/...?)
 * Module for Ansible (right now can still be used as a powershell task)
-* Linux support
 * SQLCMD support
 * Deployments to multiple databases at once
 * Optional rollback scripts
