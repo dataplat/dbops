@@ -432,6 +432,7 @@ function Invoke-DBOQuery {
         }
         finally {
             # close the connection even when interrupted by Ctrl+C
+            $dataConnection.Close()
             $dataConnection.Dispose()
         }
     }
