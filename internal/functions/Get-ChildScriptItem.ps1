@@ -1,24 +1,39 @@
 ﻿function Get-ChildScriptItem {
     [CmdletBinding()]
     Param (
-        [object[]]$Path
+        [object[]]$Path,
+        [bool]$Absolute = $Absolute,
+        [bool]$Relative = $Relative,
+        [bool]$Recurse = (-not $NoRecurse),
+        [string[]]$Filter = $Filter
     )
-    Function Get-ChildItemDepth ([System.IO.FileSystemInfo]$Item, [int]$Depth = 0, [bool]$IsAbsolute) {
+    Function Get-SourcePath {
+        Param (
+            [System.IO.FileSystemInfo]$Item,
+            [int]$Depth = 0,
+            [System.IO.FileSystemInfo]$Root = $Item
+        )
         Write-PSFMessage -Level Debug -Message "Getting child items from $Item with current depth $Depth"
-        foreach ($childItem in (Get-ChildItem $Item)) {
-            if ($childItem.PSIsContainer) {
-                Get-ChildItemDepth -Item (Get-Item $childItem.FullName) -Depth ($Depth + 1)
+        foreach ($childItem in (Get-ChildItem $Item -Filter $Filter)) {
+            if ($childItem.PSIsContainer -and $Recurse) {
+                Get-SourcePath -Item (Get-Item $childItem.FullName) -Depth ($Depth + 1) -Root $Root
             }
             else {
-                Add-Member -InputObject $childItem -MemberType NoteProperty -Name Depth -Value $Depth
-                # if a relative path can be build to the file item, use relative paths, otherwise, use absolute
-                if ($childItem.FullName -like (Join-Path (Get-Location) *) -and !$IsAbsolute) {
+                #Add-Member -InputObject $childItem -MemberType NoteProperty -Name Depth -Value $Depth
+                if ($Relative) {
                     $srcPath = Resolve-Path $childItem.FullName -Relative
                 }
-                else {
+                elseif ($Absolute) {
                     $srcPath = $childItem.FullName
                 }
-                Add-Member -InputObject $childItem -MemberType NoteProperty -Name SourcePath -Value $srcPath -PassThru
+                elseif ($Root.PSIsContainer) {
+                    $srcPath = $childItem.FullName -replace "^$($Item.FullName)", '.'
+                }
+                else {
+                    $srcPath = $childItem.Name
+                }
+                [DBOpsScriptFile]::new($childItem, $srcPath)
+                #Add-Member -InputObject $childItem -MemberType NoteProperty -Name SourcePath -Value $srcPath -PassThru
             }
         }
     }
@@ -38,7 +53,7 @@
             return
         }
         foreach ($currentItem in (Get-Item $stringPath)) {
-            Get-ChildItemDepth -Item $currentItem -Depth ([int]$currentItem.PSIsContainer) -IsAbsolute $isAbsolute
+            Get-SourcePath -Item $currentItem -Depth ([int]$currentItem.PSIsContainer)
         }
     }
 }

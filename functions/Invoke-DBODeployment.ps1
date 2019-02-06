@@ -140,7 +140,7 @@
             }
         }
         else {
-            foreach ($scriptItem in (Get-ChildScriptItem $ScriptPath)) {
+            foreach ($scriptItem in $ScriptPath) {
                 Write-PSFMessage -Level Debug -Message "Adding deployment script $($scriptItem.SourcePath)"
                 if (!$RegisterOnly) {
                     # Replace tokens in the scripts

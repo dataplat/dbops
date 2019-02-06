@@ -168,7 +168,11 @@
         [string]$ConnectionString,
         [Alias('ConnectionType', 'ServerType')]
         [DBOps.ConnectionType]$Type = (Get-DBODefaultSetting -Name rdbms.type -Value),
-        [hashtable]$ConnectionAttribute
+        [hashtable]$ConnectionAttribute,
+        [switch]$Absolute,
+        [switch]$Relative,
+        [switch]$NoRecurse,
+        [string[]]$Filter
     )
 
     begin {
@@ -203,7 +207,7 @@
 
         #Prepare deployment function call parameters
         $params = @{
-            ScriptPath    = $scripts
+            ScriptPath    = Get-ChildScriptItem -Path $scripts
             Configuration = $config
         }
         foreach ($key in ($PSBoundParameters.Keys)) {

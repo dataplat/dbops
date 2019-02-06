@@ -3,10 +3,10 @@ function Add-DBOBuild {
     <#
     .SYNOPSIS
         Creates a new build in existing DBOps package
-    
+
     .DESCRIPTION
         Creates a new build in existing DBOps package from specified set of scripts.
-    
+
     .PARAMETER ScriptPath
         A collection of script files to add to the build. Accepts Get-Item/Get-ChildItem objects and wildcards.
         Will recursively add all of the subfolders inside folders. See examples if you want only custom files to be added.
@@ -14,13 +14,13 @@ function Add-DBOBuild {
          - Item order provided in the ScriptPath parameter
            - Files inside each child folder (both folders and files in alphabetical order)
              - Files inside the root folder (in alphabetical order)
-             
+
         Aliases: SourcePath
-    
+
     .PARAMETER Path
         Path to the existing DBOpsPackage.
         Aliases: Name, FileName, Package
-    
+
     .PARAMETER Build
         A string that would be representing a build number of this particular build.
         Optional - can be genarated automatically.
@@ -32,11 +32,11 @@ function Add-DBOBuild {
         * Modified: adds files only if they have been modified since they had last been added to the package
         * Unique: adds unique files to the build based on their hash values. Compares hashes accross the whole package
         * All: add all files regardless of their previous involvement
-        
+
         More than one value can be specified at the same time.
-        
+
         Default value: All
-    
+
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -72,9 +72,13 @@ function Add-DBOBuild {
         [object[]]$ScriptPath,
         [string]$Build,
         [ValidateSet('New', 'Modified', 'Unique', 'All')]
-        [string[]]$Type = 'All'
+        [string[]]$Type = 'All',
+        [switch]$Absolute,
+        [switch]$Relative,
+        [switch]$NoRecurse,
+        [string[]]$Filter
     )
-    
+
     begin {
         if (!$Build) {
             $Build = Get-NewBuildNumber
@@ -82,10 +86,8 @@ function Add-DBOBuild {
         $scriptCollection = @()
     }
     process {
-        foreach ($scriptItem in $ScriptPath) {
-            Write-PSFMessage -Level Verbose -Message "Processing path item $scriptItem"
-            $scriptCollection += Get-ChildScriptItem $scriptItem
-        }
+        Write-PSFMessage -Level Verbose -Message "Processing path items $ScriptPath"
+        $scriptCollection += Get-ChildScriptItem $ScriptPath
     }
     end {
         Write-PSFMessage -Level Verbose -Message "Loading package information from $Path"

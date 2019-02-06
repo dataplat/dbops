@@ -843,6 +843,28 @@ class DBOpsBuild : DBOps {
 }
 
 #####################
+# DBOps.File class #
+#####################
+namespace DBOps {
+    class File : DBOps {
+        #Public properties
+        [string]$SourcePath
+        [string]$PackagePath
+        [string]$FullName
+        [int]$Length
+        [string]$Name
+        [string]$LastWriteTime
+        [byte[]]$ByteArray
+
+        #Hidden properties
+        hidden [string]$Hash
+        hidden [DBOps]$Parent
+        hidden [array]$PropertiesToExport = @('SourcePath', 'Hash', 'PackagePath')
+        hidden [string]$
+    }
+}
+
+#####################
 # DBOpsFile class #
 #####################
 
@@ -850,6 +872,7 @@ class DBOpsFile : DBOps {
     #Public properties
     [string]$SourcePath
     [string]$PackagePath
+    [string]$FullName
     [int]$Length
     [string]$Name
     [string]$LastWriteTime
@@ -904,16 +927,18 @@ class DBOpsFile : DBOps {
 
         $this.Length = $this.ByteArray.Length
     }
+    DBOpsFile ([System.IO.FileInfo]$file, [string]$sourcePath, [string]$packagePath) {
+        #Set properties imported from package file
+        $this.Init(@{
+                SourcePath  = $sourcePath
+                PackagePath = $packagePath
+            })
+        $this.InitFile($file)
+    }
     DBOpsFile ([psobject]$fileDescription, [System.IO.FileInfo]$file) {
         #Set properties imported from package file
         $this.Init($fileDescription)
-
-        #Set properties from the file
-        $this.Name = $file.Name
-        $this.LastWriteTime = $file.LastWriteTime
-
-        $this.ByteArray = [DBOpsHelper]::GetBinaryFile($file.FullName)
-        $this.Length = $this.ByteArray.Length
+        $this.InitFile($file)
     }
 
     #Methods
@@ -924,6 +949,16 @@ class DBOpsFile : DBOps {
         $this.SourcePath = $fileDescription.SourcePath
         $this.PackagePath = $fileDescription.PackagePath
     }
+    [void] InitFile ([System.IO.FileInfo]$file) {
+        #Set properties from the file
+        $this.Name = $file.Name
+        $this.FullName = $file.FullName
+        $this.LastWriteTime = $file.LastWriteTime
+
+        $this.ByteArray = [DBOpsHelper]::GetBinaryFile($file.FullName)
+        $this.Length = $this.ByteArray.Length
+    }
+
     [string] ToString() {
         return "$($this.PackagePath)"
     }
@@ -1001,6 +1036,7 @@ class DBOpsRootFile : DBOpsFile {
     DBOpsRootFile ([string]$SourcePath, [string]$PackagePath) : base($SourcePath, $PackagePath) { }
 
     DBOpsRootFile ([psobject]$fileDescription) : base($fileDescription) { }
+    DBOpsRootFile ([System.IO.FileInfo]$file, [string]$sourcePath, [string]$packagePath) : base($file, $sourcePath, $packagePath) { }
 
     DBOpsRootFile ([psobject]$fileDescription, [ZipArchiveEntry]$file) : base($fileDescription, $file) { }
 
@@ -1043,6 +1079,10 @@ class DBOpsScriptFile : DBOpsFile {
         # Verify file hash and throw an error if it doesn't match
         $this.VerifyHash($fileHash)
     }
+    DBOpsScriptFile ([System.IO.FileInfo]$file, [string]$sourcePath, [string]$packagePath) : base($file, $sourcePath, $packagePath) {
+        $this.Hash = [DBOpsHelper]::ToHexString([Security.Cryptography.HashAlgorithm]::Create( "MD5" ).ComputeHash($this.ByteArray))
+    }
+
     #Updates file content - overloaded to handle Hashes
     [void] SetContent([byte[]]$Array) {
         $this.ByteArray = $Array
