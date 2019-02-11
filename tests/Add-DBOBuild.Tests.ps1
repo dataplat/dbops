@@ -19,6 +19,7 @@ $workFolder = Join-PSFPath $here etc "$commandName.Tests.dbops"
 $unpackedFolder = Join-Path $workFolder 'unpacked'
 
 $scriptFolder = Get-Item (Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success")
+$noRecurseFolder = Get-Item (Join-PSFPath -Normalize "$here\etc\sqlserver-tests")
 $v1scripts = Get-Item (Join-Path $scriptFolder '1.sql')
 $v2scripts = Get-Item (Join-Path $scriptFolder '2.sql')
 $packageName = Join-Path $workFolder 'TempDeployment.zip'
@@ -168,6 +169,78 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
         It "should contain config files" {
             'dbops.config.json' | Should BeIn $testResults.Path
             'dbops.package.json' | Should BeIn $testResults.Path
+        }
+    }
+    Context "adding files with different root folders" {
+        BeforeAll {
+            Push-Location -Path $here
+        }
+        AfterAll {
+            Pop-Location
+        }
+        BeforeEach {
+            $null = Copy-Item $packageName $packageNameTest
+            #$null = Copy-Item $v1scripts "$workFolder\Test.sql"
+        }
+        AfterEach {
+            $null = Remove-Item $packageNameTest
+            #$null = Remove-Item "$workFolder\Test.sql"
+        }
+        It "should add new build to existing package as a relative path" {
+            $testResults = Add-DBOBuild -ScriptPath $v2scripts -Name $packageNameTest -Build 2.0 -Relative
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageNameTest -Leaf)
+            Test-Path $packageNameTest | Should Be $true
+            $scripts = $testResults.GetBuild('2.0').Scripts
+            Join-PSFPath -Normalize 'content\2.0' ((Resolve-Path $v2scripts -Relative) -replace '^\.\\', '')| Should BeIn $scripts.GetPackagePath()
+            Join-PSFPath -Normalize 'content\2.0\1.sql' | Should Not BeIn $scripts.GetPackagePath()
+            $items = Get-ArchiveItem $packageNameTest
+            Join-PSFPath -Normalize 'content\1.0\1.sql' | Should BeIn $items.Path
+            Join-PSFPath -Normalize 'content\2.0' ((Resolve-Path $v2scripts -Relative) -replace '^\.\\', '') | Should BeIn $items.Path
+        }
+        It "should add new build to existing package as an absolute path" {
+            $testResults = Add-DBOBuild -ScriptPath $v2scripts -Name $packageNameTest -Build 2.0 -Absolute
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageNameTest -Leaf)
+            Test-Path $packageNameTest | Should Be $true
+            $scripts = $testResults.GetBuild('2.0').Scripts
+            Join-PSFPath -Normalize 'content\2.0' ($v2scripts -replace ':', '')| Should BeIn $scripts.GetPackagePath()
+            Join-PSFPath -Normalize 'content\2.0\1.sql' | Should Not BeIn $scripts.GetPackagePath()
+            $items = Get-ArchiveItem $packageNameTest
+            Join-PSFPath -Normalize 'content\1.0\1.sql' | Should BeIn $items.Path
+            Join-PSFPath -Normalize 'content\2.0' ($v2scripts -replace ':', '') | Should BeIn $items.Path
+        }
+        It "should add new build without recursion" {
+            $testResults = Add-DBOBuild -ScriptPath $noRecurseFolder -Name $packageNameTest -Build 2.0 -NoRecurse
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageNameTest -Leaf)
+            Test-Path $packageNameTest | Should Be $true
+            $scripts = $testResults.GetBuild('2.0').Scripts
+            Join-PSFPath -Normalize 'content\2.0\sqlserver-tests\Cleanup.sql' | Should BeIn $scripts.GetPackagePath()
+            Join-PSFPath -Normalize 'content\2.0\sqlserver-tests\success\1.sql' | Should Not BeIn $scripts.GetPackagePath()
+            Join-PSFPath -Normalize 'content\2.0\sqlserver-tests\success\2.sql' | Should Not BeIn $scripts.GetPackagePath()
+            Join-PSFPath -Normalize 'content\2.0\sqlserver-tests\success\3.sql' | Should Not BeIn $scripts.GetPackagePath()
+            $items = Get-ArchiveItem $packageNameTest
+            Join-PSFPath -Normalize 'content\1.0\1.sql' | Should BeIn $items.Path
+            Join-PSFPath -Normalize 'content\2.0\sqlserver-tests\Cleanup.sql' | Should BeIn $items.Path
+            Join-PSFPath -Normalize 'content\2.0\sqlserver-tests\success\1.sql' | Should Not BeIn $items.Path
+            Join-PSFPath -Normalize 'content\2.0\sqlserver-tests\success\2.sql' | Should Not BeIn $items.Path
+            Join-PSFPath -Normalize 'content\2.0\sqlserver-tests\success\3.sql' | Should Not BeIn $items.Path
+        }
+        It "Should add only matched files" {
+            $testResults = Add-DBOBuild -ScriptPath $scriptFolder\* -Name $packageNameTest -Build 2.0 -Match '2\.sql'
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageNameTest -Leaf)
+            Test-Path $packageNameTest | Should Be $true
+            $scripts = $testResults.GetBuild('2.0').Scripts
+            Join-PSFPath -Normalize 'content\2.0\1.sql' | Should Not BeIn $scripts.GetPackagePath()
+            Join-PSFPath -Normalize 'content\2.0\2.sql' | Should BeIn $scripts.GetPackagePath()
+            Join-PSFPath -Normalize 'content\2.0\3.sql' | Should Not BeIn $scripts.GetPackagePath()
+            $items = Get-ArchiveItem $packageNameTest
+            Join-PSFPath -Normalize 'content\1.0\1.sql' | Should BeIn $items.Path
+            Join-PSFPath -Normalize 'content\2.0\1.sql' | Should Not BeIn $items.Path
+            Join-PSFPath -Normalize 'content\2.0\2.sql' | Should BeIn $items.Path
+            Join-PSFPath -Normalize 'content\2.0\3.sql' | Should Not BeIn $items.Path
         }
     }
     Context "negative tests" {

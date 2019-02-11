@@ -46,9 +46,9 @@ function Add-DBOBuild {
     .PARAMETER NoRecurse
         Only process the first level of the target -Path.
 
-    .PARAMETER Filter
-        Filters out specific file names using the provided filter string. Uses the logic implemented in Get-ChildItem.
-        Example: *.sql
+    .PARAMETER Match
+        Runs a regex verification against provided file names using the provided Match string.
+        Example: .*\.sql
 
     .PARAMETER Confirm
         Prompts to confirm certain actions
@@ -89,7 +89,7 @@ function Add-DBOBuild {
         [switch]$Absolute,
         [switch]$Relative,
         [switch]$NoRecurse,
-        [string[]]$Filter
+        [string[]]$Match
     )
 
     begin {

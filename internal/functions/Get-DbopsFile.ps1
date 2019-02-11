@@ -5,7 +5,7 @@
         [bool]$Absolute = $Absolute,
         [bool]$Relative = $Relative,
         [bool]$Recurse = (-not $NoRecurse),
-        [string[]]$Filter = $Filter
+        [string[]]$Match = $Match
     )
     Function Get-SourcePath {
         Param (
@@ -13,9 +13,11 @@
             [System.IO.FileSystemInfo]$Root
         )
         Write-PSFMessage -Level Debug -Message "Getting child items from $Item; Root defined as $Root"
-        foreach ($childItem in (Get-ChildItem $Item -Filter $Filter)) {
-            if ($childItem.PSIsContainer -and $Recurse) {
-                Get-SourcePath -Item (Get-Item $childItem) -Root $Root
+        $fileItems = Get-ChildItem $Item
+        if ($Match) { $fileItems = $fileItems | Where-Object Name -match ($Match -join '|') }
+        foreach ($childItem in $fileItems) {
+            if ($childItem.PSIsContainer) {
+                if ($Recurse) { Get-SourcePath -Item (Get-Item $childItem) -Root $Root }
             }
             else {
                 if ($Relative) {
@@ -31,8 +33,8 @@
                     $srcPath = $pkgPath = $childItem.Name
                 }
                 # replace some symbols here and there
-                $srcPath = $srcPath -replace '^.\\', ''
-                $pkgPath = $pkgPath -replace '^.\\|:', ''
+                $srcPath = $srcPath -replace '^\.\\', ''
+                $pkgPath = $pkgPath -replace '^\.\\|:', ''
                 [DBOpsFile]::new($childItem, $srcPath, $pkgPath, $true)
             }
         }
