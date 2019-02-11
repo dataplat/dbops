@@ -29,6 +29,9 @@ $fileObject2 = Get-Item $script2
 $fileObject3 = Get-Item $script3
 
 Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
+    BeforeAll {
+        if (Test-Path $packageName) { Remove-Item $packageName }
+    }
     AfterAll {
         if (Test-Path $packageName) { Remove-Item $packageName }
     }
@@ -158,14 +161,17 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
             $build = $pkg.NewBuild('1.0')
             $pkg.SaveToFile($packageName, $true)
             $file = [DBOpsFile]::new($fileObject1, $script1, 'success\1.sql', $true)
+            $cFile = [DBOpsFile]::new($fileObject1, 'whatever.ps1', 'whatever.ps1')
             $build.AddFile($file, 'Scripts')
-            $build.Alter()
+            $pkg.AddFile($cfile, 'PreDeployFile')
+            $pkg.Alter()
         }
         AfterAll {
             if (Test-Path $packageName) { Remove-Item $packageName }
         }
         It "should test ToString method" {
             $file.ToString() | Should -Be (Join-PSFPath -Normalize 'success\1.sql')
+            $cfile.ToString() | Should -Be 'whatever.ps1'
         }
         It "should test RebuildHash method" {
             $oldHash = $file.Hash
@@ -180,12 +186,15 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
         }
         It "should test GetDeploymentPath method" {
             $file.GetDeploymentPath() | Should -Be '1.0\success\1.sql'
+            $cFile.GetDeploymentPath() | Should -Be 'whatever.ps1'
         }
         It "should test GetPackagePath method" {
             $file.GetPackagePath() | Should -Be (Join-PSFPath -Normalize 'content\1.0\success\1.sql')
+            $cFile.GetPackagePath() | Should -Be 'whatever.ps1'
         }
         It "should test GetContent method" {
             $file.GetContent() | Should -BeLike 'CREATE TABLE a (a int)*'
+            $cFile.GetContent() | Should -BeLike 'CREATE TABLE a (a int)*'
             #ToDo: add files with different encodings
         }
         It "should test SetContent method" {
@@ -206,6 +215,7 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
         It "should test Save method" {
             #Save old file parameters
             $oldResults = Get-ArchiveItem $packageName | Where-Object Path -eq (Join-PSFPath -Normalize 'content\1.0\success\1.sql')
+            $oldResults2 = Get-ArchiveItem $packageName | Where-Object Path -eq (Join-PSFPath -Normalize 'whatever.ps1')
             #Sleep 2 seconds to ensure that modification date is changed
             Start-Sleep -Seconds 2
             #Modify file content
@@ -219,6 +229,7 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
                 try {
                     #Initiate saving
                     { $file.Save($zip) } | Should -Not -Throw
+                    { $cFile.Save($zip) } | Should -Not -Throw
                 }
                 catch {
                     throw $_
@@ -237,18 +248,24 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
             }
             $testResults = Get-ArchiveItem $packageName | Where-Object Path -eq (Join-PSFPath -Normalize 'content\1.0\success\1.sql')
             $oldResults.LastWriteTime -lt ($testResults | Where-Object Path -eq $oldResults.Path).LastWriteTime | Should -Be $true
+            $testResults = Get-ArchiveItem $packageName | Where-Object Path -eq 'whatever.ps1'
+            $oldResults2.LastWriteTime -lt ($testResults | Where-Object Path -eq $oldResults2.Path).LastWriteTime | Should -Be $true
             # { $p = [DBOpsPackage]::new($packageName) } | Should -Throw #Because of the hash mismatch - package file is not updated in Save()
         }
         It "should test Alter method" {
             #Save old file parameters
             $oldResults = Get-ArchiveItem $packageName | Where-Object Path -eq (Join-PSFPath -Normalize 'content\1.0\success\1.sql')
+            $oldResults2 = Get-ArchiveItem $packageName | Where-Object Path -eq (Join-PSFPath -Normalize 'whatever.ps1')
             #Sleep 2 seconds to ensure that modification date is changed
             Start-Sleep -Seconds 2
             #Modify file content
             $file.SetContent([DBOpsHelper]::GetBinaryFile($script2))
             { $file.Alter() } | Should -Not -Throw
+            { $cFile.Alter() } | Should -Not -Throw
             $testResults = Get-ArchiveItem $packageName | Where-Object Path -eq (Join-PSFPath -Normalize 'content\1.0\success\1.sql')
             $oldResults.LastWriteTime -lt ($testResults | Where-Object Path -eq $oldResults.Path).LastWriteTime | Should -Be $true
+            $testResults = Get-ArchiveItem $packageName | Where-Object Path -eq 'whatever.ps1'
+            $oldResults2.LastWriteTime -lt ($testResults | Where-Object Path -eq $oldResults2.Path).LastWriteTime | Should -Be $true
         }
     }
 }

@@ -451,6 +451,10 @@ class DBOpsPackageBase : DBOps {
     [string] GetPackagePath() {
         return ""
     }
+    #Returns root folder
+    [string] GetDeploymentPath() {
+        return ""
+    }
     #Returns content folder for scripts
     [string] GetContentPath() {
         return $this.ScriptDirectory
@@ -993,11 +997,11 @@ class DBOpsFile : DBOps {
         return $pPath
     }
     [string] GetDeploymentPath () {
+        $dPath = $this.PackagePath
         if ($this.Parent) {
-            $dPath = Join-Path $this.Parent.GetDeploymentPath() $this.PackagePath
-        }
-        else {
-            $dPath = $this.PackagePath
+            if ($parentPath = $this.Parent.GetDeploymentPath()) {
+                $dPath = Join-Path $this.Parent.GetDeploymentPath() $dPath
+            }
         }
         # always use backslashes during deployments regardless of the OS
         return $dPath.Replace('/', '\')
