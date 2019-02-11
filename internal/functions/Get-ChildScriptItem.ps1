@@ -10,30 +10,31 @@
     Function Get-SourcePath {
         Param (
             [System.IO.FileSystemInfo]$Item,
-            [int]$Depth = 0,
-            [System.IO.FileSystemInfo]$Root = $Item
+            [System.IO.FileSystemInfo]$Root
         )
-        Write-PSFMessage -Level Debug -Message "Getting child items from $Item with current depth $Depth"
+        Write-PSFMessage -Level Debug -Message "Getting child items from $Item; Root defined as $Root"
         foreach ($childItem in (Get-ChildItem $Item -Filter $Filter)) {
             if ($childItem.PSIsContainer -and $Recurse) {
-                Get-SourcePath -Item (Get-Item $childItem.FullName) -Depth ($Depth + 1) -Root $Root
+                Get-SourcePath -Item (Get-Item $childItem) -Root $Root
             }
             else {
-                #Add-Member -InputObject $childItem -MemberType NoteProperty -Name Depth -Value $Depth
                 if ($Relative) {
-                    $srcPath = Resolve-Path $childItem.FullName -Relative
+                    $srcPath = $pkgPath = Resolve-Path $childItem.FullName -Relative
                 }
                 elseif ($Absolute) {
                     $srcPath = $childItem.FullName
+                    $pkgPath = $childItem.FullName
                 }
-                elseif ($Root.PSIsContainer) {
-                    $srcPath = $childItem.FullName -replace "^$($Item.FullName)", '.'
+                elseif ($Root) {
+                    $srcPath = $pkgPath = $childItem.FullName -replace "^$([Regex]::Escape($Root.FullName))", '.'
                 }
                 else {
-                    $srcPath = $childItem.Name
+                    $srcPath = $pkgPath = $childItem.Name
                 }
-                [DBOpsScriptFile]::new($childItem, $srcPath)
-                #Add-Member -InputObject $childItem -MemberType NoteProperty -Name SourcePath -Value $srcPath -PassThru
+                # replace some symbols here and there
+                $srcPath = $srcPath -replace '^.\\', ''
+                $pkgPath = $pkgPath -replace '^.\\|:', ''
+                [DBOpsFile]::new($childItem, $srcPath, $pkgPath, $true)
             }
         }
     }
@@ -41,19 +42,23 @@
         if ($p.GetType() -in @([System.IO.FileSystemInfo], [System.IO.FileInfo])) {
             Write-PSFMessage -Level Verbose -Message "Item $p ($($p.GetType())) is a File object"
             $stringPath = $p.FullName
-            $isAbsolute = $true
         }
         else {
             Write-PSFMessage -Level Verbose -Message "Item $p ($($p.GetType())) will be treated as a string"
             $stringPath = [string]$p
-            $isAbsolute = Split-Path -Path $stringPath -IsAbsolute
         }
         if (!(Test-Path $stringPath)) {
             Stop-PSFFunction -EnableException $true -Message "The following path is not valid: $stringPath"
             return
         }
-        foreach ($currentItem in (Get-Item $stringPath)) {
-            Get-SourcePath -Item $currentItem -Depth ([int]$currentItem.PSIsContainer)
+        $fileItems = Get-Item $stringPath -ErrorAction Stop
+        foreach ($currentItem in $fileItems) {
+            if ($currentItem.PSIsContainer) {
+                Get-SourcePath -Item $currentItem -Root $currentItem.Parent
+            }
+            else {
+                Get-SourcePath -Item $currentItem -Root $currentItem.Directory
+            }
         }
     }
 }

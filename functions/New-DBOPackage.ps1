@@ -136,7 +136,7 @@
         #Create a new build
         $buildObject = $package.NewBuild($buildNumber)
         foreach ($scriptItem in $scriptCollection) {
-            $null = $buildObject.NewScript($scriptItem)
+            $buildObject.AddScript($scriptItem)
         }
 
         if ($pscmdlet.ShouldProcess($package, "Generate a package file")) {
