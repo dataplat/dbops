@@ -127,13 +127,12 @@ function Add-DBOBuild {
             }
 
             if ($scriptsToAdd) {
-
                 #Create new build object
                 $currentBuild = $package.NewBuild($Build)
 
                 foreach ($buildScript in $scriptsToAdd) {
-                    $s = $currentBuild.NewScript($buildScript)
-                    Write-PSFMessage -Level Verbose -Message "Adding file '$($buildScript.FullName)' to $currentBuild as $($s.GetPackagePath())"
+                    $currentBuild.AddScript($buildScript)
+                    Write-PSFMessage -Level Verbose -Message "Adding file '$($buildScript.FullName)' to $currentBuild as $($buildScript.GetPackagePath())"
                 }
 
                 if ($pscmdlet.ShouldProcess($package, "Writing new build $currentBuild into the original package")) {

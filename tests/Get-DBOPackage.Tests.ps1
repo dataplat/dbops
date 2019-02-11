@@ -35,9 +35,9 @@ Describe "Get-DBOPackage tests" -Tag $commandName, UnitTests {
         $null = New-Item $workFolder -ItemType Directory -Force
         $null = New-Item $unpackedFolder -ItemType Directory -Force
         (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $encryptedString | Out-File $fullConfig -Force
-        $null = New-DBOPackage -ScriptPath $v1scripts -Name $packageName -Build 1.0 -Force -ConfigurationFile $fullConfig
-        $null = Add-DBOBuild -ScriptPath $v2scripts -Path $packageName -Build 2.0
-        $null = Add-DBOBuild -ScriptPath $v3scripts -Path $packageName -Build 3.0
+        $null = New-DBOPackage -ScriptPath $v1scripts -Name $packageName -Build 1.0 -Force -ConfigurationFile $fullConfig -Absolute
+        $null = Add-DBOBuild -ScriptPath $v2scripts -Path $packageName -Build 2.0 -Absolute
+        $null = Add-DBOBuild -ScriptPath $v3scripts -Path $packageName -Build 3.0 -Absolute
     }
     AfterAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }

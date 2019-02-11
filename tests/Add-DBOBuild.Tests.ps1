@@ -75,7 +75,7 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
             $null = Remove-Item $packageNameTest
         }
         It "should add new build to existing package" {
-            $testResults = Add-DBOBuild -ScriptPath $scriptFolder -Name $packageNameTest -Build 2.0 -Type 'New'
+            $testResults = Add-DBOBuild -ScriptPath $scriptFolder\* -Name $packageNameTest -Build 2.0 -Type 'New'
             $testResults | Should Not Be $null
             $testResults.Name | Should Be (Split-Path $packageNameTest -Leaf)
             $testResults.Configuration | Should Not Be $null
@@ -93,8 +93,8 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
             Join-PSFPath -Normalize 'content\1.0\2.sql' | Should Not BeIn $testResults.Path
         }
         It "build 2.0 should only contain scripts from 2.0" {
-            Join-PSFPath -Normalize "content\2.0\$(Split-Path $scriptFolder -Leaf)\2.sql" | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize "content\2.0\$(Split-Path $scriptFolder -Leaf)\1.sql" | Should Not BeIn $testResults.Path
+            Join-PSFPath -Normalize "content\2.0\2.sql" | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize "content\2.0\1.sql" | Should Not BeIn $testResults.Path
         }
         It "should contain module files" {
             foreach ($file in Get-DBOModuleFileList) {
@@ -212,7 +212,7 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
             catch {
                 $errorResult = $_
             }
-            $errorResult.Exception.Message -join ';' | Should BeLike '*File * already exists in*'
+            $errorResult.Exception.Message -join ';' | Should BeLike 'External script * already exists*'
         }
     }
 }

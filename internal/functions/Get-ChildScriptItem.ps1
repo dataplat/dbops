@@ -22,8 +22,7 @@
                     $srcPath = $pkgPath = Resolve-Path $childItem.FullName -Relative
                 }
                 elseif ($Absolute) {
-                    $srcPath = $childItem.FullName
-                    $pkgPath = $childItem.FullName
+                    $srcPath = $pkgPath = $childItem.FullName
                 }
                 elseif ($Root) {
                     $srcPath = $pkgPath = $childItem.FullName -replace "^$([Regex]::Escape($Root.FullName))", '.'
