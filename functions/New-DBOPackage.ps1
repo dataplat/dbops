@@ -130,7 +130,7 @@
         $scriptCollection = @()
     }
     process {
-        $scriptCollection += Get-ChildScriptItem $ScriptPath
+        $scriptCollection += Get-DbopsFile $ScriptPath
     }
     end {
         #Create a new build

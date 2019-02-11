@@ -1,4 +1,4 @@
-﻿function Get-ChildScriptItem {
+﻿function Get-DbopsFile {
     [CmdletBinding()]
     Param (
         [object[]]$Path,

@@ -87,7 +87,7 @@ function Add-DBOBuild {
     }
     process {
         Write-PSFMessage -Level Verbose -Message "Processing path items $ScriptPath"
-        $scriptCollection += Get-ChildScriptItem $ScriptPath
+        $scriptCollection += Get-DbopsFile $ScriptPath
     }
     end {
         Write-PSFMessage -Level Verbose -Message "Loading package information from $Path"

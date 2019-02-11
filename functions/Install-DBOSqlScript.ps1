@@ -207,7 +207,7 @@
 
         #Prepare deployment function call parameters
         $params = @{
-            ScriptFile    = Get-ChildScriptItem -Path $scripts
+            ScriptFile    = Get-DbopsFile -Path $scripts
             Configuration = $config
         }
         foreach ($key in ($PSBoundParameters.Keys)) {
