@@ -43,6 +43,19 @@
         Proper format of the variable tokens is #{MyVariableName}
         Can also be provided as a part of Configuration hashtable: -Configuration @{ Variables = @{ Var1 = ...; Var2 = ...}}
 
+    .PARAMETER Absolute
+        All the files in -Path will be added using their absolute paths instead of relative.
+
+    .PARAMETER Relative
+        Use current location to build relative paths instead of starting from the folder in -Path.
+
+    .PARAMETER NoRecurse
+        Only process the first level of the target -Path.
+
+    .PARAMETER Filter
+        Filters out specific file names using the provided filter string. Uses the logic implemented in Get-ChildItem.
+        Example: *.sql
+
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
