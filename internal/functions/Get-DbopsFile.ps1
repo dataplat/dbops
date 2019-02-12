@@ -33,8 +33,10 @@
                     $srcPath = $pkgPath = $childItem.Name
                 }
                 # replace some symbols here and there
-                $srcPath = $srcPath -replace '^\.\\', ''
-                $pkgPath = $pkgPath -replace '^\.\\|:', ''
+                $slash = [IO.Path]::DirectorySeparatorChar
+                $slashRegex = [Regex]::Escape(".$slash")
+                $srcPath = $srcPath -replace "^$slashRegex", ''
+                $pkgPath = $pkgPath -replace "^$slashRegex|:", ''
                 [DBOpsFile]::new($childItem, $srcPath, $pkgPath, $true)
             }
         }
