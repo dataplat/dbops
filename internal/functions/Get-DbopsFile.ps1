@@ -2,9 +2,9 @@
     [CmdletBinding()]
     Param (
         [object[]]$Path,
-        [bool]$Absolute = $Absolute,
-        [bool]$Relative = $Relative,
-        [bool]$Recurse = (-not $NoRecurse),
+        [bool]$Absolute = ($Absolute -eq $true),
+        [bool]$Relative = ($Relative -eq $true),
+        [bool]$Recurse = ($NoRecurse -ne $true),
         [string[]]$Match = $Match
     )
     Function Get-SourcePath {
@@ -13,11 +13,11 @@
             [System.IO.FileSystemInfo]$Root
         )
         Write-PSFMessage -Level Debug -Message "Getting child items from $Item; Root defined as $Root"
-        $fileItems = Get-ChildItem $Item
+        $fileItems = Get-ChildItem $Item.FullName
         if ($Match) { $fileItems = $fileItems | Where-Object Name -match ($Match -join '|') }
         foreach ($childItem in $fileItems) {
             if ($childItem.PSIsContainer) {
-                if ($Recurse) { Get-SourcePath -Item (Get-Item $childItem) -Root $Root }
+                if ($Recurse) { Get-SourcePath -Item (Get-Item $childItem.FullName) -Root $Root }
             }
             else {
                 if ($Relative) {
