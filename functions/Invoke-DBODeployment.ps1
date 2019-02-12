@@ -141,6 +141,10 @@
         }
         else {
             foreach ($scriptItem in $ScriptFile) {
+                if ($scriptItem -and $scriptItem -isnot [DBOpsFile]) {
+                    Stop-PSFFunction -Message "Expected DBOpsFile object, got [$($scriptItem.GetType().FullName)]." -EnableException $true
+                    return
+                }
                 Write-PSFMessage -Level Debug -Message "Adding deployment script $($scriptItem.SourcePath)"
                 if (!$RegisterOnly) {
                     # Replace tokens in the scripts
