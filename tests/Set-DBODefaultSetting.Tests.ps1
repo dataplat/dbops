@@ -49,7 +49,7 @@ Describe "Set-DBODefaultSetting tests" -Tag $commandName, UnitTests {
                 $testResult.Name | Should Be 'tc3'
             }
             catch {
-                $_.Exception.Message | Should BeLike '*Access to the registry key*'
+                $_.Exception.Message | Should BeLike '*access*'
             }
         }
         It "sets a secret value" {

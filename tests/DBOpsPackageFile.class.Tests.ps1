@@ -40,9 +40,9 @@ Describe "DBOpsPackageFile class tests" -Tag $commandName, UnitTests, DBOpsPacka
         BeforeAll {
             $p = [DBOpsPackage]::new()
             $b1 = $p.NewBuild('1.0')
-            $b1.AddScript[DBOpsFile]::new($fileObject1, $script1, (Join-PSFPath -Normalize 'success\1.sql'), $true))
+            $b1.AddScript([DBOpsFile]::new($fileObject1, $script1, (Join-PSFPath -Normalize 'success\1.sql'), $true))
             $b2 = $p.NewBuild('2.0')
-            $b2.AddScript[DBOpsFile]::new($fileObject2, $script2, (Join-PSFPath -Normalize 'success\2.sql'), $true))
+            $b2.AddScript([DBOpsFile]::new($fileObject2, $script2, (Join-PSFPath -Normalize 'success\2.sql'), $true))
             $p.SaveToFile($packageName)
             $null = New-Item "$here\etc\LoadFromFile" -ItemType Directory
             Expand-Archive $p.FullName "$here\etc\LoadFromFile"
