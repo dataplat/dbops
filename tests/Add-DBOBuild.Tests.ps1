@@ -192,11 +192,11 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
             $testResults.Name | Should Be (Split-Path $packageNameTest -Leaf)
             Test-Path $packageNameTest | Should Be $true
             $scripts = $testResults.GetBuild('2.0').Scripts
-            Join-PSFPath -Normalize 'content\2.0' ((Resolve-Path $v2scripts -Relative) -replace '^\.\\', '')| Should BeIn $scripts.GetPackagePath()
+            Join-PSFPath -Normalize 'content\2.0' ((Resolve-Path $v2scripts -Relative) -replace '^\.\\|^\.\/', '')| Should BeIn $scripts.GetPackagePath()
             Join-PSFPath -Normalize 'content\2.0\1.sql' | Should Not BeIn $scripts.GetPackagePath()
             $items = Get-ArchiveItem $packageNameTest
             Join-PSFPath -Normalize 'content\1.0\1.sql' | Should BeIn $items.Path
-            Join-PSFPath -Normalize 'content\2.0' ((Resolve-Path $v2scripts -Relative) -replace '^\.\\', '') | Should BeIn $items.Path
+            Join-PSFPath -Normalize 'content\2.0' ((Resolve-Path $v2scripts -Relative) -replace '^\.\\|^\.\/', '') | Should BeIn $items.Path
         }
         It "should add new build to existing package as an absolute path" {
             $testResults = Add-DBOBuild -ScriptPath $v2scripts -Name $packageNameTest -Build 2.0 -Absolute

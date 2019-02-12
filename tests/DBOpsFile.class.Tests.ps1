@@ -160,7 +160,7 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
             $pkg = [DBOpsPackage]::new()
             $build = $pkg.NewBuild('1.0')
             $pkg.SaveToFile($packageName, $true)
-            $file = [DBOpsFile]::new($fileObject1, $script1, 'success\1.sql', $true)
+            $file = [DBOpsFile]::new($fileObject1, $script1, (Join-PSFPath -Normalize 'success\1.sql'), $true)
             $cFile = [DBOpsFile]::new($fileObject1, 'whatever.ps1', 'whatever.ps1')
             $build.AddFile($file, 'Scripts')
             $pkg.AddFile($cfile, 'PreDeployFile')
