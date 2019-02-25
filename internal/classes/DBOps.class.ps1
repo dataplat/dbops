@@ -116,8 +116,17 @@ class DBOps {
     hidden [void] RemoveFile ([string[]]$PackagePath, [string]$CollectionName) {
         if ($this.$CollectionName) {
             foreach ($path in $PackagePath) {
-                $this.RemoveFile($this.$CollectionName.GetFile($path, $CollectionName), $CollectionName)
+                $file = $this.GetFile($path, $CollectionName)
+                if ($file) {
+                    $this.RemoveFile($file, $CollectionName)
+                }
+                else {
+                    $this.ThrowException("File $path not found", 'InvalidArgument')
+                }
             }
+        }
+        else {
+            $this.ThrowException("Collection $CollectionName not found or empty", 'InvalidArgument')
         }
     }
     hidden [void] RemoveFile ([DBOpsFile[]]$DBOpsFile, [string]$CollectionName) {
@@ -297,25 +306,29 @@ class DBOpsPackageBase : DBOps {
         $this.RemoveBuild($this.GetBuild($build))
     }
     [bool] ScriptExists([string]$fileName) {
-        if (!(Test-Path $fileName)) {
-            $this.ThrowException("Path not found: $fileName", 'InvalidArgument')
-        }
-        $hash = [DBOpsHelper]::ToHexString([Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([DBOpsHelper]::GetBinaryFile($fileName)))
         foreach ($build in $this.builds) {
-            if ($build.HashExists($hash)) {
+            if ($build.ScriptExists($fileName)) {
                 return $true
             }
         }
         return $false
     }
-    [bool] ScriptModified([string]$fileName, [string]$sourcePath) {
+    [bool] ScriptExists([DBOpsFile]$file) {
+        foreach ($build in $this.builds) {
+            if ($build.ScriptExists($file)) {
+                return $true
+            }
+        }
+        return $false
+    }
+    [bool] ScriptModified([string]$fileName, [string]$packagePath) {
         if (!(Test-Path $fileName)) {
             $this.ThrowException("Path not found: $fileName", 'InvalidArgument')
         }
         $hash = [DBOpsHelper]::ToHexString([Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([DBOpsHelper]::GetBinaryFile($fileName)))
-        foreach ($build in $this.builds) {
-            if ($build.SourcePathExists($sourcePath)) {
-                if (!$build.HashExists($hash, $sourcePath)) {
+        foreach ($build in $this.Builds) {
+            if ($build.PackagePathExists($packagePath)) {
+                if (-not $build.HashExists($hash, $packagePath)) {
                     return $true
                 }
                 break
@@ -323,30 +336,25 @@ class DBOpsPackageBase : DBOps {
         }
         return $false
     }
-    [bool] SourcePathExists([string]$path) {
+    [bool] ScriptModified([DBOpsFile]$file) {
+        foreach ($build in $this.Builds) {
+            if ($build.PackagePathExists($file.PackagePath)) {
+                if (-not $build.HashExists($file.Hash, $file.PackagePath)) {
+                    return $true
+                }
+                break
+            }
+        }
+        return $false
+    }
+    [bool] PackagePathExists([string]$PackagePath) {
         foreach ($build in $this.builds) {
-            if ($build.SourcePathExists($path)) {
+            if ($build.PackagePathExists($PackagePath)) {
                 return $true
             }
         }
         return $false
     }
-    # [bool] PackagePathExists([string]$PackagePath) {
-    # 	foreach ($build in $this.builds) {
-    # 		if ($build.PackagePathExists($PackagePath)) {
-    # 			return $true
-    # 		}
-    # 	}
-    # 	return $false
-    # }
-    # [bool] PackagePathExists([string]$fileName, [int]$Depth) {
-    # 	foreach ($build in $this.builds) {
-    # 		if ($build.PackagePathExists($fileName, $Depth)) {
-    # 			return $true
-    # 		}
-    # 	}
-    # 	return $false
-    # }
     [string] ExportToJson() {
         $exportObject = @{} | Select-Object -Property $this.PropertiesToExport
         foreach ($type in $exportObject.psobject.Properties.name) {
@@ -513,7 +521,7 @@ class DBOpsPackage : DBOpsPackageBase {
         $file = [DBOpsConfig]::GetDeployFile()
         # Adding root deploy file
         $deployFileObject = Get-Item $file.FullName -ErrorAction Stop
-        $this.AddFile([DBOpsFile]::new($deployFileObject, $file.FullName, $file.Name), 'DeployFile')
+        $this.AddFile([DBOpsFile]::new($deployFileObject, $file.Name), 'DeployFile')
         # Adding configuration file default contents
         $configFile = [DBOpsFile]::new([DBOpsConfig]::GetConfigurationFileName())
         $configContent = [Text.Encoding]::ASCII.GetBytes($this.Configuration.ExportToJson())
@@ -547,7 +555,7 @@ class DBOpsPackage : DBOpsPackageBase {
                         if (!$scriptFile) {
                             $this.ThrowException("File not found inside the package: $filePackagePath", 'InvalidArgument')
                         }
-                        $newScript = [DBOpsFile]::new($scriptFile, $script.SourcePath, $script.PackagePath, $script.Hash)
+                        $newScript = [DBOpsFile]::new($scriptFile, $script.PackagePath, $script.Hash)
                         $newBuild.AddScript($newScript, $true)
                     }
                 }
@@ -557,7 +565,7 @@ class DBOpsPackage : DBOpsPackageBase {
                     if ($jsonFileObject) {
                         $zipFileEntry = $zip.Entries | Where-Object { (Join-PSFPath -Normalize $_.FullName) -eq $jsonFileObject.packagePath }
                         if ($zipFileEntry) {
-                            $newFile = [DBOpsFile]::new($zipFileEntry, $jsonFileObject.SourcePath, $jsonFileObject.PackagePath)
+                            $newFile = [DBOpsFile]::new($zipFileEntry, $jsonFileObject.PackagePath)
                             $this.AddFile($newFile, $file)
                         }
                         else {
@@ -622,7 +630,7 @@ class DBOpsPackageFile : DBOpsPackageBase {
                         $this.ThrowException("File not found inside the package: $filePackagePath", 'InvalidArgument')
                     }
                     $fileObject = Get-Item -LiteralPath $filePackagePath -ErrorAction Stop
-                    $newScript = [DBOpsFile]::new($fileObject, $script.SourcePath, $script.PackagePath, $script.Hash)
+                    $newScript = [DBOpsFile]::new($fileObject, $script.PackagePath, $script.Hash)
                     $newBuild.AddScript($newScript, $true)
                 }
             }
@@ -635,7 +643,7 @@ class DBOpsPackageFile : DBOpsPackageBase {
                         $this.ThrowException("File not found inside the package: $filePackagePath", 'InvalidArgument')
                     }
                     $fileObject = Get-Item -LiteralPath $filePackagePath -ErrorAction Stop
-                    $newFile = [DBOpsFile]::new($fileObject, $jsonFileObject.SourcePath, $jsonFileObject.PackagePath)
+                    $newFile = [DBOpsFile]::new($fileObject, $jsonFileObject.PackagePath)
                     $this.AddFile($newFile, $fileType)
                 }
             }
@@ -708,48 +716,29 @@ class DBOpsBuild : DBOps {
     }
 
     #Methods
-    #Creates a new script and returns it as an object
-    # [DBOpsFile[]] NewScript ([object[]]$FileObject) {
-    #     [DBOpsFile[]]$output = @()
-    #     foreach ($p in $FileObject) {
-    #         if ($p.Depth) {
-    #             $depth = $p.Depth
-    #         }
-    #         else {
-    #             $depth = 0
-    #         }
-    #         if ($p.SourcePath) {
-    #             $sourcePath = $p.SourcePath
-    #         }
-    #         else {
-    #             $sourcePath = $p.FullName
-    #         }
-    #         $relativePath = [DBOpsHelper]::SplitRelativePath($sourcePath, $depth)
-    #         $file = [DBOpsFile]::new()
-    #         $output += $this.NewFile($sourcePath, $relativePath, 'Scripts', [DBOpsScriptFile])
-    #     }
-    #     return $output
-    # }
-    # [DBOpsFile] NewScript ([string]$FileName, [int]$Depth) {
-    #     $relativePath = [DBOpsHelper]::SplitRelativePath($FileName, $Depth)
-    #     if ($this.SourcePathExists($relativePath)) {
-    #         $this.ThrowException("External script $($relativePath) already exists.", 'InvalidArgument')
-    #     }
-    #     return $this.NewFile($FileName, $relativePath, 'Scripts', [DBOpsScriptFile])
-    # }
     # Adds script to the current build
     [void] AddScript ([DBOpsFile[]]$script) {
         $this.AddScript($script, $false)
     }
     [void] AddScript ([DBOpsFile[]]$script, [bool]$Force) {
         foreach ($s in $script) {
-            if (!$Force -and $this.SourcePathExists($s.SourcePath)) {
-                $this.ThrowException("External script $($s.SourcePath) already exists.", 'InvalidArgument')
+            if ($Force -and $this.PackagePathExists($s.PackagePath)) {
+                $this.RemoveScript($s.PackagePath)
             }
-            else {
-                $this.AddFile($s, 'Scripts')
-            }
+            $this.AddFile($s, 'Scripts')
         }
+    }
+    # returns script(s) from the build
+    [DBOpsFile[]] GetScript ([string[]]$packagePath) {
+        [DBOpsFile[]]$scriptList = @()
+        foreach ($p in $packagePath) {
+            $scriptList += $this.GetFile($p, 'Scripts')
+        }
+        return $scriptList
+    }
+    # removes script(s) from the build
+    [void] RemoveScript ([string[]]$packagePath) {
+        $this.RemoveFile($packagePath, 'Scripts')
     }
     [string] ToString() {
         return "[$($this.build)]"
@@ -757,16 +746,16 @@ class DBOpsBuild : DBOps {
     #Searches for a certain hash value within the build
     hidden [bool] HashExists([string]$hash) {
         foreach ($script in $this.Scripts) {
-            if ($hash -eq $script.hash) {
+            if ($hash -eq $script.Hash) {
                 return $true
             }
         }
         return $false
     }
     #Searches for a certain hash value within the build for a specific source file
-    hidden [bool] HashExists([string]$hash, [string]$sourcePath) {
-        foreach ($script in $this.Scripts) {
-            if ($script.SourcePath -eq $sourcePath -and $hash -eq $script.hash) {
+    hidden [bool] HashExists([string]$hash, [string]$packagePath) {
+        if ($script = $this.GetScript($packagePath)) {
+            if ($hash -eq $script.Hash) {
                 return $true
             }
         }
@@ -781,28 +770,26 @@ class DBOpsBuild : DBOps {
         $hash = [DBOpsHelper]::ToHexString([Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([DBOpsHelper]::GetBinaryFile($fileObject.FullName)))
         return $this.HashExists($hash)
     }
-    #Returns true if the file was modified since it last has been added to the build
-    [bool] ScriptModified([string]$fileName, [string]$sourcePath) {
-        if (!(Test-Path $fileName)) {
-            $this.ThrowException("Path not found: $fileName", 'InvalidArgument')
+    [bool] ScriptExists([DBOpsFile]$file) {
+        if (-not $file.Protected) {
+            $this.ThrowException("Provided file is not hash-protected: $($file.FullName)", 'InvalidArgument')
         }
-        $fileObject = Get-Item $fileName -ErrorAction Stop
-        if ($this.SourcePathExists($sourcePath)) {
-            $hash = [DBOpsHelper]::ToHexString([Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([DBOpsHelper]::GetBinaryFile($fileObject.FullName)))
-            return -not $this.HashExists($hash, $sourcePath)
+        return $this.HashExists($file.Hash)
+    }
+    #Returns true if the file was modified since it last has been added to the build
+    [bool] ScriptModified([DBOpsFile]$dbopsFile) {
+        if (!(Test-Path $dbopsFile.FullName)) {
+            $this.ThrowException("Path not found: $($dbopsFile.FullName)", 'InvalidArgument')
+        }
+        if (-not $dbopsFile.Protected) {
+            $this.ThrowException("Provided file is not hash-protected: $($dbopsFile.FullName)", 'InvalidArgument')
+        }
+        if ($this.PackagePathExists($dbopsFile.PackagePath)) {
+            return -not $this.HashExists($dbopsFile.Hash, $dbopsFile.PackagePath)
         }
         else {
             return $false
         }
-    }
-    #Verify if the file has already been added to the build
-    [bool] SourcePathExists([string]$path) {
-        foreach ($script in $this.Scripts) {
-            if ($path -eq $script.sourcePath) {
-                return $true
-            }
-        }
-        return $false
     }
     #Verify if Package Path is already used by a different file
     [bool] PackagePathExists([string]$PackagePath) {
@@ -887,7 +874,6 @@ class DBOpsBuild : DBOps {
 ####################
 class DBOpsFile : DBOps {
     #Public properties
-    [string]$SourcePath
     [string]$PackagePath
     [string]$FullName
     [int]$Length
@@ -903,40 +889,40 @@ class DBOpsFile : DBOps {
 
     #Constructors
     DBOpsFile ([string]$packagePath) {
-        $this.Init($null, $packagePath)
+        $this.Init($packagePath)
         $this.Protected = $false
     }
-    DBOpsFile ([System.IO.FileInfo]$file, [string]$sourcePath, [string]$packagePath) {
+    DBOpsFile ([System.IO.FileInfo]$file, [string]$packagePath) {
         #Set properties imported from package file
-        $this.Init($sourcePath, $packagePath)
+        $this.Init($packagePath)
         $this.Protected = $false
         $this.InitFile($file)
     }
-    DBOpsFile ([System.IO.FileInfo]$file, [string]$sourcePath, [string]$packagePath, [bool]$hashProtected) {
+    DBOpsFile ([System.IO.FileInfo]$file, [string]$packagePath, [bool]$hashProtected) {
         #Set properties imported from package file
-        $this.Init($sourcePath, $packagePath)
+        $this.Init($packagePath)
         $this.Protected = $hashProtected
         $this.InitFile($file)
     }
-    DBOpsFile ([System.IO.FileInfo]$file, [string]$sourcePath, [string]$packagePath, [string]$hash) {
+    DBOpsFile ([System.IO.FileInfo]$file, [string]$packagePath, [string]$hash) {
         #Set properties imported from package file
-        $this.Init($sourcePath, $packagePath)
+        $this.Init($packagePath)
         $this.Protected = $true
         # read the file
         $this.InitFile($file)
         # validate the hash
         $this.ValidateHash($hash)
     }
-    DBOpsFile ([ZipArchiveEntry]$zipFile, [string]$sourcePath, [string]$packagePath) {
+    DBOpsFile ([ZipArchiveEntry]$zipFile, [string]$packagePath) {
         #Set properties imported from package file
-        $this.Init($sourcePath, $packagePath)
+        $this.Init($packagePath)
         $this.Protected = $false
         #Set properties from Zip archive
         $this.InitZipFile($zipFile)
     }
-    DBOpsFile ([ZipArchiveEntry]$zipFile, [string]$sourcePath, [string]$packagePath, [string]$hash) {
+    DBOpsFile ([ZipArchiveEntry]$zipFile, [string]$packagePath, [string]$hash) {
         #Set properties imported from package file
-        $this.Init($sourcePath, $packagePath)
+        $this.Init($packagePath)
         $this.Protected = $true
         #Set properties from Zip archive
         $this.InitZipFile($zipFile)
@@ -944,15 +930,9 @@ class DBOpsFile : DBOps {
     }
 
     #Methods
-    [void] Init ([string]$sourcePath, [string]$packagePath) {
+    [void] Init ([string]$packagePath) {
         if (!$packagePath) {
             $this.ThrowException('Path inside the package cannot be empty', 'InvalidArgument')
-        }
-        if ($sourcePath) {
-            $this.SourcePath = $sourcePath
-            if ('SourcePath' -notin $this.PropertiesToExport) {
-                $this.PropertiesToExport += 'SourcePath'
-            }
         }
         $this.PackagePath = $packagePath
     }
@@ -1081,247 +1061,6 @@ class DBOpsFile : DBOps {
         }
     }
 }
-
-# #####################
-# # DBOpsFile class #
-# #####################
-
-# class DBOpsFile : DBOps {
-#     #Public properties
-#     [string]$SourcePath
-#     [string]$PackagePath
-#     [string]$FullName
-#     [int]$Length
-#     [string]$Name
-#     [string]$LastWriteTime
-#     [byte[]]$ByteArray
-
-#     #Hidden properties
-#     hidden [string]$Hash
-#     hidden [DBOps]$Parent
-#     hidden [array]$PropertiesToExport = @('SourcePath', 'Hash', 'PackagePath')
-
-#     #Constructors
-#     DBOpsFile () {}
-#     DBOpsFile ([string]$SourcePath, [string]$PackagePath) {
-#         if (!(Test-Path $SourcePath)) {
-#             $this.ThrowException("Path not found: $SourcePath", 'InvalidArgument')
-#         }
-#         if (!$PackagePath) {
-#             $this.ThrowException('Path inside the package cannot be empty', 'InvalidArgument')
-#         }
-#         $this.SourcePath = $SourcePath
-#         $this.PackagePath = $PackagePath
-#         $file = Get-Item -LiteralPath $SourcePath -ErrorAction Stop
-#         $this.Length = $file.Length
-#         $this.Name = $file.Name
-#         $this.LastWriteTime = $file.LastWriteTime
-#         $this.ByteArray = [DBOpsHelper]::GetBinaryFile($file.FullName)
-#     }
-
-#     DBOpsFile ([psobject]$fileDescription) {
-#         $this.Init($fileDescription)
-#     }
-
-#     DBOpsFile ([psobject]$fileDescription, [ZipArchiveEntry]$file) {
-#         #Set properties imported from package file
-#         $this.Init($fileDescription)
-
-#         #Set properties from Zip archive
-#         $this.Name = $file.Name
-#         $this.LastWriteTime = $file.LastWriteTime
-
-#         #Read deflate stream and set other properties
-#         $stream = [DBOpsHelper]::ReadDeflateStream($file.Open())
-#         try {
-#             $this.ByteArray = $stream.ToArray()
-#         }
-#         catch {
-#             Stop-PSFFunction -EnableException $true -Message "Failed to read deflate stream from $($file.Name)" -ErrorRecord $_ -FunctionName $this.GetType().Name
-#         }
-#         finally {
-#             $stream.Dispose()
-#         }
-
-#         $this.Length = $this.ByteArray.Length
-#     }
-#     DBOpsFile ([System.IO.FileInfo]$file, [string]$sourcePath, [string]$packagePath) {
-#         #Set properties imported from package file
-#         $this.Init(@{
-#                 SourcePath  = $sourcePath
-#                 PackagePath = $packagePath
-#             })
-#         $this.InitFile($file)
-#     }
-#     DBOpsFile ([psobject]$fileDescription, [System.IO.FileInfo]$file) {
-#         #Set properties imported from package file
-#         $this.Init($fileDescription)
-#         $this.InitFile($file)
-#     }
-
-#     #Methods
-#     [void] Init ([psobject]$fileDescription) {
-#         if (!$fileDescription.PackagePath) {
-#             $this.ThrowException('Path inside the package cannot be empty', 'InvalidArgument')
-#         }
-#         $this.SourcePath = $fileDescription.SourcePath
-#         $this.PackagePath = $fileDescription.PackagePath
-#     }
-#     [void] InitFile ([System.IO.FileInfo]$file) {
-#         #Set properties from the file
-#         $this.Name = $file.Name
-#         $this.FullName = $file.FullName
-#         $this.LastWriteTime = $file.LastWriteTime
-
-#         $this.ByteArray = [DBOpsHelper]::GetBinaryFile($file.FullName)
-#         $this.Length = $this.ByteArray.Length
-#     }
-
-#     [string] ToString() {
-#         return "$($this.PackagePath)"
-#     }
-#     [string] GetContent() {
-#         return [DBOpsHelper]::DecodeBinaryText($this.ByteArray)
-#     }
-#     [string] GetPackagePath() {
-#         return Join-Path $this.Parent.GetPackagePath() $this.PackagePath
-#     }
-#     [string] ExportToJson() {
-#         return $this | Select-Object -Property $this.PropertiesToExport | ConvertTo-Json -Depth 1
-#     }
-#     #Writes current script into the archive file
-#     [void] Save([ZipArchive]$zipFile) {
-#         [DBOpsHelper]::WriteZipFile($zipFile, $this.GetPackagePath(), $this.ByteArray)
-#     }
-#     #Updates package content
-#     [void] SetContent([byte[]]$Array) {
-#         $this.ByteArray = $Array
-#     }
-#     #Initiates package update saving the current file in the package
-#     [void] Alter() {
-#         #Open new file stream
-#         $writeMode = [System.IO.FileMode]::Open
-#         if ($this.Parent -is [DBOpsBuild]) {
-#             $pkgObj = $this.Parent.Parent
-#         }
-#         elseif ($this.Parent -is [DBOpsPackage]) {
-#             $pkgObj = $this.Parent
-#         }
-#         else {
-#             $pkgObj = $null
-#         }
-#         $stream = $null
-#         try {
-#             $stream = [FileStream]::new($pkgObj.FileName, $writeMode, [System.IO.FileAccess]::ReadWrite)
-#         }
-#         catch {
-#             Stop-PSFFunction -Message "Failed to open filestream to $($pkgObj.FileName) with mode ReadWrite" -EnableException $true -ErrorRecord $_ -ModuleName dbops -FunctionName $this.GetType().Name
-#         }
-#         try {
-#             #Open zip file
-#             $zip = [ZipArchive]::new($stream, [ZipArchiveMode]::Update)
-#             try {
-#                 #Write file
-#                 $this.Save($zip)
-#                 #Update package file
-#                 $pkgObj.SavePackageFile($zip)
-#             }
-#             catch { throw $_ }
-#             finally { $zip.Dispose() }
-#         }
-#         catch {
-#             Stop-PSFFunction -EnableException $true -Message "Failed to modify archive $($pkgObj.FileName)" -ErrorRecord $_ -FunctionName $this.GetType().Name
-#         }
-#         finally { $stream.Dispose()	}
-
-#         # Refreshing regular file properties for parent object
-#         if ($pkgObj) {
-#             $pkgObj.RefreshFileProperties()
-#         }
-#     }
-# }
-
-
-#########################
-# DBOpsRootFile class #
-#########################
-
-# #Ignores the parent package path
-
-# class DBOpsRootFile : DBOpsFile {
-#     #Mirroring base constructors
-#     DBOpsRootFile () : base () { }
-#     DBOpsRootFile ([string]$SourcePath, [string]$PackagePath) : base($SourcePath, $PackagePath) { }
-
-#     DBOpsRootFile ([psobject]$fileDescription) : base($fileDescription) { }
-#     DBOpsRootFile ([System.IO.FileInfo]$file, [string]$sourcePath, [string]$packagePath) : base($file, $sourcePath, $packagePath) { }
-
-#     DBOpsRootFile ([psobject]$fileDescription, [ZipArchiveEntry]$file) : base($fileDescription, $file) { }
-
-#     DBOpsRootFile ([psobject]$fileDescription, [System.IO.FileInfo]$file) : base($fileDescription, $file) { }
-
-#     #Overloading GetPackagePath to ignore folders of the parent objects
-#     [string] GetPackagePath() {
-#         return $this.PackagePath
-#     }
-# }
-
-# ###########################
-# # DBOpsScriptFile class #
-# ###########################
-
-# #Keeps track of file hash and disallows its creation when hash does not match
-
-# class DBOpsScriptFile : DBOpsFile {
-#     #Mirroring base constructors adding Hash control pieces
-#     DBOpsScriptFile () : base () { }
-#     DBOpsScriptFile ([string]$SourcePath, [string]$PackagePath) : base($SourcePath, $PackagePath) {
-#         $file = Get-Item -LiteralPath $SourcePath -ErrorAction Stop
-#         $this.Hash = [DBOpsHelper]::ToHexString([Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([DBOpsHelper]::GetBinaryFile($file.FullName)))
-#     }
-
-#     DBOpsScriptFile ([psobject]$fileDescription) : base($fileDescription) {
-#         $this.Hash = $fileDescription.Hash
-#     }
-
-#     DBOpsScriptFile ([psobject]$fileDescription, [ZipArchiveEntry]$file) : base($fileDescription, $file) {
-#         $this.Hash = $fileDescription.Hash
-#         $fileHash = [DBOpsHelper]::ToHexString([Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash($this.ByteArray))
-#         # Verify file hash and throw an error if it doesn't match
-#         $this.VerifyHash($fileHash)
-#     }
-
-#     DBOpsScriptFile ([psobject]$fileDescription, [System.IO.FileInfo]$file) : base($fileDescription, $file) {
-#         $this.Hash = $fileDescription.Hash
-#         $fileHash = [DBOpsHelper]::ToHexString([Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash($this.ByteArray))
-#         # Verify file hash and throw an error if it doesn't match
-#         $this.VerifyHash($fileHash)
-#     }
-#     DBOpsScriptFile ([System.IO.FileInfo]$file, [string]$sourcePath, [string]$packagePath) : base($file, $sourcePath, $packagePath) {
-#         $this.Hash = [DBOpsHelper]::ToHexString([Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash($this.ByteArray))
-#     }
-
-#     #Updates file content - overloaded to handle Hashes
-#     [void] SetContent([byte[]]$Array) {
-#         $this.ByteArray = $Array
-#         $this.Hash = [DBOpsHelper]::ToHexString([Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash($Array))
-#     }
-#     [void] VerifyHash([string]$Hash) {
-#         if ($this.Hash -ne $Hash) {
-#             $this.ThrowException("File cannot be loaded, hash mismatch: $($this.Name)", 'InvalidArgument')
-#         }
-#     }
-#     [string] GetDeploymentPath () {
-#         $dPath = $this.GetPackagePath()
-#         #Recursively check parents and remove the top-level folder
-#         $lastParent = $this
-#         while ($lastParent.Parent) {
-#             $lastParent = $lastParent.Parent
-#         }
-#         $dPath = $dPath -replace ('^' + [regex]::Escape($lastParent.GetPackagePath() + ([IO.Path]::DirectorySeparatorChar))), ''
-#         return $dPath.Replace('/', '\')
-#     }
-# }
 
 #######################
 # DBOpsConfig class #

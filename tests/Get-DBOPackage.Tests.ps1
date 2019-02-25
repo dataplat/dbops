@@ -29,15 +29,17 @@ $fullConfigSource = Join-PSFPath -Normalize "$here\etc\full_config.json"
 $testPassword = 'TestPassword'
 $encryptedString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertTo-EncryptedString
 
+
+
 Describe "Get-DBOPackage tests" -Tag $commandName, UnitTests {
     BeforeAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = New-Item $workFolder -ItemType Directory -Force
         $null = New-Item $unpackedFolder -ItemType Directory -Force
         (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $encryptedString | Out-File $fullConfig -Force
-        $null = New-DBOPackage -ScriptPath $v1scripts -Name $packageName -Build 1.0 -Force -ConfigurationFile $fullConfig -Absolute
-        $null = Add-DBOBuild -ScriptPath $v2scripts -Path $packageName -Build 2.0 -Absolute
-        $null = Add-DBOBuild -ScriptPath $v3scripts -Path $packageName -Build 3.0 -Absolute
+        $null = New-DBOPackage -ScriptPath $v1scripts -Name $packageName -Build 1.0 -Force -ConfigurationFile $fullConfig
+        $null = Add-DBOBuild -ScriptPath $v2scripts -Path $packageName -Build 2.0
+        $null = Add-DBOBuild -ScriptPath $v3scripts -Path $packageName -Build 3.0
     }
     AfterAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
@@ -70,7 +72,7 @@ Describe "Get-DBOPackage tests" -Tag $commandName, UnitTests {
             $testResult = Get-DBOPackage -Path $packageName
             $testResult.Builds.Build | Should Be @('1.0', '2.0', '3.0')
             $testResult.Builds.Scripts.Name | Should Be @('1.sql', '2.sql', '3.sql')
-            $testResult.Builds.Scripts.SourcePath | Should Be @((Get-Item $v1scripts).FullName, (Get-Item $v2scripts).FullName, (Get-Item $v3scripts).FullName)
+            $testResult.Builds.Scripts.PackagePath | Should Be @('1.sql', '2.sql', '3.sql')
         }
         It "should return package info" {
             $testResult = Get-DBOPackage -Path $packageName
@@ -125,25 +127,25 @@ Describe "Get-DBOPackage tests" -Tag $commandName, UnitTests {
             $testResult = Get-DBOPackage -Path $packageName | Get-DBOPackage
             $testResult.Builds.Build | Should Be @('1.0', '2.0', '3.0')
             $testResult.Builds.Scripts.Name | Should Be @('1.sql', '2.sql', '3.sql')
-            $testResult.Builds.Scripts.SourcePath | Should Be @((Get-Item $v1scripts).FullName, (Get-Item $v2scripts).FullName, (Get-Item $v3scripts).FullName)
+            $testResult.Builds.Scripts.PackagePath | Should Be @('1.sql', '2.sql', '3.sql')
         }
         It "properly returns pipelined filesystem object" {
             $testResult = Get-Item $packageName | Get-DBOPackage
             $testResult.Builds.Build | Should Be @('1.0', '2.0', '3.0')
             $testResult.Builds.Scripts.Name | Should Be @('1.sql', '2.sql', '3.sql')
-            $testResult.Builds.Scripts.SourcePath | Should Be @((Get-Item $v1scripts).FullName, (Get-Item $v2scripts).FullName, (Get-Item $v3scripts).FullName)
+            $testResult.Builds.Scripts.PackagePath | Should Be @('1.sql', '2.sql', '3.sql')
         }
         It "properly returns pipelined filesystem child object" {
             $testResult = Get-ChildItem $packageName | Get-DBOPackage
             $testResult.Builds.Build | Should Be @('1.0', '2.0', '3.0')
             $testResult.Builds.Scripts.Name | Should Be @('1.sql', '2.sql', '3.sql')
-            $testResult.Builds.Scripts.SourcePath | Should Be @((Get-Item $v1scripts).FullName, (Get-Item $v2scripts).FullName, (Get-Item $v3scripts).FullName)
+            $testResult.Builds.Scripts.PackagePath | Should Be @('1.sql', '2.sql', '3.sql')
         }
         It "properly returns pipelined string" {
             $testResult = $packageName | Get-DBOPackage
             $testResult.Builds.Build | Should Be @('1.0', '2.0', '3.0')
             $testResult.Builds.Scripts.Name | Should Be @('1.sql', '2.sql', '3.sql')
-            $testResult.Builds.Scripts.SourcePath | Should Be @((Get-Item $v1scripts).FullName, (Get-Item $v2scripts).FullName, (Get-Item $v3scripts).FullName)
+            $testResult.Builds.Scripts.PackagePath | Should Be @('1.sql', '2.sql', '3.sql')
         }
     }
     Context "Returns unpacked package properties" {
@@ -158,7 +160,7 @@ Describe "Get-DBOPackage tests" -Tag $commandName, UnitTests {
             $testResult = Get-DBOPackage -Path $unpackedFolder -Unpacked
             $testResult.Builds.Build | Should Be @('1.0', '2.0', '3.0')
             $testResult.Builds.Scripts.Name | Should Be @('1.sql', '2.sql', '3.sql')
-            $testResult.Builds.Scripts.SourcePath | Should Be @((Get-Item $v1scripts).FullName, (Get-Item $v2scripts).FullName, (Get-Item $v3scripts).FullName)
+            $testResult.Builds.Scripts.PackagePath | Should Be @('1.sql', '2.sql', '3.sql')
         }
         It "should return package info" {
             $testResult = Get-DBOPackage -Path $unpackedFolder -Unpacked

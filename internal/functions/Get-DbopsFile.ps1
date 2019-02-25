@@ -7,7 +7,7 @@
         [bool]$Recurse = ($NoRecurse -ne $true),
         [string[]]$Match = $Match
     )
-    Function Get-SourcePath {
+    Function Select-DbopsFile {
         Param (
             [System.IO.FileSystemInfo]$Item,
             [System.IO.FileSystemInfo]$Root
@@ -17,27 +17,26 @@
         if ($Match) { $fileItems = $fileItems | Where-Object Name -match ($Match -join '|') }
         foreach ($childItem in $fileItems) {
             if ($childItem.PSIsContainer) {
-                if ($Recurse) { Get-SourcePath -Item (Get-Item $childItem.FullName) -Root $Root }
+                if ($Recurse) { Select-DbopsFile -Item (Get-Item $childItem.FullName) -Root $Root }
             }
             else {
                 if ($Relative) {
-                    $srcPath = $pkgPath = Resolve-Path $childItem.FullName -Relative
+                    $pkgPath = Resolve-Path $childItem.FullName -Relative
                 }
                 elseif ($Absolute) {
-                    $srcPath = $pkgPath = $childItem.FullName
+                    $pkgPath = $childItem.FullName
                 }
                 elseif ($Root) {
-                    $srcPath = $pkgPath = $childItem.FullName -replace "^$([Regex]::Escape($Root.FullName))", '.'
+                    $pkgPath = $childItem.FullName -replace "^$([Regex]::Escape($Root.FullName))", '.'
                 }
                 else {
-                    $srcPath = $pkgPath = $childItem.Name
+                    $pkgPath = $childItem.Name
                 }
-                # replace some symbols here and there
+                # replace ^.\ ^./ ^\\ and :
                 $slash = [IO.Path]::DirectorySeparatorChar
                 $slashRegex = [Regex]::Escape(".$slash")
-                $srcPath = $srcPath -replace "^$slashRegex", ''
-                $pkgPath = $pkgPath -replace "^$slashRegex|:", ''
-                [DBOpsFile]::new($childItem, $srcPath, $pkgPath, $true)
+                $pkgPath = $pkgPath -replace "^$slashRegex|^\\\\|:", ''
+                [DBOpsFile]::new($childItem, $pkgPath, $true)
             }
         }
     }
@@ -57,10 +56,10 @@
         $fileItems = Get-Item $stringPath -ErrorAction Stop
         foreach ($currentItem in $fileItems) {
             if ($currentItem.PSIsContainer) {
-                Get-SourcePath -Item $currentItem -Root $currentItem.Parent
+                Select-DbopsFile -Item $currentItem -Root $currentItem.Parent
             }
             else {
-                Get-SourcePath -Item $currentItem -Root $currentItem.Directory
+                Select-DbopsFile -Item $currentItem -Root $currentItem.Directory
             }
         }
     }

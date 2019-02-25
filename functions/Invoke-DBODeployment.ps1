@@ -145,7 +145,7 @@
                     Stop-PSFFunction -Message "Expected DBOpsFile object, got [$($scriptItem.GetType().FullName)]." -EnableException $true
                     return
                 }
-                Write-PSFMessage -Level Debug -Message "Adding deployment script $($scriptItem.SourcePath)"
+                Write-PSFMessage -Level Debug -Message "Adding deployment script $($scriptItem.FullName)"
                 if (!$RegisterOnly) {
                     # Replace tokens in the scripts
                     $scriptContent = Resolve-VariableToken $scriptItem.GetContent() $runtimeVariables
@@ -153,7 +153,7 @@
                 else {
                     $scriptContent = ""
                 }
-                $scriptCollection += [DbUp.Engine.SqlScript]::new($scriptItem.SourcePath, $scriptContent)
+                $scriptCollection += [DbUp.Engine.SqlScript]::new($scriptItem.FullName, $scriptContent)
             }
         }
 
@@ -191,7 +191,7 @@
         $status.ConnectionType = $Type
         if ($PsCmdlet.ParameterSetName -eq 'Script') {
             foreach ($p in $ScriptFile) {
-                $status.SourcePath += Join-PSFPath -Normalize $p.SourcePath
+                $status.SourcePath += Join-PSFPath -Normalize $p.FullName
             }
         }
         else {

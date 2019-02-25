@@ -112,14 +112,14 @@ function Add-DBOBuild {
                 $includeFile = $Type -contains 'All'
                 if ($Type -contains 'New') {
                     #Check if the script path was already added in one of the previous builds
-                    if (!$package.SourcePathExists($childScript.SourcePath)) {
+                    if (!$package.PackagePathExists($childScript.PackagePath)) {
                         $includeFile = $true
-                        Write-PSFMessage -Level Verbose -Message "File $($childScript.SourcePath) was not found among the package source files, adding to the list."
+                        Write-PSFMessage -Level Verbose -Message "File $($childScript.PackagePath) was not found among the package source files, adding to the list."
                     }
                 }
                 if ($Type -contains 'Modified') {
                     #Check if the file was modified in the previous build
-                    if ($package.ScriptModified($childScript.FullName, $childScript.SourcePath)) {
+                    if ($package.ScriptModified($childScript)) {
                         $includeFile = $true
                         Write-PSFMessage -Level Verbose -Message "Hash of the file $($childScript.FullName) was modified since last deployment, adding to the list."
                     }

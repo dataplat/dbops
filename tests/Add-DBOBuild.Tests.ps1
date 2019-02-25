@@ -117,7 +117,7 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
             $null = Remove-Item "$workFolder\Test.sql"
         }
         It "should add new build to existing package" {
-            $testResults = Add-DBOBuild -ScriptPath $scriptFolder, "$workFolder\Test.sql" -Name $packageNameTest -Build 2.0 -Type 'Unique'
+            $testResults = Add-DBOBuild -ScriptPath $scriptFolder\*, "$workFolder\Test.sql" -Name $packageNameTest -Build 2.0 -Type 'Unique'
             $testResults | Should Not Be $null
             $testResults.Name | Should Be (Split-Path $packageNameTest -Leaf)
             $testResults.Configuration | Should Not Be $null
@@ -132,7 +132,7 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
         It "should add new build to existing package based on changes in the file" {
             $null = Add-DBOBuild -ScriptPath "$workFolder\Test.sql" -Name $packageNameTest -Build 2.1
             "nope" | Out-File "$workFolder\Test.sql" -Append
-            $testResults = Add-DBOBuild -ScriptPath $scriptFolder, "$workFolder\Test.sql" -Name $packageNameTest -Build 3.0 -Type 'Modified'
+            $testResults = Add-DBOBuild -ScriptPath $scriptFolder\*, "$workFolder\Test.sql" -Name $packageNameTest -Build 3.0 -Type 'Modified'
             $testResults | Should Not Be $null
             $testResults.Name | Should Be (Split-Path $packageNameTest -Leaf)
             $testResults.Configuration | Should Not Be $null
@@ -152,14 +152,14 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
             Join-PSFPath -Normalize 'content\1.0\2.sql' | Should Not BeIn $testResults.Path
         }
         It "build 2.0 should only contain scripts from 2.0" {
-            Join-PSFPath -Normalize "content\2.0\$(Split-Path $scriptFolder -Leaf)\2.sql" | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize "content\2.0\$(Split-Path $scriptFolder -Leaf)\1.sql" | Should Not BeIn $testResults.Path
+            Join-PSFPath -Normalize "content\2.0\2.sql" | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize "content\2.0\1.sql" | Should Not BeIn $testResults.Path
             Join-PSFPath -Normalize 'content\2.0\Test.sql' | Should Not BeIn $testResults.Path
         }
         It "build 3.0 should only contain scripts from 3.0" {
             Join-PSFPath -Normalize 'content\3.0\Test.sql' | Should BeIn $testResults.Path
-            Join-PSFPath -Normalize "content\3.0\$(Split-Path $scriptFolder -Leaf)\2.sql" | Should Not BeIn $testResults.Path
-            Join-PSFPath -Normalize "content\3.0\$(Split-Path $scriptFolder -Leaf)\1.sql" | Should Not BeIn $testResults.Path
+            Join-PSFPath -Normalize "content\3.0\2.sql" | Should Not BeIn $testResults.Path
+            Join-PSFPath -Normalize "content\3.0\1.sql" | Should Not BeIn $testResults.Path
         }
         It "should contain module files" {
             foreach ($file in Get-DBOModuleFileList) {
@@ -285,7 +285,7 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
             catch {
                 $errorResult = $_
             }
-            $errorResult.Exception.Message -join ';' | Should BeLike 'External script * already exists*'
+            $errorResult.Exception.Message -join ';' | Should BeLike 'File * already exists*'
         }
     }
 }

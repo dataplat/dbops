@@ -42,7 +42,6 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
         It "Should create new DBOpsFile object" {
             $f = [DBOpsFile]::new('1.sql')
             # $f | Should -Not -BeNullOrEmpty
-            $f.SourcePath | Should -BeNullOrEmpty
             $f.PackagePath | Should -Be '1.sql'
             $f.Length | Should -Be 0
             $f.Name | Should -BeNullOrEmpty
@@ -52,9 +51,8 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
             $f.Parent | Should -BeNullOrEmpty
         }
         It "Should create new DBOpsFile object from fileobject" {
-            $f = [DBOpsFile]::new($fileObject1, $script1, '1.sql')
+            $f = [DBOpsFile]::new($fileObject1, '1.sql')
             $f | Should -Not -BeNullOrEmpty
-            $f.SourcePath | Should -Be $script1
             $f.PackagePath | Should -Be '1.sql'
             $f.Length | Should -BeGreaterThan 0
             $f.Name | Should -Be '1.sql'
@@ -64,12 +62,11 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
             $f.Parent | Should -BeNullOrEmpty
             #Negative tests
             { [DBOpsFile]::new(([System.IO.FileInfo]$null), $script1, '1.sql') } | Should -Throw 'Empty path name is not legal'
-            { [DBOpsFile]::new($fileObject1, $script1, '') } | Should -Throw 'Path inside the package cannot be empty'
+            { [DBOpsFile]::new($fileObject1, '') } | Should -Throw 'Path inside the package cannot be empty'
         }
         It "Should create new hash-protected DBOpsFile" {
-            $f = [DBOpsFile]::new($fileObject1, $script1, '1.sql', $true)
+            $f = [DBOpsFile]::new($fileObject1, '1.sql', $true)
             $f | Should -Not -BeNullOrEmpty
-            $f.SourcePath | Should -Be $script1
             $f.PackagePath | Should -Be '1.sql'
             $f.Length | Should -BeGreaterThan 0
             $f.Name | Should -Be '1.sql'
@@ -81,9 +78,8 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
         }
         It "Should create new hash-protected DBOpsFile and validate hash" {
             $hash = [DBOpsHelper]::ToHexString([Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([DBOpsHelper]::GetBinaryFile($script1)))
-            $f = [DBOpsFile]::new($fileObject1, $script1, '1.sql', $hash)
+            $f = [DBOpsFile]::new($fileObject1, '1.sql', $hash)
             $f | Should -Not -BeNullOrEmpty
-            $f.SourcePath | Should -Be $script1
             $f.PackagePath | Should -Be '1.sql'
             $f.Length | Should -BeGreaterThan 0
             $f.Name | Should -Be '1.sql'
@@ -94,13 +90,13 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
             $f.Parent | Should -BeNullOrEmpty
 
             #Negative tests
-            { [DBOpsFile]::new($fileObject1, $script1, '1.sql', '0xf00') } | Should -Throw 'File cannot be loaded, hash mismatch'
-            { [DBOpsFile]::new($fileObject1, $script1, '1.sql', '') } | Should -Throw 'File cannot be loaded, hash mismatch'
-            { [DBOpsFile]::new($fileObject1, $script1, '1.sql', 'foo') } | Should -Throw 'File cannot be loaded, hash mismatch'
+            { [DBOpsFile]::new($fileObject1, '1.sql', '0xf00') } | Should -Throw 'File cannot be loaded, hash mismatch'
+            { [DBOpsFile]::new($fileObject1, '1.sql', '') } | Should -Throw 'File cannot be loaded, hash mismatch'
+            { [DBOpsFile]::new($fileObject1, '1.sql', 'foo') } | Should -Throw 'File cannot be loaded, hash mismatch'
         }
         It "Should create new DBOpsFile object from zipfile using custom object" {
             $p = [DBOpsPackage]::new()
-            $f1 = [DBOpsFile]::new($fileObject1, $script1, 'success\1.sql', $true)
+            $f1 = [DBOpsFile]::new($fileObject1, 'success\1.sql', $true)
             $p.NewBuild('1.0').AddScript($f1)
             $p.SaveToFile($packageName)
             #Open zip file stream
@@ -112,9 +108,8 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
                 try {
                     $zipEntry = $zip.Entries | Where-Object FullName -eq (Join-PSFPath -Normalize 'content\1.0\success\1.sql')
                     # testing unprotected files
-                    $f = [DBOpsFile]::new($zipEntry, $script1, '1.sql')
+                    $f = [DBOpsFile]::new($zipEntry, '1.sql')
                     $f | Should -Not -BeNullOrEmpty
-                    $f.SourcePath | Should -Be $script1
                     $f.PackagePath | Should -Be '1.sql'
                     $f.Length | Should -BeGreaterThan 0
                     $f.Name | Should -Be '1.sql'
@@ -123,9 +118,8 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
                     $f.Hash | Should -BeNullOrEmpty
                     $f.Parent | Should -BeNullOrEmpty
                     # testing protected files
-                    $f = [DBOpsFile]::new($zipEntry, $script1, '1.sql', $f1.Hash)
+                    $f = [DBOpsFile]::new($zipEntry, '1.sql', $f1.Hash)
                     $f | Should -Not -BeNullOrEmpty
-                    $f.SourcePath | Should -Be $script1
                     $f.PackagePath | Should -Be '1.sql'
                     $f.Length | Should -BeGreaterThan 0
                     $f.Name | Should -Be '1.sql'
@@ -134,9 +128,9 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
                     $f.Hash | Should -Be $f1.Hash
                     $f.Parent | Should -BeNullOrEmpty
                     # negative testing
-                    { [DBOpsFile]::new($zipEntry, $script1, '1.sql', '0xf00') } | Should -Throw 'File cannot be loaded, hash mismatch'
-                    { [DBOpsFile]::new($zipEntry, $script1, '1.sql', '') } | Should -Throw 'File cannot be loaded, hash mismatch'
-                    { [DBOpsFile]::new($zipEntry, $script1, '1.sql', 'foo') } | Should -Throw 'File cannot be loaded, hash mismatch'
+                    { [DBOpsFile]::new($zipEntry, '1.sql', '0xf00') } | Should -Throw 'File cannot be loaded, hash mismatch'
+                    { [DBOpsFile]::new($zipEntry, '1.sql', '') } | Should -Throw 'File cannot be loaded, hash mismatch'
+                    { [DBOpsFile]::new($zipEntry, '1.sql', 'foo') } | Should -Throw 'File cannot be loaded, hash mismatch'
                 }
                 catch {
                     throw $_
@@ -160,8 +154,8 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
             $pkg = [DBOpsPackage]::new()
             $build = $pkg.NewBuild('1.0')
             $pkg.SaveToFile($packageName, $true)
-            $file = [DBOpsFile]::new($fileObject1, $script1, (Join-PSFPath -Normalize 'success\1.sql'), $true)
-            $cFile = [DBOpsFile]::new($fileObject1, 'whatever.ps1', 'whatever.ps1')
+            $file = [DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize 'success\1.sql'), $true)
+            $cFile = [DBOpsFile]::new($fileObject1, 'whatever.ps1')
             $build.AddFile($file, 'Scripts')
             $pkg.AddFile($cfile, 'PreDeployFile')
             $pkg.Alter()
@@ -210,7 +204,6 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
             $j = $file.ExportToJson() | ConvertFrom-Json
             $j.PackagePath | Should -Be (Join-PSFPath -Normalize 'success\1.sql')
             $j.Hash | Should -Be ([DBOpsHelper]::ToHexString([Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash([DBOpsHelper]::GetBinaryFile($script1))))
-            $j.SourcePath | Should -Be $script1
         }
         It "should test Save method" {
             #Save old file parameters
