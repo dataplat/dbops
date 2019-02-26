@@ -1,12 +1,11 @@
 # this files describes which tests to run on which environment of the build matrix
 
 $TestsRunGroups = @{
-    # run on scenario MSSQL
     "all"        = @(
         "$ModuleBase\tests\*"
         "$ModuleBase\tests\mysql\*"
         "$ModuleBase\tests\postgresql\*"
-        "$ModuleBase\tests\oracle\*"
+        #    "$ModuleBase\tests\oracle\*"
     )
     "windows"    = @(
         "$ModuleBase\tests\*"

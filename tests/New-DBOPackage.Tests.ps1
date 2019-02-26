@@ -230,10 +230,10 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
             $testResults.FullName | Should Be (Get-Item $packageName).FullName
             $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
             $testResults.Version | Should Be 'abracadabra'
-            $testResults.Builds[0].Scripts.SourcePath | Should Be @(
-                Join-PSFPath -Normalize '.\success\1.sql'
-                Join-PSFPath -Normalize '.\success\2.sql'
-                Join-PSFPath -Normalize '.\success\3.sql'
+            $testResults.Builds[0].Scripts.PackagePath | Should Be @(
+                Join-PSFPath -Normalize '1.sql'
+                Join-PSFPath -Normalize '2.sql'
+                Join-PSFPath -Normalize '3.sql'
             )
             Test-Path $packageName | Should Be $true
             $testResults = Get-ArchiveItem $packageName
@@ -251,7 +251,7 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
             catch {
                 $errorResult = $_
             }
-            $errorResult.Exception.Message -join ';' | Should BeLike '*File * already exists in*'
+            $errorResult.Exception.Message -join ';' | Should BeLike 'File * already exists*'
             $testResult | Should Be $null
         }
         It "should throw error when package already exists" {

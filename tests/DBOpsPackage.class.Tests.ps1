@@ -25,6 +25,9 @@ $packageName = Join-PSFPath -Normalize "$here\etc\$commandName.zip"
 $script1 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
 $script2 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
 $script3 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\3.sql"
+$fileObject1 = Get-Item $script1
+$fileObject2 = Get-Item $script2
+$fileObject3 = Get-Item $script3
 
 Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
     AfterAll {
@@ -85,7 +88,7 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
         }
         BeforeEach {
             $pkg = [DBOpsPackage]::new()
-            $pkg.SaveToFile($packageName,$true)
+            $pkg.SaveToFile($packageName, $true)
         }
         It "Should test GetBuilds method" {
             $pkg.GetBuilds() | Should Be $null
@@ -113,7 +116,7 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
             $b.Scripts | Should BeNullOrEmpty
             ([datetime]$b.CreatedDate).Date | Should Be ([datetime]::Now).Date
             $b2 = $pkg.GetBuild(@('1.0', '2.0'))
-            $b2.Build | Should Be @('1.0','2.0')
+            $b2.Build | Should Be @('1.0', '2.0')
         }
         It "Should test AddBuild method" {
             $pkg.AddBuild('2.0')
@@ -154,40 +157,36 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
         It "should test ScriptExists method" {
             $b = $pkg.NewBuild('1.0')
             $s = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
-            $f = [DBOpsScriptFile]::new(@{SourcePath = $s; PackagePath = (Join-PSFPath -Normalize 'success\1.sql')})
+            $f = [DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize 'success\1.sql'), $true)
             $f.SetContent([DBOpsHelper]::GetBinaryFile($s))
             $b.AddFile($f, 'Scripts')
-            $pkg.ScriptExists($s) | Should Be $true
-            $pkg.ScriptExists((Join-PSFPath -Normalize "$here\etc\sqlserver-tests\transactional-failure\1.sql")) | Should Be $false
+            $pkg.ScriptExists($script1) | Should Be $true
+            $pkg.ScriptExists($script2) | Should Be $false
             { $pkg.ScriptExists("Nonexisting\path") } | Should Throw
         }
         It "should test ScriptModified method" {
             $b = $pkg.NewBuild('1.0')
-            $s = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
-            $f = [DBOpsScriptFile]::new(@{SourcePath = $s; PackagePath = (Join-PSFPath -Normalize 'success\1.sql')})
-            $f.SetContent([DBOpsHelper]::GetBinaryFile($s))
+            $f = [DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize 'success\1.sql'), $true)
+            $f2 = [DBOpsFile]::new($fileObject2, (Join-PSFPath -Normalize 'success\1.sql'), $true)
+            $f.SetContent([DBOpsHelper]::GetBinaryFile($script1))
             $b.AddFile($f, 'Scripts')
-            $s1 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
-            $s2 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
-            $pkg.ScriptModified($s2, $s1) | Should Be $true
-            $pkg.ScriptModified($s1, $s1) | Should Be $false
+            $pkg.ScriptModified($script2, (Join-PSFPath -Normalize 'success\1.sql')) | Should Be $true
+            $pkg.ScriptModified($script1, (Join-PSFPath -Normalize 'success\1.sql')) | Should Be $false
+            $pkg.ScriptModified($f2) | Should Be $true
+            $pkg.ScriptModified($f) | Should Be $false
         }
-        It "should test SourcePathExists method" {
+        It "should test PackagePathExists method" {
             $b = $pkg.NewBuild('1.0')
-            $s = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
-            $f = [DBOpsScriptFile]::new(@{SourcePath = $s; PackagePath = (Join-PSFPath -Normalize 'success\1.sql')})
-            $f.SetContent([DBOpsHelper]::GetBinaryFile($s))
+            $f = [DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize 'success\1.sql'), $true)
+            $f.SetContent([DBOpsHelper]::GetBinaryFile($script1))
             $b.AddFile($f, 'Scripts')
-            $s1 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
-            $s2 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
-            $pkg.SourcePathExists($s1) | Should Be $true
-            $pkg.SourcePathExists($s2) | Should Be $false
+            $pkg.PackagePathExists($f.PackagePath) | Should Be $true
+            $pkg.PackagePathExists('foo') | Should Be $false
         }
         It "should test ExportToJson method" {
             $b = $pkg.NewBuild('1.0')
-            $s = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
-            $f = [DBOpsScriptFile]::new(@{SourcePath = $s; PackagePath = (Join-PSFPath -Normalize 'success\1.sql')})
-            $f.SetContent([DBOpsHelper]::GetBinaryFile($s))
+            $f = [DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize 'success\1.sql'), $true)
+            $f.SetContent([DBOpsHelper]::GetBinaryFile($script1))
             $b.AddFile($f, 'Scripts')
             $j = $pkg.ExportToJson() | ConvertFrom-Json
             $j.Builds | Should Not BeNullOrEmpty
@@ -198,13 +197,13 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
             foreach ($build in $j.Builds) {
                 $build.psobject.properties.name | Should -BeIn @('Scripts', 'Build', 'PackagePath', 'CreatedDate')
                 foreach ($script in $build.Scripts) {
-                    $script.psobject.properties.name | Should -BeIn @('SourcePath', 'Hash', 'PackagePath')
+                    $script.psobject.properties.name | Should -BeIn @('Hash', 'PackagePath')
                 }
             }
 
         }
         It "Should test GetPackagePath method" {
-            $pkg.GetPackagePath() | Should Be 'content'
+            $pkg.GetPackagePath() | Should Be ''
         }
         It "Should test RefreshModuleVersion method" {
             $pkg.RefreshModuleVersion()
@@ -212,17 +211,15 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
         }
         It "Should test ReadMetadata method" {
             $b = $pkg.NewBuild('1.0')
-            $s = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
-            $f = [DBOpsScriptFile]::new(@{SourcePath = $s; PackagePath = 'success\1.sql'})
-            $f.SetContent([DBOpsHelper]::GetBinaryFile($s))
+            $f = [DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize 'success\1.sql'), $true)
+            $f.SetContent([DBOpsHelper]::GetBinaryFile($script1))
             $b.AddFile($f, 'Scripts')
-            $s = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
-            $f = [DBOpsScriptFile]::new(@{SourcePath = $s; PackagePath = 'success/2.sql'})
-            $f.SetContent([DBOpsHelper]::GetBinaryFile($s))
+            $f = [DBOpsFile]::new($fileObject2, 'success/2.sql', $true)
+            $f.SetContent([DBOpsHelper]::GetBinaryFile($script2))
             $b.AddFile($f, 'Scripts')
             $j = $pkg.ExportToJson()
             $md = $pkg.ReadMetadata($j)
-            $md.Builds.Scripts.PackagePath | Should -Be @("success$($slash)1.sql","success$($slash)2.sql")
+            $md.Builds.Scripts.PackagePath | Should -Be @("success$($slash)1.sql", "success$($slash)2.sql")
         }
         It "Should test RefreshFileProperties method" {
             $pkg.RefreshFileProperties()
@@ -261,9 +258,8 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
         Start-Sleep -Seconds 2
         It "should test Save*/Alter methods" {
             $b = $pkg.NewBuild('1.0')
-            $s = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
-            $f = [DBOpsScriptFile]::new(@{SourcePath = $s; PackagePath = 'success\1.sql'})
-            $f.SetContent([DBOpsHelper]::GetBinaryFile($s))
+            $f = [DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize 'success\1.sql'), $true)
+            $f.SetContent([DBOpsHelper]::GetBinaryFile($script1))
             $b.AddFile($f, 'Scripts')
             { $pkg.SaveToFile($packageName) } | Should Throw #File already exists
             { $pkg.Alter() } | Should Not Throw

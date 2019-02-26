@@ -3,10 +3,10 @@ function Add-DBOBuild {
     <#
     .SYNOPSIS
         Creates a new build in existing DBOps package
-    
+
     .DESCRIPTION
         Creates a new build in existing DBOps package from specified set of scripts.
-    
+
     .PARAMETER ScriptPath
         A collection of script files to add to the build. Accepts Get-Item/Get-ChildItem objects and wildcards.
         Will recursively add all of the subfolders inside folders. See examples if you want only custom files to be added.
@@ -14,13 +14,13 @@ function Add-DBOBuild {
          - Item order provided in the ScriptPath parameter
            - Files inside each child folder (both folders and files in alphabetical order)
              - Files inside the root folder (in alphabetical order)
-             
+
         Aliases: SourcePath
-    
+
     .PARAMETER Path
         Path to the existing DBOpsPackage.
         Aliases: Name, FileName, Package
-    
+
     .PARAMETER Build
         A string that would be representing a build number of this particular build.
         Optional - can be genarated automatically.
@@ -32,11 +32,24 @@ function Add-DBOBuild {
         * Modified: adds files only if they have been modified since they had last been added to the package
         * Unique: adds unique files to the build based on their hash values. Compares hashes accross the whole package
         * All: add all files regardless of their previous involvement
-        
+
         More than one value can be specified at the same time.
-        
+
         Default value: All
-    
+
+    .PARAMETER Absolute
+        All the files in -Path will be added using their absolute paths instead of relative.
+
+    .PARAMETER Relative
+        Use current location to build relative paths instead of starting from the folder in -Path.
+
+    .PARAMETER NoRecurse
+        Only process the first level of the target -Path.
+
+    .PARAMETER Match
+        Runs a regex verification against provided file names using the provided Match string.
+        Example: .*\.sql
+
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -72,9 +85,13 @@ function Add-DBOBuild {
         [object[]]$ScriptPath,
         [string]$Build,
         [ValidateSet('New', 'Modified', 'Unique', 'All')]
-        [string[]]$Type = 'All'
+        [string[]]$Type = 'All',
+        [switch]$Absolute,
+        [switch]$Relative,
+        [switch]$NoRecurse,
+        [string[]]$Match
     )
-    
+
     begin {
         if (!$Build) {
             $Build = Get-NewBuildNumber
@@ -82,10 +99,8 @@ function Add-DBOBuild {
         $scriptCollection = @()
     }
     process {
-        foreach ($scriptItem in $ScriptPath) {
-            Write-PSFMessage -Level Verbose -Message "Processing path item $scriptItem"
-            $scriptCollection += Get-ChildScriptItem $scriptItem
-        }
+        Write-PSFMessage -Level Verbose -Message "Processing path items $ScriptPath"
+        $scriptCollection += Get-DbopsFile $ScriptPath
     }
     end {
         Write-PSFMessage -Level Verbose -Message "Loading package information from $Path"
@@ -97,14 +112,14 @@ function Add-DBOBuild {
                 $includeFile = $Type -contains 'All'
                 if ($Type -contains 'New') {
                     #Check if the script path was already added in one of the previous builds
-                    if (!$package.SourcePathExists($childScript.SourcePath)) {
+                    if (!$package.PackagePathExists($childScript.PackagePath)) {
                         $includeFile = $true
-                        Write-PSFMessage -Level Verbose -Message "File $($childScript.SourcePath) was not found among the package source files, adding to the list."
+                        Write-PSFMessage -Level Verbose -Message "File $($childScript.PackagePath) was not found among the package source files, adding to the list."
                     }
                 }
                 if ($Type -contains 'Modified') {
                     #Check if the file was modified in the previous build
-                    if ($package.ScriptModified($childScript.FullName, $childScript.SourcePath)) {
+                    if ($package.ScriptModified($childScript)) {
                         $includeFile = $true
                         Write-PSFMessage -Level Verbose -Message "Hash of the file $($childScript.FullName) was modified since last deployment, adding to the list."
                     }
@@ -125,13 +140,12 @@ function Add-DBOBuild {
             }
 
             if ($scriptsToAdd) {
-
                 #Create new build object
                 $currentBuild = $package.NewBuild($Build)
 
                 foreach ($buildScript in $scriptsToAdd) {
-                    $s = $currentBuild.NewScript($buildScript)
-                    Write-PSFMessage -Level Verbose -Message "Adding file '$($buildScript.FullName)' to $currentBuild as $($s.GetPackagePath())"
+                    $currentBuild.AddScript($buildScript)
+                    Write-PSFMessage -Level Verbose -Message "Adding file '$($buildScript.FullName)' to $currentBuild as $($buildScript.GetPackagePath())"
                 }
 
                 if ($pscmdlet.ShouldProcess($package, "Writing new build $currentBuild into the original package")) {
