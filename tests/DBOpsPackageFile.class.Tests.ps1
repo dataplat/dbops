@@ -24,6 +24,9 @@ $packageName = Join-PSFPath -Normalize "$here\etc\$commandName.zip"
 $script1 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
 $script2 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
 $script3 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\3.sql"
+$fileObject1 = Get-Item $script1
+$fileObject2 = Get-Item $script2
+$fileObject3 = Get-Item $script3
 
 Describe "DBOpsPackageFile class tests" -Tag $commandName, UnitTests, DBOpsPackage, DBOpsPackageFile {
     AfterAll {
@@ -37,9 +40,9 @@ Describe "DBOpsPackageFile class tests" -Tag $commandName, UnitTests, DBOpsPacka
         BeforeAll {
             $p = [DBOpsPackage]::new()
             $b1 = $p.NewBuild('1.0')
-            $s1 = $b1.NewScript($script1, 1)
+            $b1.AddScript([DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize 'success\1.sql'), $true))
             $b2 = $p.NewBuild('2.0')
-            $s1 = $b2.NewScript($script2, 1)
+            $b2.AddScript([DBOpsFile]::new($fileObject2, (Join-PSFPath -Normalize 'success\2.sql'), $true))
             $p.SaveToFile($packageName)
             $null = New-Item "$here\etc\LoadFromFile" -ItemType Directory
             Expand-Archive $p.FullName "$here\etc\LoadFromFile"

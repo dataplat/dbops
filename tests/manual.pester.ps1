@@ -1,6 +1,6 @@
 ﻿Param
 (
-    [string[]]$Path = '.',
+    [string[]]$Path = '.\*.Tests.ps1',
     [string[]]$Tag
 
 )

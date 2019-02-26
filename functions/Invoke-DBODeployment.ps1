@@ -14,11 +14,11 @@
     .PARAMETER InputObject
         DBOpsPackage object to deploy. Supports pipelining.
 
-    .PARAMETER ScriptPath
+    .PARAMETER ScriptFile
         A collection of script files to deploy to the server. Accepts Get-Item/Get-ChildItem objects and wildcards.
         Will recursively add all of the subfolders inside folders. See examples if you want only custom files to be added.
         During deployment, scripts will be following this deployment order:
-         - Item order provided in the ScriptPath parameter
+         - Item order provided in the ScriptFile parameter
            - Files inside each child folder (both folders and files in alphabetical order)
              - Files inside the root folder (in alphabetical order)
 
@@ -73,7 +73,7 @@
         [string]$PackageFile = ".\dbops.package.json",
         [parameter(ParameterSetName = 'Script')]
         [Alias('SourcePath')]
-        [string[]]$ScriptPath,
+        [object[]]$ScriptFile,
         [parameter(ParameterSetName = 'PackageObject')]
         [Alias('Package')]
         [object]$InputObject,
@@ -140,16 +140,20 @@
             }
         }
         else {
-            foreach ($scriptItem in (Get-ChildScriptItem $ScriptPath)) {
-                Write-PSFMessage -Level Debug -Message "Adding deployment script $($scriptItem.SourcePath)"
+            foreach ($scriptItem in $ScriptFile) {
+                if ($scriptItem -and $scriptItem -isnot [DBOpsFile]) {
+                    Stop-PSFFunction -Message "Expected DBOpsFile object, got [$($scriptItem.GetType().FullName)]." -EnableException $true
+                    return
+                }
+                Write-PSFMessage -Level Debug -Message "Adding deployment script $($scriptItem.FullName)"
                 if (!$RegisterOnly) {
                     # Replace tokens in the scripts
-                    $scriptContent = Resolve-VariableToken (Get-Content $scriptItem.FullName -Raw) $runtimeVariables
+                    $scriptContent = Resolve-VariableToken $scriptItem.GetContent() $runtimeVariables
                 }
                 else {
                     $scriptContent = ""
                 }
-                $scriptCollection += [DbUp.Engine.SqlScript]::new($scriptItem.SourcePath, $scriptContent)
+                $scriptCollection += [DbUp.Engine.SqlScript]::new($scriptItem.FullName, $scriptContent)
             }
         }
 
@@ -186,8 +190,8 @@
         }
         $status.ConnectionType = $Type
         if ($PsCmdlet.ParameterSetName -eq 'Script') {
-            foreach ($p in $ScriptPath) {
-                $status.SourcePath += Join-PSFPath -Normalize $p
+            foreach ($p in $ScriptFile) {
+                $status.SourcePath += Join-PSFPath -Normalize $p.FullName
             }
         }
         else {

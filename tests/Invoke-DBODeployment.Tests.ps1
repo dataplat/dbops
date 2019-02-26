@@ -24,6 +24,8 @@ $cleanupScript = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\Cleanup.sql"
 $tranFailScripts = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\transactional-failure"
 $v1scripts = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
 $v2scripts = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
+$v1files = Get-DbopsFile -Path $v1scripts -Absolute $true
+$v2files = Get-DbopsFile -Path $v2scripts -Absolute $true
 $verificationScript = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\verification\select.sql"
 $packageFileName = Join-PSFPath -Normalize $workFolder "dbops.package.json"
 $cleanupPackageName = Join-PSFPath -Normalize "$here\etc\TempCleanup.zip"
@@ -106,7 +108,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy version 1.0" {
-            $testResults = Invoke-DBODeployment -ScriptPath $v1scripts -Configuration $deploymentConfig
+            $testResults = Invoke-DBODeployment -ScriptFile $v1files -Configuration $deploymentConfig
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -130,7 +132,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             'd' | Should Not BeIn $testResults.name
         }
         It "should deploy version 2.0" {
-            $testResults = Invoke-DBODeployment -ScriptPath $v2scripts -Configuration $deploymentConfig
+            $testResults = Invoke-DBODeployment -ScriptFile $v2files -Configuration $deploymentConfig
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v2scripts).Path
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -159,7 +161,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy 2.sql before 1.sql" {
-            $testResults = Invoke-DBODeployment -ScriptPath $v2scripts, $v1scripts -Configuration $deploymentConfig
+            $testResults = Invoke-DBODeployment -ScriptFile $v2files, $v1files -Configuration $deploymentConfig
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v2scripts, $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -190,6 +192,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
         BeforeAll {
             $file = "$workFolder\delay.sql"
             "WAITFOR DELAY '00:00:03'; PRINT ('Successful!')" | Out-File $file
+            $delayScripts = Get-DbopsFile -Path "$workFolder\delay.sql" -Absolute $true
         }
         BeforeEach {
             $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
@@ -197,7 +200,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
         It "should throw timeout error" {
             $deploymentConfig.ExecutionTimeout = 2
             try {
-                $null = Invoke-DBODeployment -ScriptPath "$workFolder\delay.sql" -Configuration $deploymentConfig -OutputFile "$workFolder\log.txt"
+                $null = Invoke-DBODeployment -ScriptFile $delayScripts -Configuration $deploymentConfig -OutputFile "$workFolder\log.txt"
             }
             catch {
                 $testResults = $_
@@ -210,7 +213,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
         }
         It "should successfully run within specified timeout" {
             $deploymentConfig.ExecutionTimeout = 6
-            $testResults = Invoke-DBODeployment -ScriptPath "$workFolder\delay.sql" -Configuration $deploymentConfig -OutputFile "$workFolder\log.txt"
+            $testResults = Invoke-DBODeployment -ScriptFile $delayScripts -Configuration $deploymentConfig -OutputFile "$workFolder\log.txt"
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -230,7 +233,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
         }
         It "should successfully run with infinite timeout" {
             $deploymentConfig.ExecutionTimeout = 0
-            $testResults = Invoke-DBODeployment -ScriptPath "$workFolder\delay.sql" -Configuration $deploymentConfig -OutputFile "$workFolder\log.txt"
+            $testResults = Invoke-DBODeployment -ScriptFile $delayScripts -Configuration $deploymentConfig -OutputFile "$workFolder\log.txt"
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -257,7 +260,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
         AfterAll {
         }
         It "should deploy nothing" {
-            $testResults = Invoke-DBODeployment -ScriptPath $v1scripts -Configuration $deploymentConfig -WhatIf
+            $testResults = Invoke-DBODeployment -ScriptFile $v1files -Configuration $deploymentConfig -WhatIf
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v1scripts
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -293,7 +296,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $deploymentConfig.Remove('SchemaVersionTable')
             $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Invoke-DBODeployment -ScriptPath $v1scripts -Configuration $deploymentConfig
+            $testResults = Invoke-DBODeployment -ScriptFile $v1files -Configuration $deploymentConfig
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -321,7 +324,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $deploymentConfig.Remove('SchemaVersionTable')
             $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Invoke-DBODeployment -ScriptPath $v2scripts -Configuration $deploymentConfig
+            $testResults = Invoke-DBODeployment -ScriptFile $v2files -Configuration $deploymentConfig
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v2scripts).Path
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -357,7 +360,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             $deploymentConfig.SchemaVersionTable = $null
             $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Invoke-DBODeployment -ScriptPath $v1scripts -Configuration $deploymentConfig
+            $testResults = Invoke-DBODeployment -ScriptFile $v1files -Configuration $deploymentConfig
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -390,7 +393,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
         It "should register version 1.0 without creating any objects" {
             $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Invoke-DBODeployment -ScriptPath $v1scripts -Configuration $deploymentConfig -RegisterOnly
+            $testResults = Invoke-DBODeployment -ScriptFile $v1files -Configuration $deploymentConfig -RegisterOnly
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -421,7 +424,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
         It "should register version 1.0 + 2.0 without creating any objects" {
             $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Invoke-DBODeployment -ScriptPath $v1scripts, $v2scripts -Configuration $deploymentConfig -RegisterOnly
+            $testResults = Invoke-DBODeployment -ScriptFile $v1files, $v2files -Configuration $deploymentConfig -RegisterOnly
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v2scripts).Path
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -461,7 +464,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             # Deploy a non-logged script
             $dc = $deploymentConfig.Clone()
             $dc.SchemaVersionTable = $null
-            $null = Invoke-DBODeployment -ScriptPath $v1scripts -Configuration $dc
+            $null = Invoke-DBODeployment -ScriptFile $v1files -Configuration $dc
             #Running package
             try {
                 $testResults = $null
@@ -479,7 +482,7 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             try {
                 $testResults = $null
                 $null = Invoke-DBODeployment -PackageFile $packageFileName -Configuration $deploymentConfig
-                $testResults = Invoke-DBODeployment -ScriptPath $v2scripts -Configuration $deploymentConfig
+                $testResults = Invoke-DBODeployment -ScriptFile $v2files -Configuration $deploymentConfig
             }
             catch {
                 $errorObject = $_
@@ -493,6 +496,14 @@ Describe "Invoke-DBODeployment integration tests" -Tag $commandName, Integration
             'b' | Should BeIn $testResults.name
             'c' | Should Not BeIn $testResults.name
             'd' | Should Not BeIn $testResults.name
+        }
+    }
+    Context "negative tests" {
+        BeforeAll {
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+        }
+        It "should throw if ScriptFile is not DBOpsFile" {
+            { Invoke-DBODeployment -ScriptFile $v1scripts -Configuration $deploymentConfig } | Should -Throw 'Expected DBOpsFile'
         }
     }
 }
