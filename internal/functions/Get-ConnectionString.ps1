@@ -69,7 +69,6 @@ function Get-ConnectionString {
         if ($Configuration.ApplicationName -and $csBuilder.ContainsKey('Application Name')) { $csBuilder["Application Name"] = $Configuration.ApplicationName }
         if ($Configuration.ExecutionTimeout -and $csBuilder.ContainsKey('Command Timeout')) { $csBuilder["Command Timeout"] = $Configuration.ExecutionTimeout }
         $csBuilder[$conn.ConnectionTimeout] = $Configuration.ConnectionTimeout
-        if ($csBuilder.ContainsKey('Pooling')) { $csBuilder.Pooling = $false }
         # define authentication
         if ($Configuration.Credential) {
             $csBuilder["User ID"] = $Configuration.Credential.UserName
