@@ -44,6 +44,7 @@ Describe "deploy.ps1 PostgreSQL integration tests" -Tag $commandName, Integratio
         )
         $createDatabaseScript = 'CREATE DATABASE {0}' -f $newDbName
         $null = Invoke-DBOQuery -Type PostgreSQL -SqlInstance $script:postgresqlInstance -Silent -Credential $script:postgresqlCredential -Database postgres -Query ($dropDatabaseScript + $createDatabaseScript)
+        [Npgsql.NpgsqlConnection]::ClearAllPools()
     }
     AfterAll {
         $null = Invoke-DBOQuery -Type PostgreSQL -SqlInstance $script:postgresqlInstance -Silent -Credential $script:postgresqlCredential -Database postgres -Query $dropDatabaseScript

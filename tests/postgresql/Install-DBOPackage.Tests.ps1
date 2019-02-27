@@ -80,15 +80,18 @@ Describe "Install-DBOPackage PostgreSQL tests" -Tag $commandName, IntegrationTes
     AfterAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
+        [Npgsql.NpgsqlConnection]::ClearAllPools()
     }
     Context "testing transactional deployment" {
         BeforeAll {
             $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
+            [Npgsql.NpgsqlConnection]::ClearAllPools()
             $null = Invoke-DBOQuery @connParams -Database postgres -Query $createDatabaseScript
             $null = New-DBOPackage -ScriptPath $tranFailScripts -Name $packageName -Build 1.0 -Force
         }
         AfterAll {
             $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
+            [Npgsql.NpgsqlConnection]::ClearAllPools()
         }
         It "Should throw an error and create no tables" {
             #Running package
@@ -105,11 +108,14 @@ Describe "Install-DBOPackage PostgreSQL tests" -Tag $commandName, IntegrationTes
     }
     Context "testing non transactional deployment" {
         BeforeAll {
-            $null = Invoke-DBOQuery @connParams -Database postgres -Query ($dropDatabaseScript + $createDatabaseScript)
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
+            [Npgsql.NpgsqlConnection]::ClearAllPools()
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $createDatabaseScript
             $null = New-DBOPackage -ScriptPath $tranFailScripts -Name $packageName -Build 1.0 -Force
         }
         AfterAll {
             $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
+            [Npgsql.NpgsqlConnection]::ClearAllPools()
         }
         It "Should throw an error and create one object" {
             #Running package
@@ -125,7 +131,9 @@ Describe "Install-DBOPackage PostgreSQL tests" -Tag $commandName, IntegrationTes
     }
     Context "testing regular deployment" {
         BeforeAll {
-            $null = Invoke-DBOQuery @connParams -Database postgres -Query ($dropDatabaseScript + $createDatabaseScript)
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
+            [Npgsql.NpgsqlConnection]::ClearAllPools()
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $createDatabaseScript
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
             $p1 = Add-DBOBuild -ScriptPath $v2scripts -Name $p1 -Build 2.0
             #versions should not be sorted by default - creating a package where 1.0 is the second build
@@ -265,7 +273,9 @@ Describe "Install-DBOPackage PostgreSQL tests" -Tag $commandName, IntegrationTes
     }
     Context "testing timeouts" {
         BeforeAll {
-            $null = Invoke-DBOQuery @connParams -Database postgres -Query ($dropDatabaseScript + $createDatabaseScript)
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
+            [Npgsql.NpgsqlConnection]::ClearAllPools()
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $createDatabaseScript
             $file = Join-PSFPath -Normalize "$workFolder\delay.sql"
             'SELECT pg_sleep(3); SELECT ''Successful!'';' | Set-Content $file
             $null = New-DBOPackage -ScriptPath $file -Name "$workFolder\delay" -Build 1.0 -Force -Configuration @{ ExecutionTimeout = 2 }
@@ -322,11 +332,14 @@ Describe "Install-DBOPackage PostgreSQL tests" -Tag $commandName, IntegrationTes
     }
     Context  "$commandName whatif tests" {
         BeforeAll {
-            $null = Invoke-DBOQuery @connParams -Database postgres -Query ($dropDatabaseScript + $createDatabaseScript)
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
+            [Npgsql.NpgsqlConnection]::ClearAllPools()
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $createDatabaseScript
             $null = New-DBOPackage -ScriptPath $v1scripts -Name $packageNamev1 -Build 1.0
         }
         AfterAll {
             $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
+            [Npgsql.NpgsqlConnection]::ClearAllPools()
         }
         It "should deploy nothing" {
             $testResults = Install-DBOPackage $packageNamev1 @connParams -Database $newDbName -SchemaVersionTable $logTable -WhatIf
@@ -356,6 +369,7 @@ Describe "Install-DBOPackage PostgreSQL tests" -Tag $commandName, IntegrationTes
     Context "testing regular deployment with CreateDatabase specified" {
         BeforeAll {
             $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
+            [Npgsql.NpgsqlConnection]::ClearAllPools()
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
         }
         It "should deploy version 1.0 to a new database using -CreateDatabase switch" {
@@ -387,7 +401,9 @@ Describe "Install-DBOPackage PostgreSQL tests" -Tag $commandName, IntegrationTes
     }
     Context "testing regular deployment with configuration overrides" {
         BeforeAll {
-            $null = Invoke-DBOQuery @connParams -Database postgres -Query ($dropDatabaseScript + $createDatabaseScript)
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
+            [Npgsql.NpgsqlConnection]::ClearAllPools()
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $createDatabaseScript
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force -ConfigurationFile $fullConfig
             $p2 = New-DBOPackage -ScriptPath $v2scripts -Name "$workFolder\pv2" -Build 2.0 -Force -Configuration @{
                 SqlInstance        = 'nonexistingServer'
@@ -470,7 +486,9 @@ Describe "Install-DBOPackage PostgreSQL tests" -Tag $commandName, IntegrationTes
     }
     Context "testing deployment without specifying SchemaVersion table" {
         BeforeAll {
-            $null = Invoke-DBOQuery @connParams -Database postgres -Query ($dropDatabaseScript + $createDatabaseScript)
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
+            [Npgsql.NpgsqlConnection]::ClearAllPools()
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $createDatabaseScript
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
             $p2 = New-DBOPackage -ScriptPath $v2scripts -Name "$workFolder\pv2" -Build 2.0 -Force
             $outputFile = "$workFolder\log.txt"
@@ -536,7 +554,9 @@ Describe "Install-DBOPackage PostgreSQL tests" -Tag $commandName, IntegrationTes
     Context "testing deployment with no history`: SchemaVersion is null" {
         BeforeEach {
             $null = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
-            $null = Invoke-DBOQuery @connParams -Database postgres -Query ($dropDatabaseScript + $createDatabaseScript)
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
+            [Npgsql.NpgsqlConnection]::ClearAllPools()
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $createDatabaseScript
         }
         AfterEach {
             $null = Invoke-DBOQuery @connParams -Database $newDbName -Query "DROP TABLE IF EXISTS SchemaVersions"
@@ -571,12 +591,15 @@ Describe "Install-DBOPackage PostgreSQL tests" -Tag $commandName, IntegrationTes
     }
     Context "testing deployment with defined schema" {
         BeforeAll {
-            $null = Invoke-DBOQuery @connParams -Database postgres -Query ($dropDatabaseScript + $createDatabaseScript)
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
+            [Npgsql.NpgsqlConnection]::ClearAllPools()
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $createDatabaseScript
             $null = Invoke-DBOQuery @connParams -Database $newDbName -Query "CREATE SCHEMA testschema"
             $null = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
         }
         AfterAll {
             $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
+            [Npgsql.NpgsqlConnection]::ClearAllPools()
         }
         It "should deploy version 1.0 into testschema" {
             $before = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
@@ -610,7 +633,9 @@ Describe "Install-DBOPackage PostgreSQL tests" -Tag $commandName, IntegrationTes
         BeforeAll {
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force -Configuration @{SqlInstance = '#{srv}'; Database = '#{db}'}
             $outputFile = "$workFolder\log.txt"
-            $null = Invoke-DBOQuery @connParams -Database postgres -Query ($dropDatabaseScript + $createDatabaseScript)
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
+            [Npgsql.NpgsqlConnection]::ClearAllPools()
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $createDatabaseScript
         }
         AfterAll {
             $null = Invoke-DBOQuery @connParams -Database $newDbName -Query "DROP TABLE IF EXISTS SchemaVersions"
@@ -648,7 +673,9 @@ Describe "Install-DBOPackage PostgreSQL tests" -Tag $commandName, IntegrationTes
     Context "testing deployment with custom connection string" {
         BeforeAll {
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
-            $null = Invoke-DBOQuery @connParams -Database postgres -Query ($dropDatabaseScript + $createDatabaseScript)
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
+            [Npgsql.NpgsqlConnection]::ClearAllPools()
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $createDatabaseScript
         }
         It "should deploy version 1.0" {
             $configCS = New-DBOConfig -Configuration @{

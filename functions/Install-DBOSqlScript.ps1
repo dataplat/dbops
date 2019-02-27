@@ -99,6 +99,19 @@
         Additional connection string attributes that should be added to the existing connection string, provided as a hashtable.
         For example to enable SYSDBA permissions in Oracle, use the following: -ConnectionAttribute @{ 'DBA Privilege' = 'SYSDBA' }
 
+    .PARAMETER Absolute
+        All the files in -Path will be installed using their absolute paths instead of relative.
+
+    .PARAMETER Relative
+        Use current location to build relative paths instead of starting from the folder in -Path.
+
+    .PARAMETER NoRecurse
+        Only process the first level of the target -Path.
+
+    .PARAMETER Match
+        Runs a regex verification against provided file names using the provided Match string.
+        Example: .*\.sql
+
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -168,7 +181,11 @@
         [string]$ConnectionString,
         [Alias('ConnectionType', 'ServerType')]
         [DBOps.ConnectionType]$Type = (Get-DBODefaultSetting -Name rdbms.type -Value),
-        [hashtable]$ConnectionAttribute
+        [hashtable]$ConnectionAttribute,
+        [switch]$Absolute,
+        [switch]$Relative,
+        [switch]$NoRecurse,
+        [string[]]$Match
     )
 
     begin {
@@ -203,7 +220,7 @@
 
         #Prepare deployment function call parameters
         $params = @{
-            ScriptPath    = $scripts
+            ScriptFile    = Get-DbopsFile -Path $scripts
             Configuration = $config
         }
         foreach ($key in ($PSBoundParameters.Keys)) {

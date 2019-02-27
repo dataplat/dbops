@@ -25,6 +25,14 @@ $script1 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
 $script2 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
 $script3 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\3.sql"
 
+$fileObject1 = Get-Item $script1
+$fileObject2 = Get-Item $script2
+$fileObject3 = Get-Item $script3
+
+$scriptPath1 = Join-PSFPath -Normalize 'success\1.sql'
+$scriptPath2 = Join-PSFPath -Normalize 'success\2.sql'
+$scriptPath3 = Join-PSFPath -Normalize 'success\3.sql'
+
 Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
     Context "tests DBOpsBuild object creation" {
         It "Should create new DBOpsBuild object" {
@@ -56,52 +64,25 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             $pkg.SaveToFile($packageName, $true)
             $build = $pkg.NewBuild('1.0')
         }
-        It "should test NewScript([psobject]) method" {
-            $so = $build.NewScript(@{FullName = $script1; Depth = 1})
-            #test build to contain the script
-            '1.sql' | Should BeIn $build.Scripts.Name
-            ($build.Scripts | Measure-Object).Count | Should Be 1
-            #test the file returned to have all the necessary properties
-            $so.SourcePath | Should Be $script1
-            $so.PackagePath | Should Be (Join-PSFPath -Normalize 'success\1.sql')
-            $so.Length -gt 0 | Should Be $true
-            $so.Name | Should Be '1.sql'
-            $so.LastWriteTime | Should Not BeNullOrEmpty
-            $so.ByteArray | Should Not BeNullOrEmpty
-            $so.Hash |Should Not BeNullOrEmpty
-        }
-        It "should test NewScript([string],[int]) method" {
-            $so = $build.NewScript(@{FullName = $script1; Depth = 1})
-            ($build.Scripts | Measure-Object).Count | Should Be 1
-            $so.SourcePath | Should Be $script1
-            $so.PackagePath | Should Be (Join-PSFPath -Normalize 'success\1.sql')
-            $so.Length -gt 0 | Should Be $true
-            $so.Name | Should Be '1.sql'
-            $so.LastWriteTime | Should Not BeNullOrEmpty
-            $so.ByteArray | Should Not BeNullOrEmpty
-            $so.Hash |Should Not BeNullOrEmpty
-            { $pkg.Alter() } | Should Not Throw
-            #Negative tests
-            { $build.NewScript($script1, 1) } | Should Throw
-        }
         It "Should test AddScript([string]) method" {
-            $f = [DBOpsFile]::new($script1, (Join-PSFPath -Normalize 'success\1.sql'))
+            $f = [DBOpsFile]::new($fileObject1, $scriptPath1, $true)
             $build.AddScript($f)
             #test build to contain the script
             '1.sql' | Should BeIn $build.Scripts.Name
             ($build.Scripts | Measure-Object).Count | Should Be 1
         }
         It "Should test AddScript([string],[bool]) method" {
-            $f = [DBOpsFile]::new($script1, (Join-PSFPath -Normalize 'success\1.sql'))
-            $build.AddScript($f,$false)
+            $f = [DBOpsFile]::new($fileObject1, $scriptPath1, $true)
+            $build.AddScript($f, $false)
             #test build to contain the script
             '1.sql' | Should BeIn $build.Scripts.Name
             ($build.Scripts | Measure-Object).Count | Should Be 1
-            $f2 = [DBOpsFile]::new($script1, (Join-PSFPath -Normalize 'success\1a.sql'))
-            { $build.AddScript($f2, $false) } | Should Throw
+            { $build.AddScript($f, $false) } | Should Throw 'already exists'
             ($build.Scripts | Measure-Object).Count | Should Be 1
-            $f3 = [DBOpsFile]::new($script1, (Join-PSFPath -Normalize 'success\1a.sql'))
-            $build.AddScript($f3, $true)
+            $build.AddScript($f, $true)
+            ($build.Scripts | Measure-Object).Count | Should Be 1
+            $f2 = [DBOpsFile]::new($fileObject1, $scriptPath2, $true)
+            $build.AddScript($f2, $true)
             ($build.Scripts | Measure-Object).Count | Should Be 2
         }
     }
@@ -109,7 +90,7 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
         BeforeEach {
             $pkg = [DBOpsPackage]::new()
             $build = $pkg.NewBuild('1.0')
-            $f = [DBOpsScriptFile]::new($script1, (Join-PSFPath -Normalize 'success\1.sql'))
+            $f = [DBOpsFile]::new($fileObject1, $scriptPath1, $true)
             $build.AddScript($f)
             $pkg.SaveToFile($packageName, $true)
         }
@@ -119,14 +100,34 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
         It "should test ToString method" {
             $build.ToString() | Should Be '[1.0]'
         }
+        It "should test GetScript method" {
+            $result = $build.GetScript($scriptPath1)
+            $result | Should -Not -BeNullOrEmpty
+            $result.PackagePath | Should -Be $scriptPath1
+            $f2 = [DBOpsFile]::new($fileObject2, $scriptPath2, $true)
+            $build.AddScript($f2)
+            $result = $build.GetScript(@($scriptPath1, $scriptPath2))
+            $result | Should -Not -BeNullOrEmpty
+            $result.PackagePath | Should -Be $scriptPath1, $scriptPath2
+            $result = $build.GetScript($scriptPath3)
+            $result | Should -BeNullOrEmpty
+        }
+        It "should test RemoveScript method" {
+            $f2 = [DBOpsFile]::new($fileObject2, $scriptPath2, $true)
+            $build.AddScript($f2)
+            $build.RemoveScript($scriptPath1)
+            $build.Scripts.PackagePath | Should -Be $scriptPath2
+            { $build.RemoveScript($scriptPath1) } | Should -Throw "File $scriptPath1 not found"
+            $build.RemoveScript($scriptPath2)
+            $build.Scripts | Should -BeNullOrEmpty
+            { $build.RemoveScript($scriptPath1) } | Should -Throw "Collection Scripts not found or empty"
+        }
         It "should test HashExists method" {
-            $f = [DBOpsScriptFile]::new(@{PackagePath = '1.sql'; SourcePath = '.\1.sql'; Hash = 'MyHash'})
-            $build.AddScript($f, $true)
-            $build.HashExists('MyHash') | Should Be $true
-            $build.HashExists('MyHash2') | Should Be $false
-            $build.HashExists('MyHash','.\1.sql') | Should Be $true
-            $build.HashExists('MyHash','.\1a.sql') | Should Be $false
-            $build.HashExists('MyHash2','.\1.sql') | Should Be $false
+            $build.HashExists($f.Hash) | Should Be $true
+            $build.HashExists('foo') | Should Be $false
+            $build.HashExists($f.Hash, $scriptPath1) | Should Be $true
+            $build.HashExists($f.Hash, 'bar') | Should Be $false
+            $build.HashExists('foo', $scriptPath1) | Should Be $false
         }
         It "should test ScriptExists method" {
             $build.ScriptExists($script1) | Should Be $true
@@ -134,23 +135,15 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             { $build.ScriptExists("Nonexisting\path") } | Should Throw
         }
         It "should test ScriptModified method" {
-            $build.ScriptModified($script1, $script1) | Should Be $false
-            $build.ScriptModified($script2, $script1) | Should Be $true
-            $build.ScriptModified($script2, $script2) | Should Be $false
-        }
-        It "should test SourcePathExists method" {
-            $build.SourcePathExists($script1) | Should Be $true
-            $build.SourcePathExists($script2) | Should Be $false
-            $build.SourcePathExists('') | Should Be $false
+            $build.ScriptModified([DBOpsFile]::new($fileObject1, $scriptPath1, $true)) | Should Be $false
+            $build.ScriptModified([DBOpsFile]::new($fileObject2, $scriptPath1, $true)) | Should Be $true
+            $build.ScriptModified([DBOpsFile]::new($fileObject1, $scriptPath2, $true)) | Should Be $false
         }
         It "should test PackagePathExists method" {
             $s1 = Join-PSFPath -Normalize "success\1.sql"
             $s2 = Join-PSFPath -Normalize "success\2.sql"
             $build.PackagePathExists($s1) | Should Be $true
             $build.PackagePathExists($s2) | Should Be $false
-            #Overloads
-            $build.PackagePathExists((Join-PSFPath -Normalize "a\$s1"), 1) | Should Be $true
-            $build.PackagePathExists((Join-PSFPath -Normalize "a\$s2"), 1) | Should Be $false
         }
         It "should test GetPackagePath method" {
             $build.GetPackagePath() | Should Be (Join-PSFPath -Normalize 'content\1.0')
@@ -163,7 +156,7 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             $j.CreatedDate | Should Not BeNullOrEmpty
             $j.psobject.properties.name | Should -BeIn @('Scripts', 'Build', 'PackagePath', 'CreatedDate')
             foreach ($script in $j.Scripts) {
-                $script.psobject.properties.name | Should -BeIn @('SourcePath', 'Hash', 'PackagePath')
+                $script.psobject.properties.name | Should -BeIn @('Hash', 'PackagePath')
             }
         }
     }
@@ -173,16 +166,16 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
             if (Test-Path "$packageName.test.zip") { Remove-Item "$packageName.test.zip" }
         }
         BeforeAll {
-
+            if (Test-Path $packageName) { Remove-Item $packageName }
         }
         It "should test Save method" {
             #Generate new package file
             $pkg = [DBOpsPackage]::new()
             $pkg.SaveToFile($packageName, $true)
             $build = $pkg.NewBuild('1.0')
-            $f = [DBOpsScriptFile]::new($script1, (Join-PSFPath -Normalize 'success\1.sql'))
+            $f = [DBOpsFile]::new($fileObject1, $scriptPath1, $true)
             $build.AddScript($f)
-            $f = [DBOpsScriptFile]::new($script2, (Join-PSFPath -Normalize 'success\2.sql'))
+            $f = [DBOpsFile]::new($fileObject2, $scriptPath2, $true)
             $build.AddScript($f)
             #Open zip file stream
             $writeMode = [System.IO.FileMode]::Open
@@ -221,20 +214,20 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
         }
         It "Should load package successfully after saving it" {
             $p = [DBOpsPackage]::new($packageName)
-            $p.Builds.Scripts.Name | Should Not Be @('1.sql','2.sql') #Build.Save method does not write to package file
+            $p.Builds.Scripts.Name | Should Not Be @('1.sql', '2.sql') #Build.Save method does not write to package file
         }
         It "Should save and reopen the package under a different name" {
             #Generate new package file
             $pkg = [DBOpsPackage]::new()
             $pkg.SaveToFile($packageName, $true)
             $b = $pkg.NewBuild('1.0')
-            $f = [DBOpsScriptFile]::new($script1, (Join-PSFPath -Normalize 'success\1.sql'))
+            $f = [DBOpsFile]::new($fileObject1, $scriptPath1, $true)
             $b.AddScript($f)
-            $f = [DBOpsScriptFile]::new($script2, (Join-PSFPath -Normalize 'success\2.sql'))
+            $f = [DBOpsFile]::new($fileObject2, $scriptPath2, $true)
             $b.AddScript($f)
             $pkg.SaveToFile("$packageName.test.zip")
             $pkg = [DBOpsPackage]::new("$packageName.test.zip")
-            $pkg.GetBuild('1.0').Scripts.Name | Should Be @('1.sql','2.sql')
+            $pkg.GetBuild('1.0').Scripts.Name | Should Be @('1.sql', '2.sql')
         }
         $oldResults = Get-ArchiveItem "$packageName.test.zip"
         #Sleep 1 second to ensure that modification date is changed
@@ -242,7 +235,7 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
         It "should test Alter method" {
             $pkg = [DBOpsPackage]::new("$packageName.test.zip")
             $build = $pkg.GetBuild('1.0')
-            $f = [DBOpsScriptFile]::new($script3, 'success\3.sql')
+            $f = [DBOpsFile]::new($fileObject3, (Join-PSFPath -Normalize 'success\3.sql'), $true)
             $build.AddScript($f)
             { $build.Alter() } | Should Not Throw
             $testResults = Get-ArchiveItem "$packageName.test.zip"

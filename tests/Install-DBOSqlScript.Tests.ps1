@@ -47,7 +47,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
         It "should deploy version 1.0 to a new database using -CreateDatabase switch" {
             # drop the database before installing the package
             $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database master -Query $dropDatabaseScript
-            $testResults = Install-DBOSqlScript -ScriptPath $v1scripts -CreateDatabase -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $testResults = Install-DBOSqlScript -Absolute -ScriptPath $v1scripts -CreateDatabase -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -81,7 +81,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
         It "Should throw an error and not create any objects" {
             #Running package
             try {
-                $null = Install-DBOSqlScript -Path $tranFailScripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod SingleTransaction -Silent
+                $null = Install-DBOSqlScript -Absolute -Path $tranFailScripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod SingleTransaction -Silent
             }
             catch {
                 $testResults = $_
@@ -103,7 +103,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
         It "Should throw an error and create one object" {
             #Running package
             try {
-                $null = Install-DBOSqlScript -Path $tranFailScripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent
+                $null = Install-DBOSqlScript -Absolute -Path $tranFailScripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent
             }
             catch {
                 $testResults = $_
@@ -123,7 +123,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy version 1.0" {
-            $testResults = Install-DBOSqlScript -ScriptPath $v1scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+            $testResults = Install-DBOSqlScript -Absolute -ScriptPath $v1scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -147,7 +147,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             'd' | Should Not BeIn $testResults.name
         }
         It "should deploy version 2.0" {
-            $testResults = Install-DBOSqlScript -ScriptPath $v2scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+            $testResults = Install-DBOSqlScript -Absolute -ScriptPath $v2scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v2scripts).Path
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -176,7 +176,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy 2.sql before 1.sql" {
-            $testResults = Install-DBOSqlScript -ScriptPath $v2scripts, $v1scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+            $testResults = Install-DBOSqlScript -Absolute -ScriptPath $v2scripts, $v1scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v2scripts, $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -213,7 +213,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
         }
         It "should throw timeout error" {
             try {
-                $null = Install-DBOSqlScript -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 2
+                $null = Install-DBOSqlScript -Absolute -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 2
             }
             catch {
                 $testResults = $_
@@ -225,7 +225,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             $output | Should Not BeLike '*Successful!*'
         }
         It "should successfully run within specified timeout" {
-            $testResults = Install-DBOSqlScript -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 6
+            $testResults = Install-DBOSqlScript -Absolute -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 6
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -244,7 +244,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             $output | Should BeLike '*Successful!*'
         }
         It "should successfully run with infinite timeout" {
-            $testResults = Install-DBOSqlScript -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 0
+            $testResults = Install-DBOSqlScript -Absolute -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 0
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -271,7 +271,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
         AfterAll {
         }
         It "should deploy nothing" {
-            $testResults = Install-DBOSqlScript -ScriptPath $v1scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent -WhatIf
+            $testResults = Install-DBOSqlScript -Absolute -ScriptPath $v1scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent -WhatIf
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v1scripts
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -306,7 +306,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
         It "should deploy version 1.0" {
             $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Install-DBOSqlScript -ScriptPath $v1scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Silent
+            $testResults = Install-DBOSqlScript -Absolute -ScriptPath $v1scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -333,7 +333,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
         It "should deploy version 2.0" {
             $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Install-DBOSqlScript -ScriptPath $v2scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Silent
+            $testResults = Install-DBOSqlScript -Absolute -ScriptPath $v2scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v2scripts).Path
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -368,7 +368,7 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
         It "should deploy version 1.0 without creating SchemaVersions" {
             $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Install-DBOSqlScript -ScriptPath $v1scripts  -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Silent -SchemaVersionTable $null
+            $testResults = Install-DBOSqlScript -Absolute -ScriptPath $v1scripts  -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Silent -SchemaVersionTable $null
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -397,13 +397,13 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
     Context "deployments with errors should throw terminating errors" {
         BeforeAll {
             $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
-            $null = Install-DBOSqlScript -ScriptPath $v1scripts  -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Silent -SchemaVersionTable $null
+            $null = Install-DBOSqlScript -Absolute -ScriptPath $v1scripts  -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Silent -SchemaVersionTable $null
         }
         It "Should return terminating error when object exists" {
             #Running package
             try {
                 $testResults = $null
-                $testResults = Install-DBOSqlScript -Path $tranFailScripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent
+                $testResults = Install-DBOSqlScript -Absolute -Path $tranFailScripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent
             }
             catch {
                 $errorObject = $_
@@ -416,8 +416,8 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             #Running package
             try {
                 $testResults = $null
-                $null = Install-DBOSqlScript -Path $tranFailScripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent
-                $testResults = Install-DBOSqlScript -ScriptPath $v2scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+                $null = Install-DBOSqlScript -Absolute -Path $tranFailScripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent
+                $testResults = Install-DBOSqlScript -Absolute -ScriptPath $v2scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
             }
             catch {
                 $errorObject = $_

@@ -40,18 +40,20 @@ Describe "Invoke-DBOQuery PostgreSQL tests" -Tag $commandName, IntegrationTests 
         $createDatabaseScript = 'CREATE DATABASE {0}' -f $newDbName
         $connParams.Database = 'postgres'
         $null = Invoke-DBOQuery @connParams -Query $dropDatabaseScript
+        [Npgsql.NpgsqlConnection]::ClearAllPools()
         $null = Invoke-DBOQuery @connParams -Query $createDatabaseScript
         $connParams.Database = $newDbName
     }
     AfterAll {
         $connParams.Database = 'postgres'
         $null = Invoke-DBOQuery @connParams -Query $dropDatabaseScript
+        [Npgsql.NpgsqlConnection]::ClearAllPools()
     }
     Context "Regular tests" {
         It "should run the query" {
             $query = "SELECT 1 AS A, 2 AS B UNION ALL SELECT NULL AS A, 4 AS B"
             $result = Invoke-DBOQuery -Query $query @connParams -As DataTable
-            $result.Columns.ColumnName | Should -Be @('a','b')
+            $result.Columns.ColumnName | Should -Be @('a', 'b')
             $result.a | Should -Be 1, ([DBNull]::Value)
             $result.b | Should -Be 2, 4
         }
@@ -65,8 +67,8 @@ Describe "Invoke-DBOQuery PostgreSQL tests" -Tag $commandName, IntegrationTests 
             $query = "SELECT 1 AS A, 2 AS B;
             SELECT 3 AS A, 4 AS B"
             $result = Invoke-DBOQuery -Query $query @connParams -As DataTable
-            $result[0].Columns.ColumnName | Should -Be @('a','b')
-            $result[1].Columns.ColumnName | Should -Be @('a','b')
+            $result[0].Columns.ColumnName | Should -Be @('a', 'b')
+            $result[1].Columns.ColumnName | Should -Be @('a', 'b')
             $result[0].a | Should -Be 1
             $result[0].b | Should -Be 2
             $result[1].a | Should -Be 3
@@ -76,8 +78,8 @@ Describe "Invoke-DBOQuery PostgreSQL tests" -Tag $commandName, IntegrationTests 
             $query = "SELECT 1 AS A, 2 AS B;
             SELECT 3 AS A, 4 AS B"
             $result = Invoke-DBOQuery -Query $query @connParams -As Dataset
-            $result.Tables[0].Columns.ColumnName | Should Be @('a','b')
-            $result.Tables[1].Columns.ColumnName | Should Be @('a','b')
+            $result.Tables[0].Columns.ColumnName | Should Be @('a', 'b')
+            $result.Tables[1].Columns.ColumnName | Should Be @('a', 'b')
             $result.Tables[0].a | Should -Be 1
             $result.Tables[0].b | Should -Be 2
             $result.Tables[1].a | Should -Be 3
@@ -86,7 +88,7 @@ Describe "Invoke-DBOQuery PostgreSQL tests" -Tag $commandName, IntegrationTests 
         It "should run the query as a PSObject" {
             $query = "SELECT 1 AS A, 2 AS B UNION ALL SELECT NULL AS A, 4 AS B"
             $result = Invoke-DBOQuery -Query $query @connParams -As PSObject
-            $result[0].psobject.properties.Name | Should -Be @('a','b')
+            $result[0].psobject.properties.Name | Should -Be @('a', 'b')
             $result.a | Should -Be 1, $null
             $result.b | Should -Be 2, 4
         }
@@ -101,8 +103,8 @@ Describe "Invoke-DBOQuery PostgreSQL tests" -Tag $commandName, IntegrationTests 
             "SELECT 1 AS A, 2 AS B" | Out-File $file1 -Force
             "SELECT 3 AS A, 4 AS B" | Out-File $file2 -Force -Encoding bigendianunicode
             $result = Invoke-DBOQuery -InputFile $file1, $file2 @connParams -As DataTable
-            $result[0].Columns.ColumnName | Should -Be @('a','b')
-            $result[1].Columns.ColumnName | Should -Be @('a','b')
+            $result[0].Columns.ColumnName | Should -Be @('a', 'b')
+            $result[1].Columns.ColumnName | Should -Be @('a', 'b')
             $result[0].a | Should -Be 1
             $result[0].b | Should -Be 2
             $result[1].a | Should -Be 3
@@ -114,15 +116,15 @@ Describe "Invoke-DBOQuery PostgreSQL tests" -Tag $commandName, IntegrationTests 
             "SELECT 1 AS A, 2 AS B" | Out-File $file1 -Force
             "SELECT 3 AS A, 4 AS B" | Out-File $file2 -Force -Encoding bigendianunicode
             $result = Get-Item $file1, $file2 | Invoke-DBOQuery @connParams -As DataTable
-            $result[0].Columns.ColumnName | Should -Be @('a','b')
-            $result[1].Columns.ColumnName | Should -Be @('a','b')
+            $result[0].Columns.ColumnName | Should -Be @('a', 'b')
+            $result[1].Columns.ColumnName | Should -Be @('a', 'b')
             $result[0].a | Should -Be 1
             $result[0].b | Should -Be 2
             $result[1].a | Should -Be 3
             $result[1].b | Should -Be 4
             $result = $file1, $file2 | Invoke-DBOQuery @connParams -As DataTable
-            $result[0].Columns.ColumnName | Should -Be @('a','b')
-            $result[1].Columns.ColumnName | Should -Be @('a','b')
+            $result[0].Columns.ColumnName | Should -Be @('a', 'b')
+            $result[1].Columns.ColumnName | Should -Be @('a', 'b')
             $result[0].a | Should -Be 1
             $result[0].b | Should -Be 2
             $result[1].a | Should -Be 3
@@ -131,14 +133,14 @@ Describe "Invoke-DBOQuery PostgreSQL tests" -Tag $commandName, IntegrationTests 
         It "should run the query with custom variables" {
             $query = "SELECT '#{Test}' AS A, '#{Test2}' AS B UNION ALL SELECT '3' AS A, '4' AS B"
             $result = Invoke-DBOQuery -Query $query @connParams -As DataTable -Variables @{ Test = '1'; Test2 = '2'}
-            $result.Columns.ColumnName | Should -Be @('a','b')
+            $result.Columns.ColumnName | Should -Be @('a', 'b')
             $result.a | Should -Be '1', '3'
             $result.b | Should -Be '2', '4'
         }
         It "should connect to the server from a custom variable" {
             $query = "SELECT 1 AS A, 2 AS B UNION ALL SELECT 3 AS A, 4 AS B"
             $result = Invoke-DBOQuery -Type PostgreSQL -Database postgres -Query $query -SqlInstance '#{srv}' -Credential $script:postgresqlCredential -As DataTable -Variables @{ srv = $script:postgresqlInstance }
-            $result.Columns.ColumnName | Should -Be @('a','b')
+            $result.Columns.ColumnName | Should -Be @('a', 'b')
             $result.a | Should -Be '1', '3'
             $result.b | Should -Be '2', '4'
         }
