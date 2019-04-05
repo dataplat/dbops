@@ -173,6 +173,9 @@
         $comparer = [DBOpsScriptComparer]::new($scriptCollection.Name)
         $dbUp = [StandardExtensions]::WithScriptNameComparer($dbUp, $comparer)
 
+        # Disable variable replacement
+        $dbUp = [StandardExtensions]::WithVariablesDisabled($dbUp)
+
         if ($config.DeploymentMethod -eq 'SingleTransaction') {
             $dbUp = [StandardExtensions]::WithTransaction($dbUp)
         }

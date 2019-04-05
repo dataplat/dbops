@@ -267,6 +267,22 @@ Describe "Install-DBOSqlScript PostgreSQL integration tests" -Tag $commandName, 
             $output | Should BeLike '*Successful!*'
         }
     }
+    Context "testing var replacement" {
+        BeforeAll {
+            $file = "$workFolder\vars.sql"
+            'SELECT ''$a$'';' | Set-Content $file
+        }
+        BeforeEach {
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
+            [Npgsql.NpgsqlConnection]::ClearAllPools()
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $createDatabaseScript
+        }
+        It "should not fail to read the script" {
+            $null = Install-DBOSqlScript -Absolute -Type PostgreSQL -ScriptPath "$workFolder\vars.sql" -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $output = Get-Content "$workFolder\log.txt" -Raw
+            $output | Should BeLike '*$a$*'
+        }
+    }
     Context  "$commandName whatif tests" {
         BeforeAll {
             $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
