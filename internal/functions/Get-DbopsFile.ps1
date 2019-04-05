@@ -35,7 +35,7 @@
                 # replace ^.\ ^./ ^\\ and :
                 $slash = [IO.Path]::DirectorySeparatorChar
                 $slashRegex = [Regex]::Escape(".$slash")
-                $pkgPath = $pkgPath -replace "^$slashRegex|^\\\\|:", ''
+                $pkgPath = $pkgPath -replace "^$slashRegex|^\\\\", ''
                 [DBOpsFile]::new($childItem, $pkgPath, $true)
             }
         }

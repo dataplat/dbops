@@ -145,7 +145,7 @@
                     Stop-PSFFunction -Message "Expected DBOpsFile object, got [$($scriptItem.GetType().FullName)]." -EnableException $true
                     return
                 }
-                Write-PSFMessage -Level Debug -Message "Adding deployment script $($scriptItem.FullName)"
+                Write-PSFMessage -Level Debug -Message "Adding deployment script $($scriptItem.FullName) as $($scriptItem.PackagePath)"
                 if (!$RegisterOnly) {
                     # Replace tokens in the scripts
                     $scriptContent = Resolve-VariableToken $scriptItem.GetContent() $runtimeVariables
@@ -153,7 +153,7 @@
                 else {
                     $scriptContent = ""
                 }
-                $scriptCollection += [DbUp.Engine.SqlScript]::new($scriptItem.FullName, $scriptContent)
+                $scriptCollection += [DbUp.Engine.SqlScript]::new($scriptItem.PackagePath, $scriptContent)
             }
         }
 
@@ -172,6 +172,9 @@
         # Disable automatic sorting by using a custom comparer
         $comparer = [DBOpsScriptComparer]::new($scriptCollection.Name)
         $dbUp = [StandardExtensions]::WithScriptNameComparer($dbUp, $comparer)
+
+        # Disable variable replacement
+        $dbUp = [StandardExtensions]::WithVariablesDisabled($dbUp)
 
         if ($config.DeploymentMethod -eq 'SingleTransaction') {
             $dbUp = [StandardExtensions]::WithTransaction($dbUp)

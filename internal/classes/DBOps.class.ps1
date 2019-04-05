@@ -969,6 +969,8 @@ class DBOpsFile : DBOps {
     }
     [string] GetPackagePath() {
         $pPath = $this.PackagePath
+        # removing odd symbols
+        $pPath = $pPath -replace ':',''
         if ($this.Parent) {
             if ($parentPath = $this.Parent.GetPackagePath()) {
                 $pPath = Join-Path $this.Parent.GetPackagePath() $pPath
@@ -978,6 +980,8 @@ class DBOpsFile : DBOps {
     }
     [string] GetDeploymentPath () {
         $dPath = $this.PackagePath
+        # removing odd symbols
+        $dPath = $dPath -replace ':',''
         if ($this.Parent) {
             if ($parentPath = $this.Parent.GetDeploymentPath()) {
                 $dPath = Join-Path $this.Parent.GetDeploymentPath() $dPath
