@@ -264,6 +264,22 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             $output | Should BeLike '*Successful!*'
         }
     }
+    Context "testing variable replacement" {
+        BeforeAll {
+            $file = "$workFolder\delay.sql"
+            "SELECT '#{var1}'; PRINT ('#{var2}')" | Out-File $file
+        }
+        It "should return replaced variables" {
+            $vars = @{
+                var1 = 1337
+                var2 = 'Replaced!'
+            }
+            $testResults = Install-DBOSqlScript -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $null -OutputFile "$workFolder\log.txt" -Silent -Variables $vars
+            $testResults.Successful | Should Be $true
+            "$workFolder\log.txt" | Should -FileContentMatch '1337'
+            "$workFolder\log.txt" | Should -FileContentMatch 'Replaced!'
+        }
+    }
     Context  "$commandName whatif tests" {
         BeforeAll {
             $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
