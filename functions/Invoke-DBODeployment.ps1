@@ -134,7 +134,7 @@
                     $scriptDeploymentPath = $script.GetDeploymentPath()
                     Write-PSFMessage -Level Debug -Message "Adding deployment script $scriptDeploymentPath"
                     # Replace tokens in the scripts
-                    $scriptContent = Resolve-VariableToken $script.GetContent() $runtimeVariables
+                    $scriptContent = Resolve-VariableToken $script.GetContent() $config.Variables
                     $scriptCollection += [DbUp.Engine.SqlScript]::new($scriptDeploymentPath, $scriptContent)
                 }
             }
@@ -148,7 +148,7 @@
                 Write-PSFMessage -Level Debug -Message "Adding deployment script $($scriptItem.FullName) as $($scriptItem.PackagePath)"
                 if (!$RegisterOnly) {
                     # Replace tokens in the scripts
-                    $scriptContent = Resolve-VariableToken $scriptItem.GetContent() $runtimeVariables
+                    $scriptContent = Resolve-VariableToken $scriptItem.GetContent() $config.Variables
                 }
                 else {
                     $scriptContent = ""
