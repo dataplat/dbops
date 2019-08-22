@@ -25,7 +25,7 @@ Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
     AfterAll {
         Unregister-PSFConfig -Module dbops -Name tc1
         Unregister-PSFConfig -Module dbops -Name tc2
-        Unregister-PSFConfig -Module dbops -Name tc3
+        Unregister-PSFConfig -Module dbops -Name tc3 -Scope SystemDefault
         Unregister-PSFConfig -Module dbops -Name secret
     }
     Context "Resetting various configs" {
@@ -38,6 +38,12 @@ Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
         It "resets one config" {
             Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 2
             $testResult = Reset-DBODefaultSetting -Name tc1
+            $testResult | Should -BeNullOrEmpty
+            Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 1
+        }
+        It "resets temporary config" {
+            Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 2
+            $testResult = Reset-DBODefaultSetting -Name tc1 -Temporary
             $testResult | Should -BeNullOrEmpty
             Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 1
         }
@@ -54,7 +60,7 @@ Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
             Get-PSFConfigValue -FullName dbops.tc2 | Should -Be 'string2'
             Get-PSFConfigValue -FullName dbops.tc3 | Should -Be 'another2'
             $testResult = Get-PSFConfigValue -FullName dbops.secret
-            $cred = [pscredential]::new('test',$testResult)
+            $cred = [pscredential]::new('test', $testResult)
             $cred.GetNetworkCredential().Password | Should Be 'bar'
             $testResult = Reset-DBODefaultSetting -All
             $testResult | Should -BeNullOrEmpty
@@ -62,8 +68,19 @@ Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
             Get-PSFConfigValue -FullName dbops.tc2 | Should -Be 'string'
             Get-PSFConfigValue -FullName dbops.tc3 | Should -Be 'another'
             $testResult = Get-PSFConfigValue -FullName dbops.secret
-            $cred = [pscredential]::new('test',$testResult)
+            $cred = [pscredential]::new('test', $testResult)
             $cred.GetNetworkCredential().Password | Should Be 'foo'
+        }
+        It "resets an AllUsers-scoped value" {
+            try {
+                Register-PSFConfig -FullName dbops.tc3 -Scope SystemDefault
+                $testResult = Reset-DBODefaultSetting -Name tc3 -Scope AllUsers
+                $testResult | Should -BeNullOrEmpty
+                Get-PSFConfigValue -FullName dbops.tc3 | Should Be 'another'
+            }
+            catch {
+                $_.Exception.Message | Should BeLike '*access*'
+            }
         }
     }
     Context "Negative tests" {
