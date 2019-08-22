@@ -165,6 +165,7 @@ class DBOpsPackageBase : DBOps {
     [DBOpsConfig]$Configuration
     [string]$Version
     [System.Version]$ModuleVersion
+    [bool]$Slim
 
     #Regular file properties
     [string]$PSPath
@@ -205,6 +206,7 @@ class DBOpsPackageBase : DBOps {
         $this.Configuration = [DBOpsConfig]::new()
         $this.Configuration.Parent = $this
         $this.PackagePath = ""
+        $this.Slim = $false
     }
     [void] Init ([object]$jsonObject) {
         $this.Init()
@@ -451,8 +453,20 @@ class DBOpsPackageBase : DBOps {
     }
 
     hidden [void] SaveModuleToFile([ZipArchive]$zipArchive) {
-        foreach ($file in (Get-DBOModuleFileList)) {
-            [DBOpsHelper]::WriteZipFile($zipArchive, (Join-PSFPath -Normalize "Modules\dbops" $file.Path), [DBOpsHelper]::GetBinaryFile($file.FullName))
+        if (-not $this.Slim) {
+            foreach ($file in (Get-DBOModuleFileList)) {
+                [DBOpsHelper]::WriteZipFile($zipArchive, (Join-PSFPath -Normalize "Modules\dbops" $file.Path), [DBOpsHelper]::GetBinaryFile($file.FullName))
+            }
+            # import other modules
+            $modules = Get-Module dbops | Select-Object -ExpandProperty RequiredModules
+            foreach ($module in $modules) {
+                Push-Location $module.ModuleBase
+                foreach ($file in (Get-ChildItem -Recurse -File)) {
+                    $relativePath = (Resolve-Path -Relative -LiteralPath $file.FullName) -replace '^\.', ''
+                    [DBOpsHelper]::WriteZipFile($zipArchive, (Join-PSFPath -Normalize "Modules\$($module.Name)" $relativePath), [DBOpsHelper]::GetBinaryFile($file.FullName))
+                }
+                Pop-Location
+            }
         }
     }
     #Returns root folder
@@ -970,7 +984,7 @@ class DBOpsFile : DBOps {
     [string] GetPackagePath() {
         $pPath = $this.PackagePath
         # removing odd symbols
-        $pPath = $pPath -replace ':',''
+        $pPath = $pPath -replace ':', ''
         if ($this.Parent) {
             if ($parentPath = $this.Parent.GetPackagePath()) {
                 $pPath = Join-Path $this.Parent.GetPackagePath() $pPath
@@ -981,7 +995,7 @@ class DBOpsFile : DBOps {
     [string] GetDeploymentPath () {
         $dPath = $this.PackagePath
         # removing odd symbols
-        $dPath = $dPath -replace ':',''
+        $dPath = $dPath -replace ':', ''
         if ($this.Parent) {
             if ($parentPath = $this.Parent.GetDeploymentPath()) {
                 $dPath = Join-Path $this.Parent.GetDeploymentPath() $dPath

@@ -31,11 +31,12 @@ Param (
     [string]$Type = 'SQLServer'
 )
 
-#Import module
-If (-not (Get-Module dbops)) {
-    Import-Module "$PSScriptRoot\Modules\dbops\dbops.psd1"
+#Import modules
+foreach ($module in @('PSFramework', 'dbops')) {
+    if (-not (Get-Module $module)) {
+        Import-Module "$PSScriptRoot\Modules\$module"
+    }
 }
-. "$PSScriptRoot\Modules\dbops\internal\classes\DBOps.enums.ps1"
 
 $config = Get-DBOConfig -Path "$PSScriptRoot\dbops.config.json" -Configuration $Configuration
 
@@ -62,7 +63,8 @@ foreach ($key in ($PSBoundParameters.Keys)) {
 
 if ($PSCmdlet.ShouldProcess($params.PackageFile, "Initiating the deployment of the package")) {
     Invoke-DBODeployment @params
-} else {
+}
+else {
     Invoke-DBODeployment @params -WhatIf
 }
 

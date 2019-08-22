@@ -56,6 +56,9 @@
         Runs a regex verification against provided file names using the provided Match string.
         Example: .*\.sql
 
+    .PARAMETER Slim
+        Do not include accompanying modules into the package file.
+
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -100,7 +103,8 @@
         [switch]$Absolute,
         [switch]$Relative,
         [switch]$NoRecurse,
-        [string[]]$Match
+        [string[]]$Match,
+        [switch]$Slim = (Get-DBODefaultSetting -Name package.slim -Value)
     )
 
     begin {
@@ -122,6 +126,7 @@
 
         #Create a package object
         $package = [DBOpsPackage]::new()
+        $package.Slim = $Slim
 
         #Get configuration object according to current config options
         if (Test-PSFParameterBinding -ParameterName ConfigurationFile -BoundParameters $PSBoundParameters) {
