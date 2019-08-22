@@ -240,8 +240,7 @@ function Invoke-DBOQuery {
         # Define the queries
         if ($Query) {
             $queryText = $Query
-        }
-        else {
+        } else {
             $fileObjects = @()
             try {
                 if ($InputFile) {
@@ -250,8 +249,7 @@ function Invoke-DBOQuery {
                 if ($InputObject) {
                     $fileObjects += $InputObject | Get-Item -ErrorAction Stop
                 }
-            }
-            catch {
+            } catch {
                 Stop-PSFFunction -Message 'File not found' -ErrorRecord $_ -EnableException $true
             }
             $queryText = $fileObjects | Get-Content -Raw
@@ -267,15 +265,13 @@ function Invoke-DBOQuery {
         Write-PSFMessage -Level Verbose -Message "Establishing connection with $Type $($config.SqlInstance)"
         try {
             $dataConnection.Open()
-        }
-        catch {
+        } catch {
             Stop-PSFFunction -EnableException $true -Message "Failed to connect to the server" -ErrorRecord $_
             return
         }
         if ($Interactive) {
             Write-PSFMessage -Level Host -Message "Running in interactive mode. Finish the query with a $delimiter to execute it immediately. \q, exit, or quit to exit."
-        }
-        else {
+        } else {
             Write-PSFMessage -Level Debug -Message "Preparing to run $($queryList.Count) queries"
         }
         # wrapping everything in a big try {} to support graceful disconnect
@@ -360,6 +356,8 @@ function Invoke-DBOQuery {
                                         }
                                         if ($datatype.FullName -eq 'System.DBNull') {
                                             $datatype = [string]
+                                        } elseif (!$datatype.FullName) {
+                                            $datatype = [string[]]
                                         }
                                         $null = $table.Columns.Add($name, $datatype)
                                     }
@@ -379,8 +377,7 @@ function Invoke-DBOQuery {
                                 $reader.Close()
                                 $reader.Dispose()
                                 $command.Dispose()
-                            }
-                            catch {
+                            } catch {
                                 $dbUpLog.WriteError($_.Exception.InnerException.Message, $null)
                                 if ($Type -eq 'SqlServer') {
                                     Unregister-Event -SourceIdentifier "DBOpsMessaging" -ErrorAction SilentlyContinue
@@ -395,8 +392,7 @@ function Invoke-DBOQuery {
                 if ($Interactive) {
                     # output right to the screen
                     Write-HostTable -Table $ds.Tables[0]
-                }
-                else {
+                } else {
                     # output as object
                     switch ($As) {
                         'DataSet' {
@@ -425,12 +421,10 @@ function Invoke-DBOQuery {
                     }
                 }
             } while ($Interactive)
-        }
-        catch {
+        } catch {
             # don't really need anything else here
             throw $_
-        }
-        finally {
+        } finally {
             # close the connection even when interrupted by Ctrl+C
             $dataConnection.Close()
             $dataConnection.Dispose()

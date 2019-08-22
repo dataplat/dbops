@@ -29,13 +29,11 @@ Register-PSFConfigValidation -Name "transaction" -ScriptBlock {
     try {
         if (([string]$Value) -in @('SingleTransaction', 'TransactionPerScript', 'NoTransaction')) {
             $Result.Value = [string]$Value
-        }
-        else {
+        } else {
             $Result.Message = "Allowed values: SingleTransaction, TransactionPerScript, NoTransaction"
             $Result.Success = $False
         }
-    }
-    catch {
+    } catch {
         $Result.Message = "Failed to convert value to string"
         $Result.Success = $False
     }
@@ -55,8 +53,7 @@ Register-PSFConfigValidation -Name "securestring" -ScriptBlock {
     }
     if ($Value -is [securestring]) {
         $Result.Value = $Value
-    }
-    else {
+    } else {
         $Result.Message = 'Only [securestring] is accepted'
         $Result.Success = $False
     }
@@ -76,13 +73,11 @@ Register-PSFConfigValidation -Name "hashtable" -ScriptBlock {
     try {
         if (([hashtable]$Value) -is [hashtable]) {
             $Result.Value = [hashtable]$Value
-        }
-        else {
+        } else {
             $Result.Message = "Only hashtables are allowed"
             $Result.Success = $False
         }
-    }
-    catch {
+    } catch {
         $Result.Message = "Failed to convert value to hashtable. Only hashtables are allowed."
         $Result.Success = $False
     }
@@ -103,13 +98,11 @@ Register-PSFConfigValidation -Name "connectionType" -ScriptBlock {
     try {
         if (([string]$Value) -is [string] -and [string]$Value -in $allowedTypes) {
             $Result.Value = [string]$Value
-        }
-        else {
+        } else {
             $Result.Message = $failMessage
             $Result.Success = $False
         }
-    }
-    catch {
+    } catch {
         $Result.Message = "Failed to convert value to string. $failMessage"
         $Result.Success = $False
     }
@@ -157,7 +150,7 @@ if ($typeData) {
             $cS = $this.ExecutionManager.ConnectionContext.ConnectionString.Split(';') | Where-Object { $_.Split('=')[0] -ne 'Database' }
             $cS += "Database=$($this.Name)"
             $connectionString = $cS -join ';'
-            Invoke-DBODeployment -InputObject $Package -ConnectionString $connectionString
+            Install-DBOPackage -InputObject $Package -ConnectionString $connectionString
         } -ErrorAction Ignore
     }
     if (!$typeData.Members.ContainsKey('DeployScript')) {
@@ -168,7 +161,7 @@ if ($typeData) {
             $cS = $this.ExecutionManager.ConnectionContext.ConnectionString.Split(';') | Where-Object { $_.Split('=')[0] -ne 'Database' }
             $cS += "Database=$($this.Name)"
             $connectionString = $cS -join ';'
-            Invoke-DBODeployment -ScriptPath $Path -ConnectionString $connectionString
+            Install-DBOSqlScript -ScriptPath $Path -ConnectionString $connectionString
         } -ErrorAction Ignore
     }
 }
