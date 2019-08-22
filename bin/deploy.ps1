@@ -42,7 +42,7 @@ $config = Get-DBOConfig -Path "$PSScriptRoot\dbops.config.json" -Configuration $
 #Merge custom parameters into a configuration
 $newConfig = @{}
 foreach ($key in ($PSBoundParameters.Keys)) {
-    if ($key -in [DBOpsConfig]::EnumProperties()) {
+    if ($key -in [DBOps.ConfigProperty].GetEnumNames()) {
         $newConfig.$key = $PSBoundParameters[$key]
     }
 }
@@ -62,8 +62,7 @@ foreach ($key in ($PSBoundParameters.Keys)) {
 
 if ($PSCmdlet.ShouldProcess($params.PackageFile, "Initiating the deployment of the package")) {
     Invoke-DBODeployment @params
-}
-else {
+} else {
     Invoke-DBODeployment @params -WhatIf
 }
 
