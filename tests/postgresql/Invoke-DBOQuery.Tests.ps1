@@ -9,8 +9,7 @@ if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
     Import-Module "$here\..\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
-}
-else {
+} else {
     # Is a part of a batch, output some eye-catching happiness
     Write-Host "Running PostgreSQL $commandName tests" -ForegroundColor Cyan
 }
@@ -58,10 +57,13 @@ Describe "Invoke-DBOQuery PostgreSQL tests" -Tag $commandName, IntegrationTests 
             $result.b | Should -Be 2, 4
         }
         It "should select NULL" {
-            $query = "SELECT NULL"
+            $query = "SELECT NULL, NULL::int, NULL::varchar, NULL::timestamp"
             $result = Invoke-DBOQuery -Query $query @connParams -As DataTable
-            $result.Columns.ColumnName | Should -Be @('Column1')
+            $result.Columns.ColumnName | Should -Be @('Column1', 'int4', 'varchar', 'timestamp')
             $result.Column1 | Should -Be ([DBNull]::Value)
+            $result.int4 | Should -Be ([DBNull]::Value)
+            $result.varchar | Should -Be ([DBNull]::Value)
+            $result.timestamp | Should -Be ([DBNull]::Value)
         }
         It "should run the query with semicolon" {
             $query = "SELECT 1 AS A, 2 AS B;
@@ -162,6 +164,13 @@ Describe "Invoke-DBOQuery PostgreSQL tests" -Tag $commandName, IntegrationTests 
             $result.a | Should Be 1
             $result.Column1 | Should Be 2
             $result.Column2 | Should Be 3
+        }
+        It "should select an array" {
+            $query = 'select (1,2) as a, ARRAY[3,4] as b'
+            $result = Invoke-DBOQuery -Query $query @connParams -As DataTable
+            $result.Columns.ColumnName | Should -Be @('a', 'b')
+            $result.a | Should -Be 1, 2
+            $result.b | Should -Be 3, 4
         }
     }
     Context "Negative tests" {
