@@ -57,6 +57,13 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
                 Join-PSFPath -Normalize Modules\dbops $file.Path | Should BeIn $testResults.Path
             }
         }
+        It "should contain external modules" {
+            $testResults = Get-ArchiveItem $packageName
+            foreach ($module in Get-Module dbops | Select-Object -ExpandProperty RequiredModules) {
+                $mName = $module.Name
+                Join-PSFPath -Normalize Modules "$mName\$mName.psd1" | Should BeIn $testResults.Path
+            }
+        }
         It "should contain config files" {
             $testResults = Get-ArchiveItem $packageName
             'dbops.config.json' | Should BeIn $testResults.Path
@@ -84,6 +91,53 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
         }
         It "should create a package file in the current folder" {
             $testResults = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -Name (Split-Path $packageName -Leaf)
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageName -Leaf)
+            $testResults.FullName | Should Be (Get-Item $packageName).FullName
+            $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
+            Test-Path $packageName | Should Be $true
+        }
+    }
+    Context "testing slim package contents" {
+        AfterAll {
+            if ((Test-Path $workFolder\*) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder\* }
+        }
+        It "should create a package file" {
+            $testResults = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -Name $packageName -Slim -Force
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageName -Leaf)
+            $testResults.FullName | Should Be (Get-Item $packageName).FullName
+            $testResults.ModuleVersion | Should Be $null
+            Test-Path $packageName | Should Be $true
+        }
+        It "should contain query files" {
+            $testResults = Get-ArchiveItem $packageName
+            'query1.sql' | Should BeIn $testResults.Name
+        }
+        It "should not contain module files" {
+            $testResults = Get-ArchiveItem $packageName
+            foreach ($file in Get-DBOModuleFileList) {
+                Join-PSFPath -Normalize Modules\dbops $file.Path | Should -Not -BeIn $testResults.Path
+            }
+        }
+        It "should not contain external modules" {
+            $testResults = Get-ArchiveItem $packageName
+            foreach ($module in Get-Module dbops | Select-Object -ExpandProperty RequiredModules) {
+                $mName = $module.Name
+                Join-PSFPath -Normalize Modules "$mName\$mName.psd1" | Should -Not -BeIn $testResults.Path
+            }
+        }
+        It "should contain config files" {
+            $testResults = Get-ArchiveItem $packageName
+            'dbops.config.json' | Should BeIn $testResults.Path
+            'dbops.package.json' | Should BeIn $testResults.Path
+        }
+        It "should contain deploy files" {
+            $testResults = Get-ArchiveItem $packageName
+            'Deploy.ps1' | Should BeIn $testResults.Path
+        }
+        It "should create a zip package based on name without extension" {
+            $testResults = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -Name ($packageName -replace '\.zip$', '') -Force
             $testResults | Should Not Be $null
             $testResults.Name | Should Be (Split-Path $packageName -Leaf)
             $testResults.FullName | Should Be (Get-Item $packageName).FullName

@@ -29,11 +29,13 @@ Register-PSFConfigValidation -Name "transaction" -ScriptBlock {
     try {
         if (([string]$Value) -in @('SingleTransaction', 'TransactionPerScript', 'NoTransaction')) {
             $Result.Value = [string]$Value
-        } else {
+        }
+        else {
             $Result.Message = "Allowed values: SingleTransaction, TransactionPerScript, NoTransaction"
             $Result.Success = $False
         }
-    } catch {
+    }
+    catch {
         $Result.Message = "Failed to convert value to string"
         $Result.Success = $False
     }
@@ -53,7 +55,8 @@ Register-PSFConfigValidation -Name "securestring" -ScriptBlock {
     }
     if ($Value -is [securestring]) {
         $Result.Value = $Value
-    } else {
+    }
+    else {
         $Result.Message = 'Only [securestring] is accepted'
         $Result.Success = $False
     }
@@ -73,11 +76,13 @@ Register-PSFConfigValidation -Name "hashtable" -ScriptBlock {
     try {
         if (([hashtable]$Value) -is [hashtable]) {
             $Result.Value = [hashtable]$Value
-        } else {
+        }
+        else {
             $Result.Message = "Only hashtables are allowed"
             $Result.Success = $False
         }
-    } catch {
+    }
+    catch {
         $Result.Message = "Failed to convert value to hashtable. Only hashtables are allowed."
         $Result.Success = $False
     }
@@ -98,11 +103,13 @@ Register-PSFConfigValidation -Name "connectionType" -ScriptBlock {
     try {
         if (([string]$Value) -is [string] -and [string]$Value -in $allowedTypes) {
             $Result.Value = [string]$Value
-        } else {
+        }
+        else {
             $Result.Message = $failMessage
             $Result.Success = $False
         }
-    } catch {
+    }
+    catch {
         $Result.Message = "Failed to convert value to string. $failMessage"
         $Result.Success = $False
     }
@@ -138,6 +145,7 @@ Set-PSFConfig -FullName dbops.mail.Subject -Value "DBOps deployment status" -Ini
 Set-PSFConfig -FullName dbops.security.encryptionkey -Value "~/.dbops.key" -Initialize -Description "Path to a custom encryption key used to encrypt/decrypt passwords. The key should be a binary file with a length of 128, 192 or 256 bits. Key will be generated automatically if not exists."
 Set-PSFConfig -FullName dbops.security.usecustomencryptionkey -Value ($PSVersionTable.Platform -eq 'Unix') -Validation bool -Initialize -Description "Determines whether to use a custom encryption key for storing passwords. Enabled by default only on Unix platforms."
 Set-PSFConfig -FullName dbops.rdbms.type -Value 'SqlServer' -Validation connectionType -Initialize -Description "Assumes a certain RDBMS as a default one for each command. SQLServer by default"
+Set-PSFConfig -FullName dbops.package.slim -Value $false -Validation bool -Initialize -Description "Decides whether to make the packages 'slim' and omit module files when creating the package. Default: false."
 
 # extensions for SMO
 $typeData = Get-TypeData -TypeName 'Microsoft.SqlServer.Management.Smo.Database'

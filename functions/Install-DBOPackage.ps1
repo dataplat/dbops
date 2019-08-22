@@ -114,19 +114,19 @@
 
     .EXAMPLE
         # Installs package using specific connection parameters
-        .\MyPackage.zip | Install-DBOPackage -SqlInstance 'myserver\instance1' -Database 'MyDb' -ExecutionTimeout 3600
+        '.\MyPackage.zip' | Install-DBOPackage -SqlInstance 'myserver\instance1' -Database 'MyDb' -ExecutionTimeout 3600
 
     .EXAMPLE
         # Installs package using custom logging parameters and schema tracking table
-        .\MyPackage.zip | Install-DBOPackage -SchemaVersionTable dbo.SchemaHistory -OutputFile .\out.log -Append
+        '.\MyPackage.zip' | Install-DBOPackage -SchemaVersionTable dbo.SchemaHistory -OutputFile .\out.log -Append
 
     .EXAMPLE
         # Installs package using custom configuration file
-        .\MyPackage.zip | Install-DBOPackage -ConfigurationFile .\localconfig.json
+        '.\MyPackage.zip' | Install-DBOPackage -ConfigurationFile .\localconfig.json
 
     .EXAMPLE
         # Installs package using variables instead of specifying values directly
-        .\MyPackage.zip | Install-DBOPackage -SqlInstance '#{server}' -Database '#{db}' -Variables @{server = 'myserver\instance1'; db = 'MyDb'}
+        '.\MyPackage.zip' | Install-DBOPackage -SqlInstance '#{server}' -Database '#{db}' -Variables @{server = 'myserver\instance1'; db = 'MyDb'}
 #>
     # ShouldProcess is handled in the underlying command
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSShouldProcess", "")]

@@ -104,19 +104,19 @@ function Register-DBOPackage {
 
     .EXAMPLE
         # Register package scripts in a target database using specific connection parameters
-        .\MyPackage.zip | Register-DBOPackage -SqlInstance 'myserver\instance1' -Database 'MyDb' -ExecutionTimeout 3600
+        '.\MyPackage.zip' | Register-DBOPackage -SqlInstance 'myserver\instance1' -Database 'MyDb' -ExecutionTimeout 3600
 
     .EXAMPLE
         # Register package scripts in a target database using custom logging parameters and schema tracking table
-        .\MyPackage.zip | Register-DBOPackage -SchemaVersionTable dbo.SchemaHistory -OutputFile .\out.log -Append
+        '.\MyPackage.zip' | Register-DBOPackage -SchemaVersionTable dbo.SchemaHistory -OutputFile .\out.log -Append
 
     .EXAMPLE
         # Register package scripts in a target database using custom configuration file
-        .\MyPackage.zip | Register-DBOPackage -ConfigurationFile .\localconfig.json
+        '.\MyPackage.zip' | Register-DBOPackage -ConfigurationFile .\localconfig.json
 
     .EXAMPLE
         # Register package scripts in a target database using variables instead of specifying values directly
-        .\MyPackage.zip | Register-DBOPackage -SqlInstance '#{server}' -Database '#{db}' -Variables @{server = 'myserver\instance1'; db = 'MyDb'}
+        '.\MyPackage.zip' | Register-DBOPackage -SqlInstance '#{server}' -Database '#{db}' -Variables @{server = 'myserver\instance1'; db = 'MyDb'}
 #>
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSShouldProcess", "")]
     [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'Default')]
