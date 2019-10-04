@@ -61,6 +61,7 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
         }
         BeforeEach {
             $pkg = [DBOpsPackage]::new()
+            $pkg.Slim = $true
             $pkg.SaveToFile($packageName, $true)
             $build = $pkg.NewBuild('1.0')
         }
@@ -89,6 +90,7 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
     Context "tests other methods" {
         BeforeEach {
             $pkg = [DBOpsPackage]::new()
+            $pkg.Slim = $true
             $build = $pkg.NewBuild('1.0')
             $f = [DBOpsFile]::new($fileObject1, $scriptPath1, $true)
             $build.AddScript($f)
@@ -256,7 +258,7 @@ Describe "DBOpsBuild class tests" -Tag $commandName, UnitTests, DBOpsBuild {
         $testResults = Get-ArchiveItem "$packageName.test.zip"
         $saveTestsErrors = 0
         #should trigger file updates for build files and module files
-        foreach ($testResult in ($oldResults | Where-Object { $_.Path -like (Join-PSFPath -Normalize 'content\1.0\success\*') -or $_.Path -like (Join-PSFPath -Normalize 'Modules\dbops\*')  } )) {
+        foreach ($testResult in ($oldResults | Where-Object { $_.Path -like (Join-PSFPath -Normalize 'content\1.0\success\*') -or $_.Path -like (Join-PSFPath -Normalize 'Modules\dbops\*') } )) {
             if ($testResult.LastWriteTime -ge ($testResults | Where-Object Path -eq $testResult.Path).LastWriteTime) {
                 It "Should have updated Modified date for file $($testResult.Path)" {
                     $testResult.LastWriteTime -lt ($testResults | Where-Object Path -eq $testResult.Path).LastWriteTime | Should Be $true
