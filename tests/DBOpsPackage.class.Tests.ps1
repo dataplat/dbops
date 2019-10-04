@@ -209,6 +209,28 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
             $pkg.RefreshModuleVersion()
             $pkg.ModuleVersion | Should Be (Get-Module dbops).Version
         }
+        It "Should test SetPreScripts method" {
+            $f = [DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize 'success\1.sql'), $true)
+            $f2 = [DBOpsFile]::new($fileObject2, (Join-PSFPath -Normalize 'success\1.sql'), $true)
+            # test one script
+            $pkg.SetPreScripts($f)
+            $pkg.PreScripts.FullName | Should Be $script1
+            # test two scripts
+            $pkg.SetPreScripts(@($f, $f2))
+            $pkg.PreScripts.FullName | Should Be $script1, $script2
+            # test two scripts
+        }
+        It "Should test GetPreScripts method" {
+            $f = [DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize 'success\1.sql'), $true)
+            $f2 = [DBOpsFile]::new($fileObject2, (Join-PSFPath -Normalize 'success\1.sql'), $true)
+            # test one script
+            $pkg.AddFile($f, 'PreScripts')
+            $pkg.GetPreScripts().FullName | Should Be $script1
+            # test two scripts
+            $pkg.AddFile(@($f, $f2), 'PreScripts')
+            $pkg.GetPreScripts().FullName | Should Be $script1, $script2
+            # test two scripts
+        }
         It "Should test ReadMetadata method" {
             $b = $pkg.NewBuild('1.0')
             $f = [DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize 'success\1.sql'), $true)
