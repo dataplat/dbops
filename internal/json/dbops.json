@@ -50,7 +50,7 @@
     "Internal": [
         "internal\\classes\\DBOps.enums.ps1",
         "internal\\functions\\Get-DbopsFile.ps1",
-        "internal\\functions\\Get-VariableTokens.ps1",
+        "internal\\functions\\Get-VariableToken.ps1",
         "internal\\functions\\Resolve-VariableToken.ps1",
         "internal\\functions\\Get-NewBuildNumber.ps1",
         "internal\\functions\\Get-ExternalLibrary.ps1",
