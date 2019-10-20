@@ -134,9 +134,17 @@ Describe "Invoke-DBOQuery tests" -Tag $commandName, IntegrationTests {
         }
         It "should run the query with custom variables" {
             $query = "SELECT '#{Test}' AS A, '#{Test2}' AS B UNION ALL SELECT '3' AS A, '4' AS B"
-            $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -As DataTable -Variables @{ Test = '1'; Test2 = '2'}
+            $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -As DataTable -Variables @{ Test = '1'; Test2 = '2' }
             $result.A | Should -Be '1', '3'
             $result.B | Should -Be '2', '4'
+        }
+        It "should run the query with custom variables and custom token template" {
+            Set-PSFConfig -FullName dbops.config.variabletoken -Value '\$(token)\$'
+            $query = "SELECT '`$Test`$' AS A, '`$Test2`$' AS B UNION ALL SELECT '3' AS A, '4' AS B"
+            $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -As DataTable -Variables @{ Test = '1'; Test2 = '2' }
+            $result.A | Should -Be '1', '3'
+            $result.B | Should -Be '2', '4'
+            (Get-PSFConfig -FullName dbops.config.variabletoken).ResetValue()
         }
         It "should connect to the server from a custom variable" {
             $query = "SELECT 1 AS A, 2 AS B UNION ALL SELECT 3 AS A, 4 AS B"
@@ -146,7 +154,7 @@ Describe "Invoke-DBOQuery tests" -Tag $commandName, IntegrationTests {
         }
         It "should run the query with custom parameters" {
             $query = "SELECT @p1 AS A, @p2 AS B"
-            $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Parameter @{ p1 = '1'; p2 = 'string'}
+            $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Parameter @{ p1 = '1'; p2 = 'string' }
             $result.A | Should -Be 1
             $result.B | Should -Be string
         }
@@ -192,7 +200,7 @@ Describe "Invoke-DBOQuery tests" -Tag $commandName, IntegrationTests {
         }
         It "should throw a connection timeout error" {
             $query = "SELECT 1/0"
-            { $result = Invoke-DBOQuery -Query $query -SqlInstance localhost:6493 -Credential $script:mssqlCredential -ConnectionTimeout 1} | Should throw "The server was not found or was not accessible"
+            { $result = Invoke-DBOQuery -Query $query -SqlInstance localhost:6493 -Credential $script:mssqlCredential -ConnectionTimeout 2 } | Should throw "The server was not found or was not accessible"
         }
         It "should fail when parameters are of a wrong type" {
             { Invoke-DBOQuery -Query 'SELECT 1/@foo' -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Parameter @{ foo = 'bar' } -Silent } | Should throw 'Conversion failed'

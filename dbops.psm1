@@ -116,6 +116,32 @@ Register-PSFConfigValidation -Name "connectionType" -ScriptBlock {
     return $Result
 }
 
+Register-PSFConfigValidation -Name "tokenRegex" -ScriptBlock {
+    Param (
+        $Value
+    )
+    $failMessage = "Should contain capture group (token)"
+    $Result = New-Object PSObject -Property @{
+        Success = $True
+        Value   = $null
+        Message = ""
+    }
+    try {
+        if (([string]$Value) -is [string] -and [string]$Value -like '*(token)*') {
+            $Result.Value = [string]$Value
+        }
+        else {
+            $Result.Message = $failMessage
+            $Result.Success = $False
+        }
+    }
+    catch {
+        $Result.Message = "Failed to convert value to string. $failMessage"
+        $Result.Success = $False
+    }
+    return $Result
+}
+
 # defining defaults
 
 Set-PSFConfig -FullName dbops.ApplicationName -Value "dbops" -Initialize -Description "Application name in the connection string"
@@ -145,7 +171,8 @@ Set-PSFConfig -FullName dbops.mail.Subject -Value "DBOps deployment status" -Ini
 Set-PSFConfig -FullName dbops.security.encryptionkey -Value "~/.dbops.key" -Initialize -Description "Path to a custom encryption key used to encrypt/decrypt passwords. The key should be a binary file with a length of 128, 192 or 256 bits. Key will be generated automatically if not exists."
 Set-PSFConfig -FullName dbops.security.usecustomencryptionkey -Value ($PSVersionTable.Platform -eq 'Unix') -Validation bool -Initialize -Description "Determines whether to use a custom encryption key for storing passwords. Enabled by default only on Unix platforms."
 Set-PSFConfig -FullName dbops.rdbms.type -Value 'SqlServer' -Validation connectionType -Initialize -Description "Assumes a certain RDBMS as a default one for each command. SQLServer by default"
-Set-PSFConfig -FullName dbops.package.slim -Value $false -Validation bool -Initialize -Description "Decides whether to make the packages 'slim' and omit module files when creating the package. Default: false."
+Set-PSFConfig -FullName dbops.package.slim -Value $false -Validation bool -Initialize -Description "Decides whether to make the packages 'slim' and omit module files when creating the package. Default: `$false"
+Set-PSFConfig -FullName dbops.config.variabletoken -Value "\#\{(token)\}" -Validation tokenRegex -Initialize -Description "Variable replacement token. Regex string that will be replaced with values from -Variables parameters. Default: \#\{(token)\}"
 
 # extensions for SMO
 $typeData = Get-TypeData -TypeName 'Microsoft.SqlServer.Management.Smo.Database'
