@@ -681,7 +681,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             $testResults = Install-DBOPackage "$workFolder\pv1.zip" -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Silent
             $testResults.Successful | Should Be $true
             $absolutePath = Get-Item $v1scripts | ForEach-Object { Join-PSFPath 1.0 ($_.FullName -replace '^/|^\\|^\\\\|\.\\|\./|:', "") }
-            $testResults.Scripts.Name | Should BeIn $absolutePath
+            $testResults.Scripts.Name | Should BeIn ($absolutePath -replace '/', '\')
             $testResults.SqlInstance | Should Be $script:mssqlInstance
             $testResults.Database | Should Be $newDbName
             $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
