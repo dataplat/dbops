@@ -81,6 +81,12 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
             $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
             Test-Path $packageName | Should Be $true
         }
+        It "should create proper package with abolute path" {
+            $p = New-DBOPackage -Path $packageName -ScriptPath "$here\etc\query1.sql" -Force -Absolute -Build 1;
+            $testResults = Get-ArchiveItem $p
+            $path = $here.Replace(':', '') -replace '^/', ''
+            Join-PSFPath content\1 $path etc\query1.sql -Normalize | Should -BeIn $testResults.Path
+        }
     }
     Context "current folder tests" {
         BeforeAll {
@@ -190,7 +196,7 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
             $config.Variables | Should Be $null
         }
         It "should be able to store variables" {
-            $null = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -Name $packageName -Configuration @{ ApplicationName = 'FooBar' } -Variables @{ MyVar = 'foo'; MyBar = 1; MyNull = $null} -Force
+            $null = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -Name $packageName -Configuration @{ ApplicationName = 'FooBar' } -Variables @{ MyVar = 'foo'; MyBar = 1; MyNull = $null } -Force
             $null = Expand-ArchiveItem -Path $packageName -DestinationPath $workFolder -Item 'dbops.config.json'
             $config = Get-Content "$workFolder\dbops.config.json" | ConvertFrom-Json
             $config.ApplicationName | Should Be 'FooBar'

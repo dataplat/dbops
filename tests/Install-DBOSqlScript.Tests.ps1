@@ -123,9 +123,9 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy version 1.0" {
-            $testResults = Install-DBOSqlScript -Absolute -ScriptPath $v1scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+            $testResults = Install-DBOSqlScript -ScriptPath $v1scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
             $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
+            $testResults.Scripts.Name | Should Be (Get-Item $v1scripts).Name
             $testResults.SqlInstance | Should Be $script:mssqlInstance
             $testResults.Database | Should Be $newDbName
             $testResults.SourcePath | Should Be $v1scripts
@@ -147,9 +147,9 @@ Describe "Install-DBOSqlScript integration tests" -Tag $commandName, Integration
             'd' | Should Not BeIn $testResults.name
         }
         It "should deploy version 2.0" {
-            $testResults = Install-DBOSqlScript -Absolute -ScriptPath $v2scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+            $testResults = Install-DBOSqlScript -ScriptPath $v2scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
             $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be (Resolve-Path $v2scripts).Path
+            $testResults.Scripts.Name | Should Be (Get-Item $v2scripts).Name
             $testResults.SqlInstance | Should Be $script:mssqlInstance
             $testResults.Database | Should Be $newDbName
             $testResults.SourcePath | Should Be $v2scripts
