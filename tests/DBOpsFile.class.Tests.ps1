@@ -152,6 +152,7 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
     Context "tests other DBOpsFile methods" {
         BeforeEach {
             $pkg = [DBOpsPackage]::new()
+            $pkg.Slim = $true
             $build = $pkg.NewBuild('1.0')
             $pkg.SaveToFile($packageName, $true)
             $file = [DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize 'success\1.sql'), $true)

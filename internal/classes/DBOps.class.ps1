@@ -358,7 +358,7 @@ class DBOpsPackageBase : DBOps {
         return $false
     }
     [string] ExportToJson() {
-        $exportObject = @{} | Select-Object -Property $this.PropertiesToExport
+        $exportObject = @{ } | Select-Object -Property $this.PropertiesToExport
         foreach ($type in $exportObject.psobject.Properties.name) {
             $property = $this.PsObject.Properties | Where-Object Name -eq $type
             if ($this.$type -is [DBOps]) {
@@ -1005,7 +1005,13 @@ class DBOpsFile : DBOps {
         return $dPath.Replace('/', '\')
     }
     [string] ExportToJson() {
-        return $this | Select-Object -Property $this.PropertiesToExport | ConvertTo-Json -Depth 1
+        $expObject = @{ } | Select-Object -Property $this.PropertiesToExport
+        foreach ($prop in $this.PropertiesToExport) {
+            $expObject.$prop = $this.$prop
+        }
+        # replace symbols in PackagePath
+        $expObject.PackagePath = $this.PackagePath -replace ':', ''
+        return $expObject | ConvertTo-Json -Depth 1
     }
     #Writes current script into the archive file
     [void] Save([ZipArchive]$zipFile) {
@@ -1138,7 +1144,7 @@ class DBOpsConfig : DBOps {
 
     #Methods
     [hashtable] AsHashtable () {
-        $ht = @{}
+        $ht = @{ }
         foreach ($property in $this.psobject.Properties.Name) {
             $ht += @{ $property = $this.$property }
         }
@@ -1175,7 +1181,7 @@ class DBOpsConfig : DBOps {
     }
     # Returns a JSON string representin the object
     [string] ExportToJson() {
-        $outObject = @{}
+        $outObject = @{ }
         foreach ($prop in [DBOpsConfig]::EnumProperties()) {
             if ($this.$prop -is [securestring]) {
                 $outObject += @{ $prop = $this.$prop | ConvertTo-EncryptedString }
@@ -1188,7 +1194,8 @@ class DBOpsConfig : DBOps {
                     }
                 }
             }
-            else { $outObject += @{ $prop = $this.$prop }
+            else {
+                $outObject += @{ $prop = $this.$prop }
             }
         }
         return $outObject | ConvertTo-Json -Depth 3
@@ -1251,7 +1258,7 @@ class DBOpsConfig : DBOps {
         foreach ($key in $config.Keys) {
             if ($key -eq 'Variables') {
                 # create new hashtable with all the existing variables
-                $hashVar = @{}
+                $hashVar = @{ }
                 foreach ($variable in $this.Variables.psobject.Properties.Name) {
                     $hashVar += @{
                         $variable = $this.Variables.$variable
@@ -1304,6 +1311,6 @@ class DBOpsConfig : DBOps {
 
     #Returns deploy file name
     static [object]GetDeployFile() {
-        return (Get-DBOModuleFileList | Where-Object { $_.Type -eq 'Misc' -and $_.Name -eq "Deploy.ps1"})
+        return (Get-DBOModuleFileList | Where-Object { $_.Type -eq 'Misc' -and $_.Name -eq "Deploy.ps1" })
     }
 }

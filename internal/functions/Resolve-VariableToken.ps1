@@ -18,20 +18,21 @@
     [CmdletBinding()]
     Param (
         [object[]]$InputObject,
-        [object]$Runtime
+        [object]$Runtime,
+        [string]$TokenRegex = (Get-DBODefaultSetting -Name config.variabletoken -Value)
     )
     foreach ($obj in $InputObject) {
         if ($obj -is [string]) {
             $output = $obj
-            foreach ($token in (Get-VariableTokens $obj)) {
+            foreach ($token in (Get-VariableToken -InputString $obj -RegexString $TokenRegex.Replace('token', '[a-zA-Z0-9\.]+'))) {
                 #Replace variables found in the config
-                $tokenRegEx = "\#\{$token\}"
+                $tokenRegExString = $TokenRegex.Replace('token', [Regex]::Escape($token))
                 if ($Runtime) {
                     if ($Runtime -is [hashtable]) { $variableList = $Runtime.Keys }
                     else { $variableList = $Runtime.psobject.Properties.Name }
                     if ($variableList -contains $token) {
                         Write-PSFMessage -Level Debug -Message "Replacing token $token"
-                        $output = $output -replace $tokenRegEx, $Runtime.$token
+                        $output = $output -replace $tokenRegExString, $Runtime.$token
                     }
                 }
             }

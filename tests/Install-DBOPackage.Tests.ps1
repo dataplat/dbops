@@ -592,7 +592,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
     }
     Context "testing deployment using variables in config" {
         BeforeAll {
-            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force -Configuration @{SqlInstance = '#{srv}'; Database = '#{db}'}
+            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force -Configuration @{SqlInstance = '#{srv}'; Database = '#{db}' }
             $outputFile = "$workFolder\log.txt"
             $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
         }
@@ -602,7 +602,7 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
         It "should deploy version 1.0" {
             $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Install-DBOPackage "$workFolder\pv1.zip" -Credential $script:mssqlCredential -Variables @{srv = $script:mssqlInstance; db = $newDbName} -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $testResults = Install-DBOPackage "$workFolder\pv1.zip" -Credential $script:mssqlCredential -Variables @{srv = $script:mssqlInstance; db = $newDbName } -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -664,6 +664,44 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             'b' | Should BeIn $testResults.name
             'c' | Should Not BeIn $testResults.name
             'd' | Should Not BeIn $testResults.name
+        }
+    }
+    Context "testing deployment from a package with an absolute path" {
+        BeforeAll {
+            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force -Absolute
+            $outputFile = "$workFolder\log.txt"
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+        }
+        AfterAll {
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
+        }
+        It "should deploy version 1.0" {
+            $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $rowsBefore = ($before | Measure-Object).Count
+            $testResults = Install-DBOPackage "$workFolder\pv1.zip" -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -Silent
+            $testResults.Successful | Should Be $true
+            $absolutePath = Get-Item $v1scripts | ForEach-Object { Join-PSFPath 1.0 ($_.FullName -replace '^/|^\\|^\\\\|\.\\|\./|:', "") }
+            $testResults.Scripts.Name | Should BeIn ($absolutePath -replace '/', '\')
+            $testResults.SqlInstance | Should Be $script:mssqlInstance
+            $testResults.Database | Should Be $newDbName
+            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
+            $testResults.ConnectionType | Should Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
+            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
+
+            #Verifying objects
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            'SchemaVersions' | Should BeIn $testResults.name
+            'a' | Should BeIn $testResults.name
+            'b' | Should BeIn $testResults.name
+            'c' | Should Not BeIn $testResults.name
+            'd' | Should Not BeIn $testResults.name
+            ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 3)
         }
     }
 }
