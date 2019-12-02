@@ -88,6 +88,7 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
         }
         BeforeEach {
             $pkg = [DBOpsPackage]::new()
+            $pkg.Slim = $true
             $pkg.SaveToFile($packageName, $true)
         }
         It "Should test GetBuilds method" {
@@ -205,29 +206,53 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
         It "Should test GetPackagePath method" {
             $pkg.GetPackagePath() | Should Be ''
         }
-        It "Should test RefreshModuleVersion method" {
-            $pkg.RefreshModuleVersion()
-            $pkg.ModuleVersion | Should Be (Get-Module dbops).Version
-        }
         It "Should test SetPreScripts method" {
             $f = [DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize 'success\1.sql'), $true)
-            $f2 = [DBOpsFile]::new($fileObject2, (Join-PSFPath -Normalize 'success\1.sql'), $true)
+            $f2 = [DBOpsFile]::new($fileObject2, (Join-PSFPath -Normalize '2.sql'), $true)
             # test one script
             $pkg.SetPreScripts($f)
-            $pkg.PreScripts.FullName | Should Be $script1
+            $pkg.PreScripts.Scripts.FullName | Should Be $script1
             # test two scripts
             $pkg.SetPreScripts(@($f, $f2))
-            $pkg.PreScripts.FullName | Should Be $script1, $script2
+            $pkg.PreScripts.Scripts.FullName | Should Be $script1, $script2
         }
         It "Should test GetPreScripts method" {
             $f = [DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize 'success\1.sql'), $true)
-            $f2 = [DBOpsFile]::new($fileObject2, (Join-PSFPath -Normalize 'success\1.sql'), $true)
+            $f2 = [DBOpsFile]::new($fileObject2, (Join-PSFPath -Normalize '2.sql'), $true)
             # test one script
-            $pkg.AddFile($f, 'PreScripts')
+            $preBuild = [DBOpsBuild]::new('.dbops.prescripts')
+            $preBuild.AddScript($f)
+            $pkg.PreScripts = $preBuild
             $pkg.GetPreScripts().FullName | Should Be $script1
             # test two scripts
-            $pkg.AddFile(@($f, $f2), 'PreScripts')
+            $preBuild = [DBOpsBuild]::new('.dbops.prescripts')
+            $preBuild.AddScript(@($f, $f2))
+            $pkg.PreScripts = $preBuild
             $pkg.GetPreScripts().FullName | Should Be $script1, $script2
+        }
+        It "Should test SetPostScripts method" {
+            $f = [DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize 'success\1.sql'), $true)
+            $f2 = [DBOpsFile]::new($fileObject2, (Join-PSFPath -Normalize '2.sql'), $true)
+            # test one script
+            $pkg.SetPostScripts($f)
+            $pkg.PostScripts.Scripts.FullName | Should Be $script1
+            # test two scripts
+            $pkg.SetPostScripts(@($f, $f2))
+            $pkg.PostScripts.Scripts.FullName | Should Be $script1, $script2
+        }
+        It "Should test GetPostScripts method" {
+            $f = [DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize 'success\1.sql'), $true)
+            $f2 = [DBOpsFile]::new($fileObject2, (Join-PSFPath -Normalize '2.sql'), $true)
+            # test one script
+            $postBuild = [DBOpsBuild]::new('.dbops.postscripts')
+            $postBuild.AddScript($f)
+            $pkg.PostScripts = $postBuild
+            $pkg.GetPostScripts().FullName | Should Be $script1
+            # test two scripts
+            $postBuild = [DBOpsBuild]::new('.dbops.postscripts')
+            $postBuild.AddScript(@($f, $f2))
+            $pkg.PostScripts = $postBuild
+            $pkg.GetPostScripts().FullName | Should Be $script1, $script2
         }
         It "Should test ReadMetadata method" {
             $b = $pkg.NewBuild('1.0')
@@ -272,6 +297,19 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
             $config = @{ SchemaVersionTable = 'dbo.NewTable' } | ConvertTo-Json -Depth 1
             { $pkg.SetConfiguration([DBOpsConfig]::new($config)) } | Should Not Throw
             $pkg.Configuration.SchemaVersionTable | Should Be 'dbo.NewTable'
+        }
+    }
+    Context "should validate DBOpsPackage Save methods" {
+        AfterAll {
+            if (Test-Path $packageName) { Remove-Item $packageName }
+        }
+        BeforeAll {
+            $pkg = [DBOpsPackage]::new()
+            $pkg.SaveToFile($packageName, $true)
+        }
+        It "Should test RefreshModuleVersion method" {
+            $pkg.RefreshModuleVersion()
+            $pkg.ModuleVersion | Should Be (Get-Module dbops).Version
         }
         $oldResults = Get-ArchiveItem $packageName
         #Sleep 1 second to ensure that modification date is changed

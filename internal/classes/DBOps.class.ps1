@@ -167,8 +167,8 @@ class DBOpsPackageBase : DBOps {
     [System.Collections.Generic.List[DBOpsBuild]]$Builds
     [string]$ScriptDirectory
     [DBOpsFile]$DeployFile
-    [System.Collections.Generic.List[DBOpsFile]]$PostScripts
-    [System.Collections.Generic.List[DBOpsFile]]$PreScripts
+    [DBOpsBuild]$PostScripts
+    [DBOpsBuild]$PreScripts
     [DBOpsFile]$ConfigurationFile
     [DBOpsConfig]$Configuration
     [string]$Version
@@ -530,30 +530,26 @@ class DBOpsPackageBase : DBOps {
 
     #Sets the package prescripts
     [void] SetPreScripts([DBOpsFile[]]$scripts) {
-        $pScripts = [System.Collections.Generic.List[DBOpsFile]]::new()
-        foreach ($s in $scripts) {
-            $pscripts.Add($s)
-        }
-        $this.PreScripts = $pScripts
+        $preBuild = [DBOpsBuild]::new('.dbops.prescripts')
+        $preBuild.AddScript($scripts)
+        $this.PreScripts = $preBuild
     }
 
     #Sets the package postscripts
     [void] SetPostScripts([DBOpsFile[]]$scripts) {
-        $pScripts = [System.Collections.Generic.List[DBOpsFile]]::new()
-        foreach ($s in $scripts) {
-            $pscripts.Add($s)
-        }
-        $this.PostScripts = $pScripts
+        $postBuild = [DBOpsBuild]::new('.dbops.postscripts')
+        $postBuild.AddScript($scripts)
+        $this.PostScripts = $postBuild
     }
 
     #Gets the package prescripts
     [System.Collections.Generic.List[DBOpsFile]] GetPreScripts() {
-        return $this.PostScripts
+        return $this.PreScripts.Scripts
     }
 
     #Gets the package postscripts
     [System.Collections.Generic.List[DBOpsFile]] GetPostScripts() {
-        return $this.PostScripts
+        return $this.PostScripts.Scripts
     }
 }
 ########################
