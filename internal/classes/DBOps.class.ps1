@@ -83,6 +83,9 @@ class DBOps {
 
     # managing files inside the collections
     hidden [void] AddFile ([DBOpsFile[]]$DBOpsFile, [string]$CollectionName) {
+        $this.AddFile($DBOpsFile, $CollectionName, $false)
+    }
+    hidden [void] AddFile ([DBOpsFile[]]$DBOpsFile, [string]$CollectionName, $Force) {
         foreach ($file in $DBOpsFile) {
             $file.Parent = $this
             if ($CollectionName -notin $this.PsObject.Properties.Name) {
@@ -90,7 +93,12 @@ class DBOps {
             }
             foreach ($collectionItem in $this.$CollectionName) {
                 if ($collectionItem.PackagePath -eq $file.PackagePath) {
-                    $this.ThrowException("File $($file.PackagePath) already exists in $this.$CollectionName.", 'InvalidArgument')
+                    if ($Force) {
+                        $this.RemoveFile($collectionItem, $CollectionName)
+                    }
+                    else {
+                        $this.ThrowException("File $($file.PackagePath) already exists in $this.$CollectionName.", 'InvalidArgument')
+                    }
                 }
             }
             if (($this.PsObject.Properties | Where-Object Name -eq $CollectionName).TypeNameOfValue -like '*`[`]') {
@@ -159,8 +167,8 @@ class DBOpsPackageBase : DBOps {
     [System.Collections.Generic.List[DBOpsBuild]]$Builds
     [string]$ScriptDirectory
     [DBOpsFile]$DeployFile
-    [DBOpsFile]$PostDeployFile
-    [DBOpsFile]$PreDeployFile
+    [System.Collections.Generic.List[DBOpsFile]]$PostScripts
+    [System.Collections.Generic.List[DBOpsFile]]$PreScripts
     [DBOpsFile]$ConfigurationFile
     [DBOpsConfig]$Configuration
     [string]$Version
@@ -194,7 +202,7 @@ class DBOpsPackageBase : DBOps {
     #hidden properties
     hidden [string]$FileName
     hidden [string]$PackagePath
-    hidden [array]$PropertiesToExport = @('ScriptDirectory', 'DeployFile', 'PreDeployFile', 'PostDeployFile', 'ConfigurationFile', 'Builds')
+    hidden [array]$PropertiesToExport = @('ScriptDirectory', 'DeployFile', 'PreScripts', 'PostScripts', 'ConfigurationFile', 'Builds')
 
     DBOpsPackageBase () {
         $this.Builds = [System.Collections.Generic.List[DBOpsBuild]]::new()
@@ -428,7 +436,7 @@ class DBOpsPackageBase : DBOps {
                 #Write package file
                 $this.SavePackageFile($zip)
                 #Write files
-                foreach ($type in @('DeployFile', 'PreDeployFile', 'PostDeployFile', 'Builds')) {
+                foreach ($type in @('DeployFile', 'PreScripts', 'PostScripts', 'Builds')) {
                     foreach ($collectionItem in $this.$type) {
                         $collectionItem.Save($zip)
                     }
@@ -519,6 +527,34 @@ class DBOpsPackageBase : DBOps {
         }
         return $jsonObject
     }
+
+    #Sets the package prescripts
+    [void] SetPreScripts([DBOpsFile[]]$scripts) {
+        $pScripts = [System.Collections.Generic.List[DBOpsFile]]::new()
+        foreach ($s in $scripts) {
+            $pscripts.Add($s)
+        }
+        $this.PreScripts = $pScripts
+    }
+
+    #Sets the package postscripts
+    [void] SetPostScripts([DBOpsFile[]]$scripts) {
+        $pScripts = [System.Collections.Generic.List[DBOpsFile]]::new()
+        foreach ($s in $scripts) {
+            $pscripts.Add($s)
+        }
+        $this.PostScripts = $pScripts
+    }
+
+    #Gets the package prescripts
+    [System.Collections.Generic.List[DBOpsFile]] GetPreScripts() {
+        return $this.PostScripts
+    }
+
+    #Gets the package postscripts
+    [System.Collections.Generic.List[DBOpsFile]] GetPostScripts() {
+        return $this.PostScripts
+    }
 }
 ########################
 # DBOpsPackage class #
@@ -574,7 +610,7 @@ class DBOpsPackage : DBOpsPackageBase {
                     }
                 }
                 # Processing root files
-                foreach ($file in @('DeployFile', 'PreDeployFile', 'PostDeployFile', 'ConfigurationFile')) {
+                foreach ($file in @('DeployFile', 'PreScripts', 'PostScripts', 'ConfigurationFile')) {
                     $jsonFileObject = $jsonObject.$file
                     if ($jsonFileObject) {
                         $zipFileEntry = $zip.Entries | Where-Object { (Join-PSFPath -Normalize $_.FullName) -eq $jsonFileObject.packagePath }
@@ -649,7 +685,7 @@ class DBOpsPackageFile : DBOpsPackageBase {
                 }
             }
             # Processing root files
-            foreach ($fileType in @('DeployFile', 'PreDeployFile', 'PostDeployFile', 'ConfigurationFile')) {
+            foreach ($fileType in @('DeployFile', 'PreScripts', 'PostScripts', 'ConfigurationFile')) {
                 $jsonFileObject = $jsonObject.$fileType
                 if ($jsonFileObject) {
                     $filePackagePath = Join-Path $folderPath $jsonFileObject.packagePath

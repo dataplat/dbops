@@ -193,7 +193,7 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
             $j.ConfigurationFile | Should Not BeNullOrEmpty
             $j.DeployFile | Should Not BeNullOrEmpty
             $j.ScriptDirectory | Should Not BeNullOrEmpty
-            $j.psobject.properties.name | Should -BeIn @('ScriptDirectory', 'DeployFile', 'PreDeployFile', 'PostDeployFile', 'ConfigurationFile', 'Builds')
+            $j.psobject.properties.name | Should -BeIn @('ScriptDirectory', 'DeployFile', 'PreScripts', 'PostScripts', 'ConfigurationFile', 'Builds')
             foreach ($build in $j.Builds) {
                 $build.psobject.properties.name | Should -BeIn @('Scripts', 'Build', 'PackagePath', 'CreatedDate')
                 foreach ($script in $build.Scripts) {
@@ -218,7 +218,6 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
             # test two scripts
             $pkg.SetPreScripts(@($f, $f2))
             $pkg.PreScripts.FullName | Should Be $script1, $script2
-            # test two scripts
         }
         It "Should test GetPreScripts method" {
             $f = [DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize 'success\1.sql'), $true)
@@ -229,7 +228,6 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
             # test two scripts
             $pkg.AddFile(@($f, $f2), 'PreScripts')
             $pkg.GetPreScripts().FullName | Should Be $script1, $script2
-            # test two scripts
         }
         It "Should test ReadMetadata method" {
             $b = $pkg.NewBuild('1.0')
