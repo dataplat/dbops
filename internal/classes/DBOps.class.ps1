@@ -167,8 +167,8 @@ class DBOpsPackageBase : DBOps {
     [System.Collections.Generic.List[DBOpsBuild]]$Builds
     [string]$ScriptDirectory
     [DBOpsFile]$DeployFile
-    [DBOpsBuild]$PostScripts
-    [DBOpsBuild]$PreScripts
+    [System.Collections.Generic.List[DBOpsBuild]]$PostScripts
+    [System.Collections.Generic.List[DBOpsBuild]]$PreScripts
     [DBOpsFile]$ConfigurationFile
     [DBOpsConfig]$Configuration
     [string]$Version
@@ -291,14 +291,25 @@ class DBOpsPackageBase : DBOps {
         }
     }
     [void] AddBuild ([DBOpsBuild]$build) {
-        if ($this.builds | Where-Object { $_.build -eq $build.build }) {
+        $this.AddBuildToCollection($build, 'builds')
+        $this.Version = $build.Build
+    }
+    [void] AddBuildToCollection ([DBOpsBuild]$build, $collection) {
+        if ($this.$collection | Where-Object { $_.build -eq $build.build }) {
             $this.ThrowException("Build $build already exists.", 'InvalidArgument')
         }
         else {
             $build.Parent = $this
-            $this.builds.Add($build)
-            $this.Version = $build.Build
+            $this.$collection.Add($build)
         }
+    }
+    [void] SetBuildCollection ([System.Collections.Generic.List[DBOpsBuild]]$build, $collection) {
+        $buildCollection = [System.Collections.Generic.List[DBOpsBuild]]::new()
+        foreach ($b in $build) {
+            $b.Parent = $this
+            $buildCollection.Add($b)
+        }
+        $this.$collection = $buildCollection
     }
 
     [void] RemoveBuild ([System.Collections.Generic.List[DBOpsBuild]]$build) {
@@ -532,14 +543,14 @@ class DBOpsPackageBase : DBOps {
     [void] SetPreScripts([DBOpsFile[]]$scripts) {
         $preBuild = [DBOpsBuild]::new('.dbops.prescripts')
         $preBuild.AddScript($scripts)
-        $this.PreScripts = $preBuild
+        $this.SetBuildCollection($preBuild, 'PreScripts')
     }
 
     #Sets the package postscripts
     [void] SetPostScripts([DBOpsFile[]]$scripts) {
         $postBuild = [DBOpsBuild]::new('.dbops.postscripts')
         $postBuild.AddScript($scripts)
-        $this.PostScripts = $postBuild
+        $this.SetBuildCollection($postBuild, 'PostScripts')
     }
 
     #Gets the package prescripts

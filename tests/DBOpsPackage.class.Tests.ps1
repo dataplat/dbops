@@ -317,7 +317,10 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
         It "should test Save*/Alter methods" {
             $b = $pkg.NewBuild('1.0')
             $f = [DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize 'success\1.sql'), $true)
-            $f.SetContent([DBOpsHelper]::GetBinaryFile($script1))
+            $preFile = [DBOpsFile]::new($fileObject2, (Join-PSFPath -Normalize 'success\2.sql'), $true)
+            $postFile = [DBOpsFile]::new($fileObject3, (Join-PSFPath -Normalize 'success\3.sql'), $true)
+            $pkg.SetPreScripts($preFile)
+            $pkg.SetPostScripts($postFile)
             $b.AddFile($f, 'Scripts')
             { $pkg.SaveToFile($packageName) } | Should Throw #File already exists
             { $pkg.Alter() } | Should Not Throw
@@ -329,6 +332,8 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
             'dbops.package.json' | Should BeIn $testResults.Path
             'Deploy.ps1' | Should BeIn $testResults.Path
             Join-PSFPath -Normalize 'content\1.0\success\1.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\.dbops.prescripts\success\2.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\.dbops.postscripts\success\3.sql' | Should BeIn $testResults.Path
         }
         # Testing file contents to be updated by the Save method
         $testResults = Get-ArchiveItem $packageName
