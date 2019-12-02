@@ -287,9 +287,10 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
         It "should deploy version 1.0 with prescripts" {
             $testResults = Install-DBOPackage $prePackage -Build '1.0' -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
             $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be $v1Journal
+            $testResults.Scripts.Name | Should Be '.dbops.prescripts\2.sql', $v1Journal
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
-            '.dbops.prescript\2.sql' | Should BeIn $testResults.DeploymentLog
+            "Executing Database Server script '.dbops.prescripts\2.sql'" | Should BeIn $testResults.DeploymentLog
+            "Executing Database Server script '$v1Journal'" | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
             $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
@@ -303,9 +304,10 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
         It "should deploy version 1.0 with postscripts" {
             $testResults = Install-DBOPackage $postPackage -Build '1.0' -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
             $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be $v1Journal
+            $testResults.Scripts.Name | Should Be $v1Journal, '.dbops.postscripts\2.sql'
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
-            '.dbops.postscript\2.sql' | Should BeIn $testResults.DeploymentLog
+            "Executing Database Server script '.dbops.postscripts\2.sql'" | Should BeIn $testResults.DeploymentLog
+            "Executing Database Server script '$v1Journal'" | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
             $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
