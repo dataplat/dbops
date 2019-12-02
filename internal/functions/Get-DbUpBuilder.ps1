@@ -4,6 +4,8 @@ function Get-DbUpBuilder {
         [Parameter(Mandatory)]
         [object]$Connection,
         [string]$Schema,
+        [object[]]$Script,
+        [object]$Config,
         [DBOps.ConnectionType]$Type
     )
     $dbUp = [DbUp.DeployChanges]::To
@@ -51,5 +53,24 @@ function Get-DbUpBuilder {
         Stop-PSFFunction -Message "Unknown type $Type" -EnableException $true
         return
     }
+    # Add deployment scripts to the object
+    $dbUp = [StandardExtensions]::WithScripts($dbUp, $Script)
+
+    # Disable automatic sorting by using a custom comparer
+    $comparer = [DBOpsScriptComparer]::new($Script.Name)
+    $dbUp = [StandardExtensions]::WithScriptNameComparer($dbUp, $comparer)
+
+    # Disable variable replacement
+    $dbUp = [StandardExtensions]::WithVariablesDisabled($dbUp)
+
+    # Transaction handling
+    if ($Config.DeploymentMethod -eq 'SingleTransaction') {
+        $dbUp = [StandardExtensions]::WithTransaction($dbUp)
+    }
+    elseif ($Config.DeploymentMethod -eq 'TransactionPerScript') {
+        $dbUp = [StandardExtensions]::WithTransactionPerScript($dbUp)
+    }
+    # Adding execution timeout - defaults to unlimited execution
+    $dbUp = [StandardExtensions]::WithExecutionTimeout($dbUp, [timespan]::FromSeconds($config.ExecutionTimeout))
     return $dbUp
 }

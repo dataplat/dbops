@@ -87,7 +87,61 @@
         [object]$Configuration,
         [switch]$RegisterOnly
     )
-    begin {}
+    begin {
+        Function Get-DeploymentScript {
+            Param (
+                $Script,
+                $Variables
+            )
+            $scriptDeploymentPath = $Script.GetDeploymentPath()
+            Write-PSFMessage -Level Debug -Message "Adding script $scriptDeploymentPath"
+            # Replace tokens in the scripts
+            $scriptContent = Resolve-VariableToken -InputObject $Script.GetContent() -Runtime $Variables
+            return [DbUp.Engine.SqlScript]::new($scriptDeploymentPath, $scriptContent)
+        }
+        Function Initialize-DbUpBuilder {
+            Param (
+                $Script,
+                $Connection,
+                $Log,
+                $Config,
+                $Type,
+                $Status,
+                $Journal
+            )
+            # Create DbUpBuilder based on the connection
+            $dbUp = Get-DbUpBuilder -Connection $Connection -Type $Type -Script $Script -Config $Config
+            # Assign logging
+            $dbUp = [StandardExtensions]::LogTo($dbUp, $Log)
+            $dbUp = [StandardExtensions]::LogScriptOutput($dbUp)
+            # Assign a journal
+            if (-Not $Journal) {
+                $Journal = Get-DbUpJournal -Connection { $Connection } -Log { $Log } -SchemaVersionTable $null -Type $Type
+            }
+            $dbUp = [StandardExtensions]::JournalTo($dbUp, $Journal)
+            return $dbUp
+        }
+        Function Invoke-DbUpDeployment {
+            Param (
+                $DbUp,
+                $Status
+            )
+            $dbUpBuild = $DbUp.Build()
+            $upgradeResult = $dbUpBuild.PerformUpgrade()
+            $Status.Successful = $upgradeResult.Successful
+            $Status.Error = $upgradeResult.Error
+            $Status.Scripts += $upgradeResult.Scripts
+            if (!$Status.Successful) {
+                # Throw output error if unsuccessful
+                if ($Status.Error) {
+                    throw $Status.Error
+                }
+                else {
+                    Stop-PSFFunction -EnableException $true -Message 'Deployment failed. Failed to retrieve error record'
+                }
+            }
+        }
+    }
     process {
         $config = New-DBOConfig
         if ($PsCmdlet.ParameterSetName -eq 'PackageFile') {
@@ -117,6 +171,8 @@
         }
 
         $scriptCollection = @()
+        $preScriptCollection = @()
+        $postScriptCollection = @()
         if ($PsCmdlet.ParameterSetName -ne 'Script') {
             # Get contents of the script files
             if ($Build) {
@@ -131,12 +187,14 @@
             }
             foreach ($buildItem in $buildCollection) {
                 foreach ($script in $buildItem.scripts) {
-                    $scriptDeploymentPath = $script.GetDeploymentPath()
-                    Write-PSFMessage -Level Debug -Message "Adding deployment script $scriptDeploymentPath"
-                    # Replace tokens in the scripts
-                    $scriptContent = Resolve-VariableToken $script.GetContent() $config.Variables
-                    $scriptCollection += [DbUp.Engine.SqlScript]::new($scriptDeploymentPath, $scriptContent)
+                    $scriptCollection += Get-DeploymentScript -Script $script -Variables $config.Variables
                 }
+            }
+            foreach ($preScript in $package.GetPreScripts()) {
+                $preScriptCollection += Get-DeploymentScript -Script $preScript -Variables $config.Variables
+            }
+            foreach ($postScript in $package.GetPostScripts()) {
+                $postScriptCollection += Get-DeploymentScript -Script $postScript -Variables $config.Variables
             }
         }
         else {
@@ -163,26 +221,6 @@
         $connString = $csBuilder.ToString()
         $dbUpConnection = Get-ConnectionManager -ConnectionString $connString -Type $Type
 
-        # Create DbUpBuilder based on the connection
-        $dbUp = Get-DbUpBuilder -Connection $dbUpConnection -Type $Type
-
-        # Add deployment scripts to the object
-        $dbUp = [StandardExtensions]::WithScripts($dbUp, $scriptCollection)
-
-        # Disable automatic sorting by using a custom comparer
-        $comparer = [DBOpsScriptComparer]::new($scriptCollection.Name)
-        $dbUp = [StandardExtensions]::WithScriptNameComparer($dbUp, $comparer)
-
-        # Disable variable replacement
-        $dbUp = [StandardExtensions]::WithVariablesDisabled($dbUp)
-
-        if ($config.DeploymentMethod -eq 'SingleTransaction') {
-            $dbUp = [StandardExtensions]::WithTransaction($dbUp)
-        }
-        elseif ($config.DeploymentMethod -eq 'TransactionPerScript') {
-            $dbUp = [StandardExtensions]::WithTransactionPerScript($dbUp)
-        }
-
         # Create an output object
         $status = [DBOpsDeploymentStatus]::new()
         $status.StartTime = [datetime]::Now
@@ -201,18 +239,15 @@
             $status.SourcePath = $package.FileName
         }
 
-        # Enable logging using dbopsConsoleLog class implementing a logging Interface
+        # Create a logging object using dbopsConsoleLog class implementing a logging Interface
         $dbUpLog = [DBOpsLog]::new($config.Silent, $OutputFile, $Append, $status)
         $dbUpLog.CallStack = (Get-PSCallStack)[1]
-        $dbUp = [StandardExtensions]::LogTo($dbUp, $dbUpLog)
-        $dbUp = [StandardExtensions]::LogScriptOutput($dbUp)
 
         # Define schema versioning (journalling)
         $dbUpTableJournal = Get-DbUpJournal -Connection { $dbUpConnection } -Log { $dbUpLog } -Schema $config.Schema -SchemaVersionTable $config.SchemaVersionTable -Type $Type
-        $dbUp = [StandardExtensions]::JournalTo($dbUp, $dbUpTableJournal)
 
-        # Adding execution timeout - defaults to unlimited execution
-        $dbUp = [StandardExtensions]::WithExecutionTimeout($dbUp, [timespan]::FromSeconds($config.ExecutionTimeout))
+        # Initialize DbUp object with deployment parameters
+        $dbUp = Initialize-DbUpBuilder -Script $scriptCollection -Config $config -Type $Type -Connection $dbUpConnection -Log $dbUpLog -Status $status -Journal $dbUpTableJournal
 
         # Create database if necessary for supported platforms
         if ($config.CreateDatabase) {
@@ -259,43 +294,70 @@
             }
         }
         else {
-            # Build and Upgrade
-            if ($PSCmdlet.ShouldProcess($package, "Deploying the package")) {
-                Write-PSFMessage -Level Debug -Message "Performing deployment"
-                $dbUpBuild = $dbUp.Build()
-                $upgradeResult = $dbUpBuild.PerformUpgrade()
-                $status.Successful = $upgradeResult.Successful
-                $status.Error = $upgradeResult.Error
-                $status.Scripts = $upgradeResult.Scripts
-            }
-            else {
-                $missingScripts = @()
-                $managedConnection = $dbUpConnection.OperationStarting($dbUpLog, $null)
-                $deployedScripts = $dbUpTableJournal.GetExecutedScripts()
-                foreach ($script in $scriptCollection) {
-                    if ($script.Name -notin $deployedScripts) {
-                        $missingScripts += $script
-                        $dbUpLog.WriteInformation("{0} would have been executed - WhatIf mode.", $script.Name)
+            try {
+                # Pre scripts
+                if ($preScriptCollection) {
+                    # create a new non-journalled connection
+                    $dbUpPre = Initialize-DbUpBuilder -Script $preScriptCollection -Config $config -Type $Type -Connection $dbUpConnection -Log $dbUpLog -Status $status
+                    if ($PSCmdlet.ShouldProcess($package, "Deploying pre-scripts")) {
+                        Write-PSFMessage -Level Debug -Message "Deploying pre-scripts"
+                        Invoke-DbUpDeployment -DbUp $dbUpPre -Status $status
+                    }
+                    else {
+                        foreach ($script in $preScriptCollection) {
+                            $status.Scripts += $script
+                            $dbUpLog.WriteInformation("{0} would have been executed - WhatIf mode.", $script.Name)
+                        }
+                        $status.Successful = $true
+                        $dbUpLog.WriteInformation("No pre-deployment performed - WhatIf mode.", $null)
                     }
                 }
-                $managedConnection.Dispose()
-                $status.Scripts = $missingScripts
-                $status.Successful = $true
-                $dbUpLog.WriteInformation("No deployment performed - WhatIf mode.", $null)
+                # Build and Upgrade
+                if ($PSCmdlet.ShouldProcess($package, "Deploying the package")) {
+                    Write-PSFMessage -Level Debug -Message "Performing deployment"
+                    Invoke-DbUpDeployment -DbUp $dbUp -Status $status
+                }
+                else {
+                    $missingScripts = @()
+                    $managedConnection = $dbUpConnection.OperationStarting($dbUpLog, $null)
+                    $deployedScripts = $dbUpTableJournal.GetExecutedScripts()
+                    foreach ($script in $scriptCollection) {
+                        if ($script.Name -notin $deployedScripts) {
+                            $missingScripts += $script
+                            $dbUpLog.WriteInformation("{0} would have been executed - WhatIf mode.", $script.Name)
+                        }
+                    }
+                    $managedConnection.Dispose()
+                    $status.Scripts += $missingScripts
+                    $status.Successful = $true
+                    $dbUpLog.WriteInformation("No deployment performed - WhatIf mode.", $null)
+                }
+                # Post scripts
+                if ($postScriptCollection) {
+                    # create a new non-journalled connection
+                    $dbUpPost = Initialize-DbUpBuilder -Script $postScriptCollection -Config $config -Type $Type -Connection $dbUpConnection -Log $dbUpLog -Status $status
+                    if ($PSCmdlet.ShouldProcess($package, "Deploying post-scripts")) {
+                        Write-PSFMessage -Level Debug -Message "Deploying post-scripts"
+                        Invoke-DbUpDeployment -DbUp $dbUpPost -Status $status
+                    }
+                    else {
+                        foreach ($script in $postScriptCollection) {
+                            $status.Scripts += $script
+                            $dbUpLog.WriteInformation("{0} would have been executed - WhatIf mode.", $script.Name)
+                        }
+                        $status.Successful = $true
+                        $dbUpLog.WriteInformation("No post-deployment performed - WhatIf mode.", $null)
+                    }
+                }
+            }
+            catch {
+                throw $_
+            }
+            finally {
+                $status.EndTime = [datetime]::Now
+                $status
             }
         }
-        $status.EndTime = [datetime]::Now
-        $status
-        if (!$status.Successful) {
-            # Throw output error if unsuccessful
-            if ($status.Error) {
-                throw $status.Error
-            }
-            else {
-                Stop-PSFFunction -EnableException $true -Message 'Deployment failed. Failed to retrieve error record'
-            }
-        }
-
     }
-    end {}
+    end { }
 }
