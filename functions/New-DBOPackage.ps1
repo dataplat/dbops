@@ -59,6 +59,12 @@
     .PARAMETER Slim
         Do not include accompanying modules into the package file.
 
+    .PARAMETER PreScriptPath
+        Path to the script(s) to be executed against the database before running the deployment. Pre-scripts are not journaled to the Schema Version table.
+
+    .PARAMETER PostScriptPath
+        Path to the Script(s) to be executed against the database after the deployment. Post-scripts are not journaled to the Schema Version table.
+
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -104,6 +110,8 @@
         [switch]$Relative,
         [switch]$NoRecurse,
         [string[]]$Match,
+        [object[]]$PreScriptPath,
+        [object[]]$PostScriptPath,
         [switch]$Slim = (Get-DBODefaultSetting -Name package.slim -Value)
     )
 
@@ -155,6 +163,15 @@
         $buildObject = $package.NewBuild($buildNumber)
         foreach ($scriptItem in $scriptCollection) {
             $buildObject.AddScript($scriptItem)
+        }
+        # Adding pre and post-scripts
+        if ($PreScriptPath) {
+            $preScriptCollection = Get-DbopsFile $PreScriptPath
+            $package.SetPreScripts($preScriptCollection)
+        }
+        if ($PostScriptPath) {
+            $postScriptCollection = Get-DbopsFile $PostScriptPath
+            $package.SetPostScripts($postScriptCollection)
         }
 
         if ($pscmdlet.ShouldProcess($package, "Generate a package file")) {

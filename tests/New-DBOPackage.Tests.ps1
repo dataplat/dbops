@@ -23,6 +23,9 @@ $fullConfig = Join-PSFPath -Normalize "$here\etc\tmp_full_config.json"
 $fullConfigSource = Join-PSFPath -Normalize "$here\etc\full_config.json"
 $testPassword = 'TestPassword'
 $encryptedString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertTo-EncryptedString
+$script1 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
+$script2 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
+$script3 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\3.sql"
 
 Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
     BeforeAll {
@@ -94,6 +97,7 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
         }
         AfterAll {
             Pop-Location
+            if ((Test-Path $workFolder\*) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder\* }
         }
         It "should create a package file in the current folder" {
             $testResults = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -Name (Split-Path $packageName -Leaf)
@@ -102,6 +106,28 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
             $testResults.FullName | Should Be (Get-Item $packageName).FullName
             $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
             Test-Path $packageName | Should Be $true
+        }
+    }
+    Context "testing pre and post-scripts" {
+        AfterAll {
+            if ((Test-Path $workFolder\*) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder\* }
+        }
+        It "should create a package file" {
+            $testResults = New-DBOPackage -ScriptPath $script1 -Name $packageName -PreScriptPath $script1, $script2 -PostScriptPath $script3
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageName -Leaf)
+            $testResults.FullName | Should Be (Get-Item $packageName).FullName
+            $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
+            Test-Path $packageName | Should Be $true
+        }
+        It "should contain pre-script files" {
+            $testResults = Get-ArchiveItem $packageName
+            Join-PSFPath -Normalize 'content\.dbops.prescripts\1.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\.dbops.prescripts\2.sql' | Should BeIn $testResults.Path
+        }
+        It "should contain post-script files" {
+            $testResults = Get-ArchiveItem $packageName
+            Join-PSFPath -Normalize 'content\.dbops.postscripts\3.sql' | Should BeIn $testResults.Path
         }
     }
     Context "testing slim package contents" {
