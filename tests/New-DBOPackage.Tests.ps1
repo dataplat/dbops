@@ -353,7 +353,7 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
         }
         It "returns error when path does not exist" {
             try {
-                $null = New-DBOPackage -ScriptPath 'asduwheiruwnfelwefo\sdfpoijfdsf.sps'
+                $null = New-DBOPackage -Name $packageName -ScriptPath 'asduwheiruwnfelwefo\sdfpoijfdsf.sps'
             }
             catch {
                 $errorResult = $_
@@ -362,12 +362,18 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
         }
         It "returns error when config file does not exist" {
             try {
-                $null = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -ConfigurationFile 'asduwheiruwnfelwefo\sdfpoijfdsf.sps'
+                $null = New-DBOPackage -Name $packageName -ScriptPath "$here\etc\query1.sql" -ConfigurationFile 'asduwheiruwnfelwefo\sdfpoijfdsf.sps'
             }
             catch {
                 $errorResult = $_
             }
             $errorResult.Exception.Message -join ';' | Should BeLike '*Config file * not found. Aborting.*'
+        }
+        It "returns error when prescript path does not exist" {
+            { New-DBOPackage -Name $packageName -ScriptPath "$here\etc\query1.sql" -PreScriptPath 'asduwheiruwnfelwefo\sdfpoijfdsf.sps' } | Should Throw 'The following path is not valid'
+        }
+        It "returns error when postscript path does not exist" {
+            { New-DBOPackage -Name $packageName -ScriptPath "$here\etc\query1.sql" -PostScriptPath 'asduwheiruwnfelwefo\sdfpoijfdsf.sps' } | Should Throw 'The following path is not valid'
         }
     }
 }

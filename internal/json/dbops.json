@@ -44,7 +44,8 @@
         "functions\\Export-DBOConfig.ps1",
         "functions\\ConvertTo-EncryptedString.ps1",
         "functions\\ConvertFrom-EncryptedString.ps1",
-        "functions\\Invoke-DBOQuery.ps1"
+        "functions\\Invoke-DBOQuery.ps1",
+        "functions\\Update-DBOPackage.ps1"
     ],
     "Internal": [
         "internal\\classes\\DBOps.enums.ps1",

@@ -18,7 +18,6 @@ else {
 
 
 $workFolder = Join-PSFPath -Normalize "$here\etc" "$commandName.Tests.dbops"
-$unpackedFolder = Join-Path $workFolder 'unpacked'
 
 $packageName = Join-Path $workFolder 'TempDeployment.zip'
 $v1scripts = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success"
@@ -31,7 +30,6 @@ Describe "Update-DBOConfig tests" -Tag $commandName, UnitTests {
     BeforeAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = New-Item $workFolder -ItemType Directory -Force
-        $null = New-Item $unpackedFolder -ItemType Directory -Force
         (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $encryptedString | Out-File $fullConfig -Force
         $null = New-DBOPackage -ScriptPath $v1scripts -Name $packageName -Build 1.0 -Force -ConfigurationFile $fullConfig
     }
@@ -59,13 +57,13 @@ Describe "Update-DBOConfig tests" -Tag $commandName, UnitTests {
     }
     Context "Updating config items using hashtable (values)" {
         It "updates config items with new values" {
-            Update-DBOConfig -Path $packageName -Configuration @{ApplicationName = 'MyHashApplication'; Database = 'MyNewDb'}
+            Update-DBOConfig -Path $packageName -Configuration @{ApplicationName = 'MyHashApplication'; Database = 'MyNewDb' }
             $testResults = (Get-DBOPackage -Path $packageName).Configuration
             $testResults.ApplicationName | Should Be 'MyHashApplication'
             $testResults.Database | Should Be 'MyNewDb'
         }
         It "updates config items with a null value" {
-            Update-DBOConfig -Path $packageName -Configuration @{ApplicationName = $null; Database = $null}
+            Update-DBOConfig -Path $packageName -Configuration @{ApplicationName = $null; Database = $null }
             $testResults = (Get-DBOPackage -Path $packageName).Configuration
             $testResults.ApplicationName | Should Be $null
             $testResults.Database | Should Be $null
@@ -79,14 +77,14 @@ Describe "Update-DBOConfig tests" -Tag $commandName, UnitTests {
     }
     Context "Updating config items using DBOpsConfig and a pipeline" {
         It "updates config items with new values" {
-            $config = New-DBOConfig -Configuration @{ApplicationName = 'MyHashApplication'; Database = 'MyNewDb'}
+            $config = New-DBOConfig -Configuration @{ApplicationName = 'MyHashApplication'; Database = 'MyNewDb' }
             Get-DBOPackage $packageName | Update-DBOConfig -Configuration $config
             $testResults = (Get-DBOPackage -Path $packageName).Configuration
             $testResults.ApplicationName | Should Be 'MyHashApplication'
             $testResults.Database | Should Be 'MyNewDb'
         }
         It "updates config items with a null value" {
-            $config = New-DBOConfig -Configuration @{ApplicationName = $null; Database = $null}
+            $config = New-DBOConfig -Configuration @{ApplicationName = $null; Database = $null }
             $packageName | Update-DBOConfig -Configuration $config
             $testResults = (Get-DBOPackage -Path $packageName).Configuration
             $testResults.ApplicationName | Should Be $null
@@ -143,12 +141,12 @@ Describe "Update-DBOConfig tests" -Tag $commandName, UnitTests {
     }
     Context "Updating variables" {
         It "updates config variables with new hashtable" {
-            Update-DBOConfig -Path $packageName -Variables @{foo='bar'}
+            Update-DBOConfig -Path $packageName -Variables @{foo = 'bar' }
             $testResults = (Get-DBOPackage -Path $packageName).Configuration
             $testResults.Variables.foo | Should Be 'bar'
         }
         It "overrides specified config with a value from -Variables" {
-            Update-DBOConfig -Path $packageName -Configuration @{Variables = @{ foo = 'bar'}} -Variables @{foo = 'bar2'}
+            Update-DBOConfig -Path $packageName -Configuration @{Variables = @{ foo = 'bar' } } -Variables @{foo = 'bar2' }
             $testResults = (Get-DBOPackage -Path $packageName).Configuration
             $testResults.Variables.foo | Should Be 'bar2'
         }
