@@ -19,9 +19,6 @@
     .PARAMETER PostScriptPath
         Path to the Script(s) to be executed against the database after the deployment. Post-scripts are not journaled to the Schema Version table.
 
-    .PARAMETER Version
-        Set the version of the package - this, however, does not impact builds inside the package.
-
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -36,10 +33,6 @@
     # Reconfigure Pre- and Post scripts
     Get-DBOPackage Package.zip | Update-DBOPackage -PreScriptPath .\prescripts -PostScriptPath (Get-ChildItem .\postscripts)
 
-    .EXAMPLE
-    # Update the internal version of the package without modifying builds or their order
-    "Package.zip" | Update-DBOPackage -Version "2.0beta"
-
     #>
     [CmdletBinding(DefaultParameterSetName = 'Value',
         SupportsShouldProcess)]
@@ -52,9 +45,9 @@
         [ValidateNotNullOrEmpty()]
         [bool]$Slim,
         [object[]]$PreScriptPath,
-        [object[]]$PostScriptPath,
-        [ValidateNotNullOrEmpty()]
-        [string]$Version
+        [object[]]$PostScriptPath
+        # [ValidateNotNullOrEmpty()]
+        # [string]$Version
     )
     begin {
 
@@ -77,10 +70,10 @@
                     Write-PSFMessage -Level Verbose -Message "Adding $($postScriptCollection.Count) post-script(s) from $PostScriptPath"
                     $package.SetPostScripts($postScriptCollection)
                 }
-                if (Test-PSFParameterBinding -ParameterName Version) {
-                    Write-PSFMessage -Level Verbose -Message "Setting Version to $Version"
-                    $package.Version = $Version
-                }
+                # if (Test-PSFParameterBinding -ParameterName Version) {
+                #     Write-PSFMessage -Level Verbose -Message "Setting Version to $Version"
+                #     $package.Version = $Version
+                # }
                 $package.Alter()
             }
         }

@@ -80,9 +80,9 @@ Describe "Update-DBOPackage tests" -Tag $commandName, UnitTests {
         It "should throw when config item does not exist" {
             { Update-DBOPackage -Path $packageName -ConfigName NonexistingItem -Value '123' } | Should throw
         }
-        It "returns error when build version is null or empty" {
-            { Update-DBOPackage -Name $packageName -Version $null } | Should Throw 'Version not specified'
-            { Update-DBOPackage -Name $packageName -Version "" } | Should Throw 'Version not specified'
-        }
+        # It "returns error when build version is null or empty" {
+        #     { Update-DBOPackage -Name $packageName -Version $null } | Should Throw 'Version not specified'
+        #     { Update-DBOPackage -Name $packageName -Version "" } | Should Throw 'Version not specified'
+        # }
     }
 }
