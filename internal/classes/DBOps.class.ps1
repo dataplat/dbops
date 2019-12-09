@@ -202,10 +202,12 @@ class DBOpsPackageBase : DBOps {
     #hidden properties
     hidden [string]$FileName
     hidden [string]$PackagePath
-    hidden [array]$PropertiesToExport = @('ScriptDirectory', 'DeployFile', 'PreScripts', 'PostScripts', 'ConfigurationFile', 'Builds')
+    hidden [array]$PropertiesToExport = @('ScriptDirectory', 'DeployFile', 'PreScripts', 'PostScripts', 'ConfigurationFile', 'Builds', 'Slim')
 
     DBOpsPackageBase () {
         $this.Builds = [System.Collections.Generic.List[DBOpsBuild]]::new()
+        $this.PreScripts = [System.Collections.Generic.List[DBOpsBuild]]::new()
+        $this.PostScripts = [System.Collections.Generic.List[DBOpsBuild]]::new()
     }
 
     #Methods
@@ -220,6 +222,7 @@ class DBOpsPackageBase : DBOps {
         $this.Init()
         if ($jsonObject) {
             $this.ScriptDirectory = $jsonObject.ScriptDirectory
+            if ($jsonObject.Slim) { $this.Slim = $jsonObject.Slim }
         }
     }
     [void] RefreshFileProperties() {
@@ -258,19 +261,24 @@ class DBOpsPackageBase : DBOps {
         return $this.Builds
     }
     [DBOpsBuild] NewBuild ([string]$build) {
+        return $this.NewBuild($build, 'Builds')
+    }
+    [DBOpsBuild] NewBuild ([string]$build, [string]$type) {
         if (!$build) {
             $this.ThrowException('Build name is not specified.', 'InvalidArgument')
             return $null
         }
-        if ($this.builds | Where-Object { $_.build -eq $build }) {
-            $this.ThrowException("Build $build already exists.", 'InvalidArgument')
+        if ($this.$type | Where-Object { $_.build -eq $build }) {
+            $this.ThrowException("Build $build already exists in $type.", 'InvalidArgument')
             return $null
         }
         else {
             $newBuild = [DBOpsBuild]::new($build)
             $newBuild.Parent = $this
-            $this.builds.Add($newBuild)
-            $this.Version = $newBuild.Build
+            $this.$type.Add($newBuild)
+            if ($type -eq 'Builds') {
+                $this.Version = $newBuild.Build
+            }
             return $newBuild
         }
     }
@@ -604,29 +612,33 @@ class DBOpsPackage : DBOpsPackageBase {
                 $jsonObject = $this.ReadMetadata([DBOpsHelper]::DecodeBinaryText($pkgFileBin))
                 $this.Init($jsonObject)
                 # Processing builds
-                foreach ($build in $jsonObject.builds) {
-                    $newBuild = $this.NewBuild($build.build)
-                    foreach ($script in $build.Scripts) {
-                        $filePackagePath = Join-Path $newBuild.GetPackagePath() $script.packagePath
-                        $scriptFile = $zip.Entries | Where-Object { (Join-PSFPath -Normalize $_.FullName) -eq $filePackagePath }
-                        if (!$scriptFile) {
-                            $this.ThrowException("File not found inside the package: $filePackagePath", 'InvalidArgument')
+                foreach ($buildType in 'Builds', 'PreScripts', 'PostScripts') {
+                    foreach ($build in $jsonObject.$buildType) {
+                        $newBuild = $this.NewBuild($build.build, $buildType)
+                        foreach ($script in $build.Scripts) {
+                            $filePackagePath = Join-Path $newBuild.GetPackagePath() $script.packagePath
+                            $scriptFile = $zip.Entries | Where-Object { (Join-PSFPath -Normalize $_.FullName) -eq $filePackagePath }
+                            if (!$scriptFile) {
+                                $this.ThrowException("File not found inside the package: $filePackagePath", 'InvalidArgument')
+                            }
+                            $newScript = [DBOpsFile]::new($scriptFile, $script.PackagePath, $script.Hash)
+                            $newBuild.AddScript($newScript, $true)
                         }
-                        $newScript = [DBOpsFile]::new($scriptFile, $script.PackagePath, $script.Hash)
-                        $newBuild.AddScript($newScript, $true)
                     }
                 }
                 # Processing root files
-                foreach ($file in @('DeployFile', 'PreScripts', 'PostScripts', 'ConfigurationFile')) {
-                    $jsonFileObject = $jsonObject.$file
-                    if ($jsonFileObject) {
-                        $zipFileEntry = $zip.Entries | Where-Object { (Join-PSFPath -Normalize $_.FullName) -eq $jsonFileObject.packagePath }
-                        if ($zipFileEntry) {
-                            $newFile = [DBOpsFile]::new($zipFileEntry, $jsonFileObject.PackagePath)
-                            $this.AddFile($newFile, $file)
-                        }
-                        else {
-                            $this.ThrowException("File $($jsonFileObject.packagePath) not found in the package", 'InvalidData')
+                foreach ($fileType in @('DeployFile', 'ConfigurationFile')) {
+                    foreach ($file in $jsonObject.$fileType) {
+                        $jsonFileObject = $jsonObject.$file
+                        if ($jsonFileObject) {
+                            $zipFileEntry = $zip.Entries | Where-Object { (Join-PSFPath -Normalize $_.FullName) -eq $jsonFileObject.packagePath }
+                            if ($zipFileEntry) {
+                                $newFile = [DBOpsFile]::new($zipFileEntry, $jsonFileObject.PackagePath)
+                                $this.AddFile($newFile, $file)
+                            }
+                            else {
+                                $this.ThrowException("File $($jsonFileObject.packagePath) not found in the package", 'InvalidData')
+                            }
                         }
                     }
                 }

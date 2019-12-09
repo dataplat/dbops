@@ -168,13 +168,14 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
             $testResults = Get-ArchiveItem $packageName
             'Deploy.ps1' | Should BeIn $testResults.Path
         }
-        It "should create a zip package based on name without extension" {
-            $testResults = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -Name ($packageName -replace '\.zip$', '') -Force
-            $testResults | Should Not Be $null
-            $testResults.Name | Should Be (Split-Path $packageName -Leaf)
-            $testResults.FullName | Should Be (Get-Item $packageName).FullName
-            $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
-            Test-Path $packageName | Should Be $true
+        It "should be saved with a slim property" {
+            $testResults = Get-DBOPackage -Path $packageName
+            $testResults.Slim | Should Be $true
+        }
+        It "should have slim property in the package file" {
+            $archiveItem = Get-ArchiveItem $packageName -Item 'dbops.package.json'
+            $content = [DBOpsHelper]::DecodeBinaryText($archiveItem.ByteArray) | ConvertFrom-Json
+            $content.Slim | Should -Be $true
         }
     }
     Context "testing configurations" {
