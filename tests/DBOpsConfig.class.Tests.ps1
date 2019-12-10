@@ -74,7 +74,7 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             $testResult.ExecutionTimeout | Should Be 0
             $testResult.Encrypt | Should Be $null
             $testResult.Credential.UserName | Should Be 'CredentialUser'
-            $testResult.Credential.GetNetworkCredential().Password  | Should Be $testPassword
+            $testResult.Credential.GetNetworkCredential().Password | Should Be $testPassword
             $testResult.Username | Should Be "TestUser"
             [PSCredential]::new('test', $testResult.Password).GetNetworkCredential().Password | Should Be "TestPassword"
             $testResult.SchemaVersionTable | Should Be "test.Table"
@@ -96,7 +96,7 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             $testResult.ExecutionTimeout | Should Be 0
             $testResult.Encrypt | Should Be $null
             $testResult.Credential.UserName | Should Be 'CredentialUser'
-            $testResult.Credential.GetNetworkCredential().Password  | Should Be $testPassword
+            $testResult.Credential.GetNetworkCredential().Password | Should Be $testPassword
             $testResult.Username | Should Be "TestUser"
             [PSCredential]::new('test', $testResult.Password).GetNetworkCredential().Password | Should Be "TestPassword"
             $testResult.SchemaVersionTable | Should Be "test.Table"
@@ -141,7 +141,7 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             #PSCredential property
             $config.SetValue('Credential', ([pscredential]::new('CredentialUser', $securePassword)))
             $config.Credential.UserName | Should Be 'CredentialUser'
-            $config.Credential.GetNetworkCredential().Password  | Should Be $testPassword
+            $config.Credential.GetNetworkCredential().Password | Should Be $testPassword
             $config.SetValue('Credential', $null)
             $config.Credential | Should Be $null
             #hashtable
@@ -203,7 +203,7 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             $config.Variables.goo | Should Be "yarr"
             $config.Schema | Should Be "test3"
             #negative
-            { $config.Merge(@{foo = 'bar'}) } | Should Throw
+            { $config.Merge(@{foo = 'bar' }) } | Should Throw
             { $config.Merge($null) } | Should Throw
         }
         It "should test Merge method into empty config" {
@@ -218,7 +218,7 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             $config.ExecutionTimeout | Should Be 0
             $config.Encrypt | Should Be $null
             $config.Credential.UserName | Should Be 'CredentialUser'
-            $config.Credential.GetNetworkCredential().Password  | Should Be $testPassword
+            $config.Credential.GetNetworkCredential().Password | Should Be $testPassword
             $config.Username | Should Be "TestUser"
             [PSCredential]::new('test', $config.Password).GetNetworkCredential().Password | Should Be "TestPassword"
             $config.SchemaVersionTable | Should Be "test.Table"
@@ -227,7 +227,7 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             $config.Variables.boo | Should -Be 'far'
             $config.Schema | Should Be "testschema"
             #negative
-            { $config.Merge(@{foo = 'bar'}) } | Should Throw
+            { $config.Merge(@{foo = 'bar' }) } | Should Throw
             { $config.Merge($null) } | Should Throw
         }
     }
@@ -238,8 +238,8 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
         It "should test Save method" {
             #Generate new package file
             $pkg = [DBOpsPackage]::new()
-            $pkg.Configuration.ApplicationName = 'TestApp2'
             $pkg.SaveToFile($packageName)
+            $pkg.Configuration.ApplicationName = 'TestApp2'
 
             #Open zip file stream
             $writeMode = [System.IO.FileMode]::Open
@@ -331,7 +331,7 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             $testResult.ExecutionTimeout | Should Be 0
             $testResult.Encrypt | Should Be $null
             $testResult.Credential.UserName | Should Be 'CredentialUser'
-            $testResult.Credential.GetNetworkCredential().Password  | Should Be $testPassword
+            $testResult.Credential.GetNetworkCredential().Password | Should Be $testPassword
             $testResult.Username | Should Be "TestUser"
             [PSCredential]::new('test', $testResult.Password).GetNetworkCredential().Password | Should Be "TestPassword"
             $testResult.SchemaVersionTable | Should Be "test.Table"
@@ -353,7 +353,7 @@ Describe "DBOpsConfig class tests" -Tag $commandName, UnitTests, DBOpsConfig {
             $testResult.ExecutionTimeout | Should Be 0
             $testResult.Encrypt | Should Be $null
             $testResult.Credential.UserName | Should Be 'CredentialUser'
-            $testResult.Credential.GetNetworkCredential().Password  | Should Be $testPassword
+            $testResult.Credential.GetNetworkCredential().Password | Should Be $testPassword
             $testResult.Username | Should Be "TestUser"
             [PSCredential]::new('test', $testResult.Password).GetNetworkCredential().Password | Should Be "TestPassword"
             $testResult.SchemaVersionTable | Should Be "test.Table"

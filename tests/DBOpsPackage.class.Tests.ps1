@@ -194,11 +194,13 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
             $j.ConfigurationFile | Should Not BeNullOrEmpty
             $j.DeployFile | Should Not BeNullOrEmpty
             $j.ScriptDirectory | Should Not BeNullOrEmpty
-            $j.psobject.properties.name | Should -BeIn @('ScriptDirectory', 'DeployFile', 'PreScripts', 'PostScripts', 'ConfigurationFile', 'Builds')
-            foreach ($build in $j.Builds) {
-                $build.psobject.properties.name | Should -BeIn @('Scripts', 'Build', 'PackagePath', 'CreatedDate')
-                foreach ($script in $build.Scripts) {
-                    $script.psobject.properties.name | Should -BeIn @('Hash', 'PackagePath')
+            $j.psobject.properties.name | Should -BeIn @('ScriptDirectory', 'DeployFile', 'PreScripts', 'PostScripts', 'ConfigurationFile', 'Builds', 'Slim')
+            foreach ($colType in 'PreScripts', 'PostScripts', 'Builds') {
+                foreach ($build in $j.$colType) {
+                    $build.psobject.properties.name | Should -BeIn @('Scripts', 'Build', 'PackagePath', 'CreatedDate')
+                    foreach ($script in $build.Scripts) {
+                        $script.psobject.properties.name | Should -BeIn @('Hash', 'PackagePath')
+                    }
                 }
             }
 
@@ -297,6 +299,63 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
             $config = @{ SchemaVersionTable = 'dbo.NewTable' } | ConvertTo-Json -Depth 1
             { $pkg.SetConfiguration([DBOpsConfig]::new($config)) } | Should Not Throw
             $pkg.Configuration.SchemaVersionTable | Should Be 'dbo.NewTable'
+        }
+        It "Should test AddBuildToCollection method" {
+            { $pkg.AddBuildToCollection([DBOpsBuild]::new('2.0'), 'Builds') } | Should Not Throw
+            $b = $pkg.GetBuild('2.0')
+            $b.Build | Should Be '2.0'
+            $b.PackagePath | Should Be '2.0'
+            $b.Parent.GetType().Name | Should Be 'DBOpsPackage'
+            $b.Scripts | Should BeNullOrEmpty
+            ([datetime]$b.CreatedDate).Date | Should Be ([datetime]::Now).Date
+            $pkg.Version | Should Be '2.0'
+
+            { $pkg.AddBuildToCollection([DBOpsBuild]::new('.dbops.prescripts'), 'PreScripts') } | Should Not Throw
+            $b = $pkg.PreScripts
+            $b.Build | Should Be '.dbops.prescripts'
+            $b.PackagePath | Should Be '.dbops.prescripts'
+            $b.Parent.GetType().Name | Should Be 'DBOpsPackage'
+            $b.Scripts | Should BeNullOrEmpty
+            ([datetime]$b.CreatedDate).Date | Should Be ([datetime]::Now).Date
+            $pkg.Version | Should Be '2.0'
+
+            { $pkg.AddBuildToCollection([DBOpsBuild]::new('.dbops.postscripts'), 'PostScripts') } | Should Not Throw
+            $b = $pkg.PostScripts
+            $b.Build | Should Be '.dbops.postscripts'
+            $b.PackagePath | Should Be '.dbops.postscripts'
+            $b.Parent.GetType().Name | Should Be 'DBOpsPackage'
+            $b.Scripts | Should BeNullOrEmpty
+            ([datetime]$b.CreatedDate).Date | Should Be ([datetime]::Now).Date
+            $pkg.Version | Should Be '2.0'
+
+        }
+        It "Should test SetBuildCollection method" {
+            { $pkg.SetBuildCollection([DBOpsBuild]::new('2.0'), 'Builds') } | Should Not Throw
+            $b = $pkg.GetBuild('2.0')
+            $b.Build | Should Be '2.0'
+            $b.PackagePath | Should Be '2.0'
+            $b.Parent.GetType().Name | Should Be 'DBOpsPackage'
+            $b.Scripts | Should BeNullOrEmpty
+            ([datetime]$b.CreatedDate).Date | Should Be ([datetime]::Now).Date
+            $pkg.Version | Should Be '2.0'
+
+            { $pkg.SetBuildCollection([DBOpsBuild]::new('.dbops.prescripts'), 'PreScripts') } | Should Not Throw
+            $b = $pkg.PreScripts
+            $b.Build | Should Be '.dbops.prescripts'
+            $b.PackagePath | Should Be '.dbops.prescripts'
+            $b.Parent.GetType().Name | Should Be 'DBOpsPackage'
+            $b.Scripts | Should BeNullOrEmpty
+            ([datetime]$b.CreatedDate).Date | Should Be ([datetime]::Now).Date
+            $pkg.Version | Should Be '2.0'
+
+            { $pkg.SetBuildCollection([DBOpsBuild]::new('.dbops.postscripts'), 'PostScripts') } | Should Not Throw
+            $b = $pkg.PostScripts
+            $b.Build | Should Be '.dbops.postscripts'
+            $b.PackagePath | Should Be '.dbops.postscripts'
+            $b.Parent.GetType().Name | Should Be 'DBOpsPackage'
+            $b.Scripts | Should BeNullOrEmpty
+            ([datetime]$b.CreatedDate).Date | Should Be ([datetime]::Now).Date
+            $pkg.Version | Should Be '2.0'
         }
     }
     Context "should validate DBOpsPackage Save methods" {
