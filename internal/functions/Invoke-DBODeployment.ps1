@@ -292,6 +292,17 @@
                 $status.Successful = $true
                 $status.DeploymentLog += "Running in WhatIf mode - no registration performed."
             }
+            $status.EndTime = [datetime]::Now
+            $status
+            if (!$status.Successful) {
+                # Throw output error if unsuccessful
+                if ($status.Error) {
+                    throw $status.Error
+                }
+                else {
+                    Stop-PSFFunction -EnableException $true -Message 'Script registration failed. Failed to retrieve error record'
+                }
+            }
         }
         else {
             try {
