@@ -35,7 +35,7 @@ Describe "DBOpsPackageFile class tests" -Tag $commandName, UnitTests, DBOpsPacka
     Context "validate DBOpsPackageFile being loaded from file" {
         AfterAll {
             if (Test-Path $packageName) { Remove-Item $packageName }
-            if (Test-Path "$here\etc\LoadFromFile") { Remove-Item "$here\etc\LoadFromFile" -Recurse }
+            if (Test-Path "$here\etc\LoadFromFile") { Remove-Item "$here\etc\LoadFromFile" -Recurse -Force }
         }
         BeforeAll {
             $p = [DBOpsPackage]::new()
