@@ -35,7 +35,7 @@ Describe "DBOpsPackageFile class tests" -Tag $commandName, UnitTests, DBOpsPacka
     Context "validate DBOpsPackageFile being loaded from file" {
         AfterAll {
             if (Test-Path $packageName) { Remove-Item $packageName }
-            if (Test-Path "$here\etc\LoadFromFile") { Remove-Item "$here\etc\LoadFromFile" -Recurse}
+            if (Test-Path "$here\etc\LoadFromFile") { Remove-Item "$here\etc\LoadFromFile" -Recurse -Force }
         }
         BeforeAll {
             $p = [DBOpsPackage]::new()
@@ -43,6 +43,9 @@ Describe "DBOpsPackageFile class tests" -Tag $commandName, UnitTests, DBOpsPacka
             $b1.AddScript([DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize 'success\1.sql'), $true))
             $b2 = $p.NewBuild('2.0')
             $b2.AddScript([DBOpsFile]::new($fileObject2, (Join-PSFPath -Normalize 'success\2.sql'), $true))
+            $f = [DBOpsFile]::new($fileObject1, (Join-PSFPath -Normalize '1.sql'), $true)
+            $f2 = [DBOpsFile]::new($fileObject2, (Join-PSFPath -Normalize '2.sql'), $true)
+            $p.SetPreScripts(@($f, $f2))
             $p.SaveToFile($packageName)
             $null = New-Item "$here\etc\LoadFromFile" -ItemType Directory
             Expand-Archive $p.FullName "$here\etc\LoadFromFile"
@@ -63,6 +66,7 @@ Describe "DBOpsPackageFile class tests" -Tag $commandName, UnitTests, DBOpsPacka
                 Join-PSFPath -Normalize 'success\1.sql'
                 Join-PSFPath -Normalize 'success\2.sql'
             )
+            $p.GetPreScripts().PackagePath | Should Be '1.sql', '2.sql'
         }
         It "should override Save/Alter methods" {
             $p = [DBOpsPackageFile]::new((Join-PSFPath -Normalize "$here\etc\LoadFromFile\dbops.package.json"))

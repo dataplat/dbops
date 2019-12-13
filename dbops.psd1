@@ -42,7 +42,7 @@
     # Modules that must be imported into the global environment prior to importing
     # this module
     RequiredModules        = @(
-        @{ ModuleName = 'PSFramework'; ModuleVersion = '0.10.30.165'}
+        @{ ModuleName = 'PSFramework'; ModuleVersion = '0.10.30.165' }
     )
 
     # Assemblies that must be loaded prior to importing this module
@@ -67,7 +67,6 @@
         'Add-DBOBuild',
         'Get-DBOConfig',
         'Install-DBOPackage',
-        'Invoke-DBODeployment',
         'New-DBOPackage',
         'Remove-DBOBuild',
         'Get-DBOPackage',
@@ -89,7 +88,8 @@
         'Export-DBOConfig',
         'ConvertTo-EncryptedString',
         'ConvertFrom-EncryptedString',
-        'Invoke-DBOQuery'
+        'Invoke-DBOQuery',
+        'Update-DBOPackage'
     )
 
     # Cmdlets to export from this module

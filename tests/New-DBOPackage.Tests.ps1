@@ -23,6 +23,9 @@ $fullConfig = Join-PSFPath -Normalize "$here\etc\tmp_full_config.json"
 $fullConfigSource = Join-PSFPath -Normalize "$here\etc\full_config.json"
 $testPassword = 'TestPassword'
 $encryptedString = $testPassword | ConvertTo-SecureString -Force -AsPlainText | ConvertTo-EncryptedString
+$script1 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
+$script2 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
+$script3 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\3.sql"
 
 Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
     BeforeAll {
@@ -94,6 +97,7 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
         }
         AfterAll {
             Pop-Location
+            if ((Test-Path $workFolder\*) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder\* }
         }
         It "should create a package file in the current folder" {
             $testResults = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -Name (Split-Path $packageName -Leaf)
@@ -102,6 +106,28 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
             $testResults.FullName | Should Be (Get-Item $packageName).FullName
             $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
             Test-Path $packageName | Should Be $true
+        }
+    }
+    Context "testing pre and post-scripts" {
+        AfterAll {
+            if ((Test-Path $workFolder\*) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder\* }
+        }
+        It "should create a package file" {
+            $testResults = New-DBOPackage -ScriptPath $script1 -Name $packageName -PreScriptPath $script1, $script2 -PostScriptPath $script3
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageName -Leaf)
+            $testResults.FullName | Should Be (Get-Item $packageName).FullName
+            $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
+            Test-Path $packageName | Should Be $true
+        }
+        It "should contain pre-script files" {
+            $testResults = Get-ArchiveItem $packageName
+            Join-PSFPath -Normalize 'content\.dbops.prescripts\1.sql' | Should BeIn $testResults.Path
+            Join-PSFPath -Normalize 'content\.dbops.prescripts\2.sql' | Should BeIn $testResults.Path
+        }
+        It "should contain post-script files" {
+            $testResults = Get-ArchiveItem $packageName
+            Join-PSFPath -Normalize 'content\.dbops.postscripts\3.sql' | Should BeIn $testResults.Path
         }
     }
     Context "testing slim package contents" {
@@ -142,13 +168,14 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
             $testResults = Get-ArchiveItem $packageName
             'Deploy.ps1' | Should BeIn $testResults.Path
         }
-        It "should create a zip package based on name without extension" {
-            $testResults = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -Name ($packageName -replace '\.zip$', '') -Force
-            $testResults | Should Not Be $null
-            $testResults.Name | Should Be (Split-Path $packageName -Leaf)
-            $testResults.FullName | Should Be (Get-Item $packageName).FullName
-            $testResults.ModuleVersion | Should Be (Get-Module dbops).Version
-            Test-Path $packageName | Should Be $true
+        It "should be saved with a slim property" {
+            $testResults = Get-DBOPackage -Path $packageName
+            $testResults.Slim | Should Be $true
+        }
+        It "should have slim property in the package file" {
+            $archiveItem = Get-ArchiveItem $packageName -Item 'dbops.package.json'
+            $content = [DBOpsHelper]::DecodeBinaryText($archiveItem.ByteArray) | ConvertFrom-Json
+            $content.Slim | Should -Be $true
         }
     }
     Context "testing configurations" {
@@ -327,7 +354,7 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
         }
         It "returns error when path does not exist" {
             try {
-                $null = New-DBOPackage -ScriptPath 'asduwheiruwnfelwefo\sdfpoijfdsf.sps'
+                $null = New-DBOPackage -Name $packageName -ScriptPath 'asduwheiruwnfelwefo\sdfpoijfdsf.sps'
             }
             catch {
                 $errorResult = $_
@@ -336,12 +363,18 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
         }
         It "returns error when config file does not exist" {
             try {
-                $null = New-DBOPackage -ScriptPath "$here\etc\query1.sql" -ConfigurationFile 'asduwheiruwnfelwefo\sdfpoijfdsf.sps'
+                $null = New-DBOPackage -Name $packageName -ScriptPath "$here\etc\query1.sql" -ConfigurationFile 'asduwheiruwnfelwefo\sdfpoijfdsf.sps'
             }
             catch {
                 $errorResult = $_
             }
             $errorResult.Exception.Message -join ';' | Should BeLike '*Config file * not found. Aborting.*'
+        }
+        It "returns error when prescript path does not exist" {
+            { New-DBOPackage -Name $packageName -ScriptPath "$here\etc\query1.sql" -PreScriptPath 'asduwheiruwnfelwefo\sdfpoijfdsf.sps' } | Should Throw 'The following path is not valid'
+        }
+        It "returns error when postscript path does not exist" {
+            { New-DBOPackage -Name $packageName -ScriptPath "$here\etc\query1.sql" -PostScriptPath 'asduwheiruwnfelwefo\sdfpoijfdsf.sps' } | Should Throw 'The following path is not valid'
         }
     }
 }

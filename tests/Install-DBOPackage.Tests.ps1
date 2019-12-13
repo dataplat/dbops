@@ -275,6 +275,50 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             'd' | Should BeIn $testResults.name
         }
     }
+    Context "testing pre and post-script deployment" {
+        BeforeAll {
+            $prePackage = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -PreScriptPath $v2scripts -Force
+            $postPackage = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -PostScriptPath $v2scripts -Force
+            $outputFile = Join-PSFPath -Normalize "$workFolder\log.txt"
+        }
+        BeforeEach {
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+        }
+        It "should deploy version 1.0 with prescripts" {
+            $testResults = Install-DBOPackage $prePackage -Build '1.0' -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+            $testResults.Successful | Should Be $true
+            $testResults.Scripts.Name | Should Be '.dbops.prescripts\2.sql', $v1Journal
+            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
+            "Executing Database Server script '.dbops.prescripts\2.sql'" | Should BeIn $testResults.DeploymentLog
+            "Executing Database Server script '$v1Journal'" | Should BeIn $testResults.DeploymentLog
+
+            #Verifying objects
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $logTable | Should BeIn $testResults.name
+            'a', 'b', 'c', 'd' | Should -BeIn $testResults.name
+
+            # Validate log table only contains one record
+            $logResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -Query "SELECT count(*) from $logTable" -As SingleValue
+            $logResults | Should -Be 1
+        }
+        It "should deploy version 1.0 with postscripts" {
+            $testResults = Install-DBOPackage $postPackage -Build '1.0' -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+            $testResults.Successful | Should Be $true
+            $testResults.Scripts.Name | Should Be $v1Journal, '.dbops.postscripts\2.sql'
+            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
+            "Executing Database Server script '.dbops.postscripts\2.sql'" | Should BeIn $testResults.DeploymentLog
+            "Executing Database Server script '$v1Journal'" | Should BeIn $testResults.DeploymentLog
+
+            #Verifying objects
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $logTable | Should BeIn $testResults.name
+            'a', 'b', 'c', 'd' | Should -BeIn $testResults.name
+
+            # Validate log table only contains one record
+            $logResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -Query "SELECT count(*) from $logTable" -As SingleValue
+            $logResults | Should -Be 1
+        }
+    }
     Context "testing timeouts" {
         BeforeAll {
             $file = Join-PSFPath -Normalize "$workFolder\delay.sql"

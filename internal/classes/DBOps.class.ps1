@@ -83,6 +83,9 @@ class DBOps {
 
     # managing files inside the collections
     hidden [void] AddFile ([DBOpsFile[]]$DBOpsFile, [string]$CollectionName) {
+        $this.AddFile($DBOpsFile, $CollectionName, $false)
+    }
+    hidden [void] AddFile ([DBOpsFile[]]$DBOpsFile, [string]$CollectionName, $Force) {
         foreach ($file in $DBOpsFile) {
             $file.Parent = $this
             if ($CollectionName -notin $this.PsObject.Properties.Name) {
@@ -90,7 +93,12 @@ class DBOps {
             }
             foreach ($collectionItem in $this.$CollectionName) {
                 if ($collectionItem.PackagePath -eq $file.PackagePath) {
-                    $this.ThrowException("File $($file.PackagePath) already exists in $this.$CollectionName.", 'InvalidArgument')
+                    if ($Force) {
+                        $this.RemoveFile($collectionItem, $CollectionName)
+                    }
+                    else {
+                        $this.ThrowException("File $($file.PackagePath) already exists in $this.$CollectionName.", 'InvalidArgument')
+                    }
                 }
             }
             if (($this.PsObject.Properties | Where-Object Name -eq $CollectionName).TypeNameOfValue -like '*`[`]') {
@@ -159,8 +167,8 @@ class DBOpsPackageBase : DBOps {
     [System.Collections.Generic.List[DBOpsBuild]]$Builds
     [string]$ScriptDirectory
     [DBOpsFile]$DeployFile
-    [DBOpsFile]$PostDeployFile
-    [DBOpsFile]$PreDeployFile
+    [System.Collections.Generic.List[DBOpsBuild]]$PostScripts
+    [System.Collections.Generic.List[DBOpsBuild]]$PreScripts
     [DBOpsFile]$ConfigurationFile
     [DBOpsConfig]$Configuration
     [string]$Version
@@ -194,10 +202,12 @@ class DBOpsPackageBase : DBOps {
     #hidden properties
     hidden [string]$FileName
     hidden [string]$PackagePath
-    hidden [array]$PropertiesToExport = @('ScriptDirectory', 'DeployFile', 'PreDeployFile', 'PostDeployFile', 'ConfigurationFile', 'Builds')
+    hidden [array]$PropertiesToExport = @('ScriptDirectory', 'DeployFile', 'PreScripts', 'PostScripts', 'ConfigurationFile', 'Builds', 'Slim')
 
     DBOpsPackageBase () {
         $this.Builds = [System.Collections.Generic.List[DBOpsBuild]]::new()
+        $this.PreScripts = [System.Collections.Generic.List[DBOpsBuild]]::new()
+        $this.PostScripts = [System.Collections.Generic.List[DBOpsBuild]]::new()
     }
 
     #Methods
@@ -212,6 +222,7 @@ class DBOpsPackageBase : DBOps {
         $this.Init()
         if ($jsonObject) {
             $this.ScriptDirectory = $jsonObject.ScriptDirectory
+            if ($jsonObject.Slim) { $this.Slim = $jsonObject.Slim }
         }
     }
     [void] RefreshFileProperties() {
@@ -250,19 +261,24 @@ class DBOpsPackageBase : DBOps {
         return $this.Builds
     }
     [DBOpsBuild] NewBuild ([string]$build) {
+        return $this.NewBuild($build, 'Builds')
+    }
+    [DBOpsBuild] NewBuild ([string]$build, [string]$type) {
         if (!$build) {
             $this.ThrowException('Build name is not specified.', 'InvalidArgument')
             return $null
         }
-        if ($this.builds | Where-Object { $_.build -eq $build }) {
-            $this.ThrowException("Build $build already exists.", 'InvalidArgument')
+        if ($this.$type | Where-Object { $_.build -eq $build }) {
+            $this.ThrowException("Build $build already exists in $type.", 'InvalidArgument')
             return $null
         }
         else {
             $newBuild = [DBOpsBuild]::new($build)
             $newBuild.Parent = $this
-            $this.builds.Add($newBuild)
-            $this.Version = $newBuild.Build
+            $this.$type.Add($newBuild)
+            if ($type -eq 'Builds') {
+                $this.Version = $newBuild.Build
+            }
             return $newBuild
         }
     }
@@ -283,14 +299,30 @@ class DBOpsPackageBase : DBOps {
         }
     }
     [void] AddBuild ([DBOpsBuild]$build) {
-        if ($this.builds | Where-Object { $_.build -eq $build.build }) {
+        $this.AddBuildToCollection($build, 'builds')
+    }
+    [void] AddBuildToCollection ([DBOpsBuild]$build, $collection) {
+        if ($this.$collection | Where-Object { $_.build -eq $build.build }) {
             $this.ThrowException("Build $build already exists.", 'InvalidArgument')
         }
         else {
             $build.Parent = $this
-            $this.builds.Add($build)
-            $this.Version = $build.Build
+            $this.$collection.Add($build)
+            if ($collection -eq 'Builds') {
+                $this.Version = $build.Build
+            }
         }
+    }
+    [void] SetBuildCollection ([System.Collections.Generic.List[DBOpsBuild]]$build, $collection) {
+        $buildCollection = [System.Collections.Generic.List[DBOpsBuild]]::new()
+        foreach ($b in $build) {
+            $b.Parent = $this
+            $buildCollection.Add($b)
+            if ($collection -eq 'Builds') {
+                $this.Version = $build.Build
+            }
+        }
+        $this.$collection = $buildCollection
     }
 
     [void] RemoveBuild ([System.Collections.Generic.List[DBOpsBuild]]$build) {
@@ -428,7 +460,7 @@ class DBOpsPackageBase : DBOps {
                 #Write package file
                 $this.SavePackageFile($zip)
                 #Write files
-                foreach ($type in @('DeployFile', 'PreDeployFile', 'PostDeployFile', 'Builds')) {
+                foreach ($type in @('DeployFile', 'PreScripts', 'PostScripts', 'Builds')) {
                     foreach ($collectionItem in $this.$type) {
                         $collectionItem.Save($zip)
                     }
@@ -519,6 +551,30 @@ class DBOpsPackageBase : DBOps {
         }
         return $jsonObject
     }
+
+    #Sets the package prescripts
+    [void] SetPreScripts([DBOpsFile[]]$scripts) {
+        $preBuild = [DBOpsBuild]::new('.dbops.prescripts')
+        $preBuild.AddScript($scripts)
+        $this.SetBuildCollection($preBuild, 'PreScripts')
+    }
+
+    #Sets the package postscripts
+    [void] SetPostScripts([DBOpsFile[]]$scripts) {
+        $postBuild = [DBOpsBuild]::new('.dbops.postscripts')
+        $postBuild.AddScript($scripts)
+        $this.SetBuildCollection($postBuild, 'PostScripts')
+    }
+
+    #Gets the package prescripts
+    [System.Collections.Generic.List[DBOpsFile]] GetPreScripts() {
+        return $this.PreScripts.Scripts
+    }
+
+    #Gets the package postscripts
+    [System.Collections.Generic.List[DBOpsFile]] GetPostScripts() {
+        return $this.PostScripts.Scripts
+    }
 }
 ########################
 # DBOpsPackage class #
@@ -561,22 +617,23 @@ class DBOpsPackage : DBOpsPackageBase {
                 $jsonObject = $this.ReadMetadata([DBOpsHelper]::DecodeBinaryText($pkgFileBin))
                 $this.Init($jsonObject)
                 # Processing builds
-                foreach ($build in $jsonObject.builds) {
-                    $newBuild = $this.NewBuild($build.build)
-                    foreach ($script in $build.Scripts) {
-                        $filePackagePath = Join-Path $newBuild.GetPackagePath() $script.packagePath
-                        $scriptFile = $zip.Entries | Where-Object { (Join-PSFPath -Normalize $_.FullName) -eq $filePackagePath }
-                        if (!$scriptFile) {
-                            $this.ThrowException("File not found inside the package: $filePackagePath", 'InvalidArgument')
+                foreach ($buildType in 'Builds', 'PreScripts', 'PostScripts') {
+                    foreach ($build in $jsonObject.$buildType) {
+                        $newBuild = $this.NewBuild($build.build, $buildType)
+                        foreach ($script in $build.Scripts) {
+                            $filePackagePath = Join-Path $newBuild.GetPackagePath() $script.packagePath
+                            $scriptFile = $zip.Entries | Where-Object { (Join-PSFPath -Normalize $_.FullName) -eq $filePackagePath }
+                            if (!$scriptFile) {
+                                $this.ThrowException("File not found inside the package: $filePackagePath", 'InvalidArgument')
+                            }
+                            $newScript = [DBOpsFile]::new($scriptFile, $script.PackagePath, $script.Hash)
+                            $newBuild.AddScript($newScript, $true)
                         }
-                        $newScript = [DBOpsFile]::new($scriptFile, $script.PackagePath, $script.Hash)
-                        $newBuild.AddScript($newScript, $true)
                     }
                 }
                 # Processing root files
-                foreach ($file in @('DeployFile', 'PreDeployFile', 'PostDeployFile', 'ConfigurationFile')) {
-                    $jsonFileObject = $jsonObject.$file
-                    if ($jsonFileObject) {
+                foreach ($file in @('DeployFile', 'ConfigurationFile')) {
+                    foreach ($jsonFileObject in $jsonObject.$file) {
                         $zipFileEntry = $zip.Entries | Where-Object { (Join-PSFPath -Normalize $_.FullName) -eq $jsonFileObject.packagePath }
                         if ($zipFileEntry) {
                             $newFile = [DBOpsFile]::new($zipFileEntry, $jsonFileObject.PackagePath)
@@ -635,21 +692,23 @@ class DBOpsPackageFile : DBOpsPackageBase {
 
             $this.PackagePath = $folderPath
             # Processing builds
-            foreach ($build in $jsonObject.builds) {
-                $newBuild = $this.NewBuild($build.build)
-                foreach ($script in $build.Scripts) {
-                    $contentPath = Join-Path $folderPath $newBuild.GetPackagePath()
-                    $filePackagePath = Join-Path $contentPath $script.packagePath
-                    if (!(Test-Path $filePackagePath)) {
-                        $this.ThrowException("File not found inside the package: $filePackagePath", 'InvalidArgument')
+            foreach ($buildType in 'Builds', 'PreScripts', 'PostScripts') {
+                foreach ($build in $jsonObject.$buildType) {
+                    $newBuild = $this.NewBuild($build.build, $buildType)
+                    foreach ($script in $build.Scripts) {
+                        $contentPath = Join-Path $folderPath $newBuild.GetPackagePath()
+                        $filePackagePath = Join-Path $contentPath $script.packagePath
+                        if (!(Test-Path $filePackagePath)) {
+                            $this.ThrowException("File not found inside the package: $filePackagePath", 'InvalidArgument')
+                        }
+                        $fileObject = Get-Item -LiteralPath $filePackagePath -ErrorAction Stop
+                        $newScript = [DBOpsFile]::new($fileObject, $script.PackagePath, $script.Hash)
+                        $newBuild.AddScript($newScript, $true)
                     }
-                    $fileObject = Get-Item -LiteralPath $filePackagePath -ErrorAction Stop
-                    $newScript = [DBOpsFile]::new($fileObject, $script.PackagePath, $script.Hash)
-                    $newBuild.AddScript($newScript, $true)
                 }
             }
             # Processing root files
-            foreach ($fileType in @('DeployFile', 'PreDeployFile', 'PostDeployFile', 'ConfigurationFile')) {
+            foreach ($fileType in @('DeployFile', 'ConfigurationFile')) {
                 $jsonFileObject = $jsonObject.$fileType
                 if ($jsonFileObject) {
                     $filePackagePath = Join-Path $folderPath $jsonFileObject.packagePath
