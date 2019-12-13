@@ -9,7 +9,8 @@ if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
     Import-Module "$here\..\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
-} else {
+}
+else {
     # Is a part of a batch, output some eye-catching happiness
     Write-Host "Running PostgreSQL $commandName tests" -ForegroundColor Cyan
 }
@@ -134,7 +135,7 @@ Describe "Invoke-DBOQuery PostgreSQL tests" -Tag $commandName, IntegrationTests 
         }
         It "should run the query with custom variables" {
             $query = "SELECT '#{Test}' AS A, '#{Test2}' AS B UNION ALL SELECT '3' AS A, '4' AS B"
-            $result = Invoke-DBOQuery -Query $query @connParams -As DataTable -Variables @{ Test = '1'; Test2 = '2'}
+            $result = Invoke-DBOQuery -Query $query @connParams -As DataTable -Variables @{ Test = '1'; Test2 = '2' }
             $result.Columns.ColumnName | Should -Be @('a', 'b')
             $result.a | Should -Be '1', '3'
             $result.b | Should -Be '2', '4'
@@ -148,7 +149,7 @@ Describe "Invoke-DBOQuery PostgreSQL tests" -Tag $commandName, IntegrationTests 
         }
         It "should run the query with custom parameters" {
             $query = "SELECT @p1 AS A, @p2 AS B"
-            $result = Invoke-DBOQuery -Query $query @connParams -Parameter @{ p1 = '1'; p2 = 'string'}
+            $result = Invoke-DBOQuery -Query $query @connParams -Parameter @{ p1 = '1'; p2 = 'string' }
             $result.a | Should -Be 1
             $result.b | Should -Be string
         }
@@ -172,6 +173,13 @@ Describe "Invoke-DBOQuery PostgreSQL tests" -Tag $commandName, IntegrationTests 
             $result.a | Should -Be 1, 2
             $result.b | Should -Be 3, 4
         }
+        It "should select an unsupported datatype as text" {
+            $query = "select cast(null as aclitem[]) as a, cast('{=c/postgres}' as aclitem[]) as b"
+            $result = Invoke-DBOQuery -Query $query @connParams -As DataTable -ReturnAsText
+            $result.Columns.ColumnName | Should -Be @('a', 'b')
+            $result.a | Should -Be ([System.DBNull]::Value)
+            $result.b | Should -Be '{=c/postgres}'
+        }
     }
     Context "Negative tests" {
         It "should throw an unknown table error" {
@@ -180,16 +188,16 @@ Describe "Invoke-DBOQuery PostgreSQL tests" -Tag $commandName, IntegrationTests 
         }
         It "should throw a connection timeout error" {
             $query = "SELECT 1/0"
-            try { $null = Invoke-DBOQuery -Type PostgreSQL -Query $query -SqlInstance localhost:6493 -Credential $script:postgresqlCredential -ConnectionTimeout 1}
+            try { $null = Invoke-DBOQuery -Type PostgreSQL -Query $query -SqlInstance localhost:6493 -Credential $script:postgresqlCredential -ConnectionTimeout 1 }
             catch { $errVar = $_ }
             $errVar.Exception.Message | Should -Match "The operation has timed out|Connection refused"
         }
         It "should fail when credentials are wrong" {
             try { Invoke-DBOQuery -Type PostgreSQL -Query 'SELECT 1' -SqlInstance $script:postgresqlInstance -Credential ([pscredential]::new('nontexistent', ([securestring]::new()))) }
-            catch {$errVar = $_ }
+            catch { $errVar = $_ }
             $errVar.Exception.Message | Should -Match 'No password has been provided|role \"nontexistent\" does not exist'
             try { Invoke-DBOQuery -Type PostgreSQL -Query 'SELECT 1' -SqlInstance $script:postgresqlInstance -UserName nontexistent -Password (ConvertTo-SecureString 'foo' -AsPlainText -Force) }
-            catch {$errVar = $_ }
+            catch { $errVar = $_ }
             $errVar.Exception.Message | Should -Match 'password authentication failed|role \"nontexistent\" does not exist'
         }
         It "should fail when input file is not found" {
