@@ -59,11 +59,22 @@ function Install-NugetPackage {
     # download and extract the files
     Write-PSFMessage -Level Verbose -Message "Downloading version $selectedVersion of $packageName"
     $fileName = "$packageName.$selectedVersion.nupkg"
+    # Path reference: https://github.com/OneGet/oneget/blob/master/src/Microsoft.PackageManagement/Utility/Platform/OSInformation.cs
     $scopePath = switch ($Scope) {
-        'AllUsers' { $env:ProgramFiles }
-        'CurrentUser' { $env:LOCALAPPDATA }
+        'AllUsers' {
+            switch ($IsWindows) {
+                $false { "/usr/local/share/PackageManagement/NuGet/Packages" }
+                default { Join-PSFPath $env:ProgramFiles "PackageManagement\NuGet\packages" }
+            }
+        }
+        'CurrentUser' {
+            switch ($IsWindows) {
+                $false { Join-PSFPath $env:HOME ".local/share/PackageManagement/NuGet/Packages" }
+                default { Join-PSFPath $env:LOCALAPPDATA "PackageManagement\NuGet\packages" }
+            }
+        }
     }
-    $path = Join-PSFPath $scopePath PackageManagement\NuGet\Packages\ "$packageName.$selectedVersion"
+    $path = Join-PSFPath $scopePath "$packageName.$selectedVersion"
     $folder = New-Item -ItemType Directory -Path $path -Force
     $packagePath = Join-PSFPath $path $fileName
     Invoke-WebRequest "$($baseAddress.'@id')$packageLowerName/$selectedVersion/$fileName" -OutFile $packagePath -ErrorAction Stop
