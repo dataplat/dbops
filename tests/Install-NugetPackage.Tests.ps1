@@ -30,6 +30,7 @@ Describe "Install-NugetPackage tests" -Tag $commandName, UnitTests {
                     $testResult.Name | Should Be $result.Name
                     $testResult.Version | Should -Be $result.Version
                     $testResult.Source | Should -Be $result.Source
+                    Test-Path (Join-PSFPath (Split-Path $testResult.Source) lib -Normalize) | Should -Be $true
                 }
             }
         }

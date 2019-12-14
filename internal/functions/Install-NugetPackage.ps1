@@ -77,10 +77,13 @@ function Install-NugetPackage {
     $path = Join-PSFPath $scopePath "$packageName.$selectedVersion"
     $folder = New-Item -ItemType Directory -Path $path -Force
     $packagePath = Join-PSFPath $path $fileName
+    if ((Test-Path $packagePath) -and -Not $Force) {
+        Write-PSFMessage -Level Critical -Message "File $packagePath already exists at destination" -EnableException $true
+    }
     $downloadUrl = "$($baseAddressUrl.'@id')$packageLowerName/$selectedVersion/$fileName"
     Invoke-WebRequest -Uri $downloadUrl -OutFile $packagePath -ErrorAction Stop
     Write-PSFMessage -Level Verbose -Message "Extracting $fileName to $folder"
-    Expand-Archive -Path $packagePath -DestinationPath $folder -Force:$Force -ErrorAction Stop
+    [System.IO.Compression.ZipFile]::ExtractToDirectory($packagePath, $folder, $true)
 
     #return output
     [PSCustomObject]@{

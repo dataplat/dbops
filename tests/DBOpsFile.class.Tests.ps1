@@ -185,7 +185,7 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
         }
         It "should test GetPackagePath method" {
             $file.GetPackagePath() | Should -Be (Join-PSFPath -Normalize 'content\1.0\success\1.sql')
-            $cFile.GetPackagePath() | Should -Be 'content\.dbops.prescripts\whatever.sql'
+            $cFile.GetPackagePath() | Should -Be (Join-PSFPath -Normalize 'content\.dbops.prescripts\whatever.sql')
         }
         It "should test GetContent method" {
             $file.GetContent() | Should -BeLike 'CREATE TABLE a (a int)*'
@@ -242,7 +242,7 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
             }
             $testResults = Get-ArchiveItem $packageName | Where-Object Path -eq (Join-PSFPath -Normalize 'content\1.0\success\1.sql')
             $oldResults.LastWriteTime -lt ($testResults | Where-Object Path -eq $oldResults.Path).LastWriteTime | Should -Be $true
-            $testResults = Get-ArchiveItem $packageName | Where-Object Path -eq 'content\.dbops.prescripts\whatever.sql'
+            $testResults = Get-ArchiveItem $packageName | Where-Object Path -eq (Join-PSFPath -Normalize 'content\.dbops.prescripts\whatever.sql')
             $oldResults2.LastWriteTime -lt ($testResults | Where-Object Path -eq $oldResults2.Path).LastWriteTime | Should -Be $true
             # { $p = [DBOpsPackage]::new($packageName) } | Should -Throw #Because of the hash mismatch - package file is not updated in Save()
         }
@@ -258,7 +258,7 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
             { $cFile.Alter() } | Should -Not -Throw
             $testResults = Get-ArchiveItem $packageName | Where-Object Path -eq (Join-PSFPath -Normalize 'content\1.0\success\1.sql')
             $oldResults.LastWriteTime -lt ($testResults | Where-Object Path -eq $oldResults.Path).LastWriteTime | Should -Be $true
-            $testResults = Get-ArchiveItem $packageName | Where-Object Path -eq 'content\.dbops.prescripts\whatever.sql'
+            $testResults = Get-ArchiveItem $packageName | Where-Object Path -eq (Join-PSFPath -Normalize 'content\.dbops.prescripts\whatever.sql')
             $oldResults2.LastWriteTime -lt ($testResults | Where-Object Path -eq $oldResults2.Path).LastWriteTime | Should -Be $true
         }
     }
