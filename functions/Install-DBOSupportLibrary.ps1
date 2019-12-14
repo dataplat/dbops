@@ -44,27 +44,7 @@ Function Install-DBOSupportLibrary {
         [switch]$Force
     )
     begin {
-        $nugetAPI = "http://www.nuget.org/api/v2"
-        # trying to use one of the existing repos
-        try {
-            $packageSource = Get-PackageSource -Name nuget.org.dbops -ProviderName nuget -ErrorAction Stop
-        }
-        catch {
-            $packageSource = Get-PackageSource -Name nuget.org -ProviderName nuget -ErrorAction SilentlyContinue
-        }
-        # checking if nuget has an incorrect API url
-        if ($packageSource.Location -like 'https://api.nuget.org/v3*') {
-            if ($PSCmdlet.ShouldProcess('NuGet package source is registered using API v3, installing a new repository source nuget.org.dbops')) {
-                Write-PSFMessage -Level Verbose -Message "NuGet package source is registered using API v3, which prevents Install-Package to download nuget packages. Registering a new package source nuget.org.dbops to download packages."
-                $packageSource = Register-PackageSource -Name nuget.org.dbops -Location $nugetAPI -ProviderName nuget -Force:$Force -ErrorAction Stop
-            }
-        }
-        if (!$packageSource) {
-            if ($PSCmdlet.ShouldProcess("Registering package source repository nuget.org ($nugetAPI)")) {
-                Write-PSFMessage -Level Verbose -Message "Registering nuget.org package source $nugetAPI"
-                $packageSource = Register-PackageSource -Name nuget.org -Location $nugetAPI -ProviderName nuget -Force:$Force -ErrorAction Stop
-            }
-        }
+
     }
     process {
         $dependencies = Get-ExternalLibrary
@@ -80,7 +60,7 @@ Function Install-DBOSupportLibrary {
             # Install dependencies
             foreach ($package in $packagesToUpdate) {
                 Write-PSFMessage -Level Verbose -Message "Installing package $($package.Name)($($package.Version))"
-                $null = Install-Package -Source $packageSource.Name -Name $package.Name -RequiredVersion $package.Version -Force:$Force -Scope:$Scope -SkipDependencies
+                $null = Install-NugetPackage -Name $package.Name -RequiredVersion $package.Version -Force:$Force -Scope $Scope
             }
         }
     }

@@ -66,6 +66,7 @@
         "internal\\functions\\Invoke-EnsureDatabase.ps1",
         "internal\\functions\\Get-DatabaseConnection.ps1",
         "internal\\functions\\Invoke-DBODeployment.ps1",
+        "internal\\functions\\Install-NugetPackage.ps1",
         "internal\\classes\\DBOpsHelper.class.ps1",
         "internal\\classes\\DBOps.class.ps1",
         "internal\\classes\\DBOpsDeploymentStatus.class.ps1",
