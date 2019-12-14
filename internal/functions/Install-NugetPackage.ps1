@@ -83,7 +83,12 @@ function Install-NugetPackage {
     $downloadUrl = "$($baseAddressUrl.'@id')$packageLowerName/$selectedVersion/$fileName"
     Invoke-WebRequest -Uri $downloadUrl -OutFile $packagePath -ErrorAction Stop
     Write-PSFMessage -Level Verbose -Message "Extracting $fileName to $folder"
-    [System.IO.Compression.ZipFile]::ExtractToDirectory($packagePath, $folder, $true)
+    if ($isCoreCLR) {
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($packagePath, $folder, $true)
+    }
+    else {
+        [System.IO.Compression.ZipFile]::ExtractToDirectory($packagePath, $folder)
+    }
 
     #return output
     [PSCustomObject]@{
