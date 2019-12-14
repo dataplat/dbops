@@ -49,7 +49,7 @@
             "Name": "System.Threading.Tasks.Extensions",
             "Version": "4.3.0",
             "Path": [
-                "lib\\portable-net45+win8+wp8+wpa81\\System.Threading.Tasks.Extensions.dll"
+                "lib\\netstandard1.0\\System.Threading.Tasks.Extensions.dll"
             ],
             "PSEdition": [
                 "Desktop"
