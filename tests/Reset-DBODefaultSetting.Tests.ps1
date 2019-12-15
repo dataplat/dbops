@@ -23,10 +23,16 @@ Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
         Set-PSFConfig -FullName dbops.secret -Value (ConvertTo-SecureString -AsPlainText 'foo' -Force) -Initialize
     }
     AfterAll {
-        Unregister-PSFConfig -Module dbops -Name tc1
-        Unregister-PSFConfig -Module dbops -Name tc2
-        Unregister-PSFConfig -Module dbops -Name tc3 -Scope SystemDefault
-        Unregister-PSFConfig -Module dbops -Name secret
+        Unregister-PSFConfig -Module dbops -Name tc1 -Scope UserDefault
+        Unregister-PSFConfig -Module dbops -Name tc2 -Scope UserDefault
+        Unregister-PSFConfig -Module dbops -Name tc3 -Scope UserDefault
+        Unregister-PSFConfig -Module dbops -Name secret -Scope UserDefault
+        try {
+            Unregister-PSFConfig -Module dbops -Name tc3 -Scope SystemDefault
+        }
+        catch {
+            $_.Exception.Message | Should BeLike '*access*'
+        }
     }
     Context "Resetting various configs" {
         BeforeEach {
@@ -34,12 +40,23 @@ Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
             Set-PSFConfig -FullName dbops.tc2 -Value 'string2'
             Set-PSFConfig -FullName dbops.tc3 -Value 'another2'
             Set-PSFConfig -FullName dbops.secret -Value (ConvertTo-SecureString -AsPlainText 'bar' -Force)
+            Get-PSFConfig -FullName dbops.tc1 | Register-PSFConfig -Scope UserDefault
+            Get-PSFConfig -FullName dbops.tc2 | Register-PSFConfig -Scope UserDefault
+            Get-PSFConfig -FullName dbops.tc3 | Register-PSFConfig -Scope UserDefault
+            Get-PSFConfig -FullName dbops.secret | Register-PSFConfig -Scope UserDefault
         }
         It "resets one config" {
             Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 2
             $testResult = Reset-DBODefaultSetting -Name tc1
             $testResult | Should -BeNullOrEmpty
             Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 1
+            $scriptBlock = {
+                Import-Module PSFramework, Pester
+                Set-PSFConfig -FullName dbops.tc1 -Value 1 -Initialize
+                Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 1
+            }
+            $job = Start-Job -ScriptBlock $scriptBlock
+            $job | Wait-Job | Receive-Job
         }
         It "resets temporary config" {
             Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 2
@@ -54,6 +71,15 @@ Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
             $testResult | Should -BeNullOrEmpty
             Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 1
             Get-PSFConfigValue -FullName dbops.tc2 | Should -Be 'string'
+            $scriptBlock = {
+                Import-Module PSFramework, Pester
+                Set-PSFConfig -FullName dbops.tc1 -Value 1 -Initialize
+                Set-PSFConfig -FullName dbops.tc2 -Value 'string' -Initialize
+                Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 1
+                Get-PSFConfigValue -FullName dbops.tc2 | Should -Be 'string'
+            }
+            $job = Start-Job -ScriptBlock $scriptBlock
+            $job | Wait-Job | Receive-Job
         }
         It "resets all configs" {
             Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 2
@@ -70,6 +96,21 @@ Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
             $testResult = Get-PSFConfigValue -FullName dbops.secret
             $cred = [pscredential]::new('test', $testResult)
             $cred.GetNetworkCredential().Password | Should Be 'foo'
+            $scriptBlock = {
+                Import-Module PSFramework, Pester
+                Set-PSFConfig -FullName dbops.tc1 -Value 1 -Initialize
+                Set-PSFConfig -FullName dbops.tc2 -Value 'string' -Initialize
+                Set-PSFConfig -FullName dbops.tc3 -Value 'another' -Initialize
+                Set-PSFConfig -FullName dbops.secret -Value (ConvertTo-SecureString -AsPlainText 'foo' -Force) -Initialize
+                Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 1
+                Get-PSFConfigValue -FullName dbops.tc2 | Should -Be 'string'
+                Get-PSFConfigValue -FullName dbops.tc3 | Should -Be 'another'
+                $testResult = Get-PSFConfigValue -FullName dbops.secret
+                $cred = [pscredential]::new('test', $testResult)
+                $cred.GetNetworkCredential().Password | Should Be 'foo'
+            }
+            $job = Start-Job -ScriptBlock $scriptBlock
+            $job | Wait-Job | Receive-Job
         }
         It "resets an AllUsers-scoped value" {
             try {

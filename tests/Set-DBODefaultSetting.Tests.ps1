@@ -17,10 +17,10 @@ else {
 
 Describe "Set-DBODefaultSetting tests" -Tag $commandName, UnitTests {
     BeforeAll {
-        Set-PSFConfig -FullName dbops.tc1 -Value 1
-        Set-PSFConfig -FullName dbops.tc2 -Value 'string'
-        Set-PSFConfig -FullName dbops.tc3 -Value 'another'
-        Set-PSFConfig -FullName dbops.secret -Value (ConvertTo-SecureString -AsPlainText 'foo' -Force)
+        Set-PSFConfig -FullName dbops.tc1 -Value 1 -Initialize
+        Set-PSFConfig -FullName dbops.tc2 -Value 'string' -Initialize
+        Set-PSFConfig -FullName dbops.tc3 -Value 'another' -Initialize
+        Set-PSFConfig -FullName dbops.secret -Value (ConvertTo-SecureString -AsPlainText 'foo' -Force) -Initialize
     }
     AfterAll {
         Unregister-PSFConfig -Module dbops -Name tc1
@@ -30,16 +30,30 @@ Describe "Set-DBODefaultSetting tests" -Tag $commandName, UnitTests {
     }
     Context "Setting various configs" {
         It "sets plain value" {
-            $testResult = Set-DBODefaultSetting -Name tc1 -Value 1
+            $testResult = Set-DBODefaultSetting -Name tc1 -Value 2
             $testResult | Should -Not -BeNullOrEmpty
-            $testResult.Value | Should Be 1
+            $testResult.Value | Should Be 2
             $testResult.Name | Should Be 'tc1'
+            $scriptBlock = {
+                Import-Module PSFramework, Pester
+                Set-PSFConfig -FullName dbops.tc1 -Value 1 -Initialize
+                Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 2
+            }
+            $job = Start-Job -ScriptBlock $scriptBlock
+            $job | Wait-Job | Receive-Job
         }
         It "sets temporary value" {
             $testResult = Set-DBODefaultSetting -Name tc2 -Value 2 -Temporary
             $testResult | Should -Not -BeNullOrEmpty
             $testResult.Value | Should Be 2
             $testResult.Name | Should Be 'tc2'
+            $scriptBlock = {
+                Import-Module PSFramework, Pester
+                Set-PSFConfig -FullName dbops.tc2 -Value 'string' -Initialize
+                Get-PSFConfigValue -FullName dbops.tc2 | Should -Be 'string'
+            }
+            $job = Start-Job -ScriptBlock $scriptBlock
+            $job | Wait-Job | Receive-Job
         }
         It "sets a AllUsers-scoped value" {
             try {
@@ -47,6 +61,13 @@ Describe "Set-DBODefaultSetting tests" -Tag $commandName, UnitTests {
                 $testResult | Should -Not -BeNullOrEmpty
                 $testResult.Value | Should Be 3
                 $testResult.Name | Should Be 'tc3'
+                $scriptBlock = {
+                    Import-Module PSFramework, Pester
+                    Set-PSFConfig -FullName dbops.tc3 -Value 'another' -Initialize
+                    Get-PSFConfigValue -FullName dbops.tc3 | Should Be 3
+                }
+                $job = Start-Job -ScriptBlock $scriptBlock
+                $job | Wait-Job | Receive-Job
             }
             catch {
                 $_.Exception.Message | Should BeLike '*access*'
@@ -55,7 +76,7 @@ Describe "Set-DBODefaultSetting tests" -Tag $commandName, UnitTests {
         It "sets a secret value" {
             # encryption on Linux does not work in Register-PSFConfig just yet
             if (Test-Windows -Not) {
-                Mock -CommandName Register-PSFConfig -MockWith {} -ModuleName dbops
+                Mock -CommandName Register-PSFConfig -MockWith { } -ModuleName dbops
             }
             $testResult = Set-DBODefaultSetting -Name secret -Value (ConvertTo-SecureString -AsPlainText 'bar' -Force)
             $testResult | Should -Not -BeNullOrEmpty
