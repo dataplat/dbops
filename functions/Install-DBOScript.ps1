@@ -233,6 +233,6 @@
         Invoke-DBODeployment @params
 
         # Test name deprecation
-        Test-AliasDeprecation -DeprecatedOn "1.0.0" -EnableException:$false -Alias Install-DBOScript
+        Test-AliasDeprecation -DeprecatedOn "1.0.0" -EnableException:$false -Alias Install-DBOSqlScript
     }
 }
