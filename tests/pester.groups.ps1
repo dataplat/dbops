@@ -5,7 +5,7 @@ $TestsRunGroups = @{
         "$ModuleBase\tests\*"
         "$ModuleBase\tests\mysql\*"
         "$ModuleBase\tests\postgresql\*"
-        #    "$ModuleBase\tests\oracle\*"
+        "$ModuleBase\tests\oracle\*"
     )
     "windows"    = @(
         "$ModuleBase\tests\*"
