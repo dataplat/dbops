@@ -80,7 +80,7 @@
         'Get-DBOPackageArtifact',
         'Publish-DBOPackageArtifact',
         'Copy-DBOPackageArtifact',
-        'Install-DBOSqlScript',
+        'Install-DBOScript',
         'Register-DBOPackage',
         'Send-DBOMailMessage',
         'Reset-DBODefaultSetting',

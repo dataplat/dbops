@@ -71,7 +71,7 @@ $cleanupPackageName = Join-PSFPath -Normalize "$testRoot\etc\TempCleanup.zip"
 $outFile = Join-PSFPath -Normalize "$testRoot\etc\outLog.txt"
 
 
-Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, IntegrationTests {
+Describe "Install-DBOScript Oracle integration tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = New-Item $workFolder -ItemType Directory -Force
@@ -90,7 +90,7 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
             $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         It "should deploy version 1.0" {
-            $testResults = Install-DBOSqlScript @connParams -ScriptPath $v1scripts -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt"
+            $testResults = Install-DBOScript @connParams -ScriptPath $v1scripts -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt"
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Get-Item $v1scripts).Name
             $testResults.SqlInstance | Should Be $script:oracleInstance
@@ -122,7 +122,7 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
         }
         It "Should throw an error and not create any objects" {
             #Running package
-            { $null = Install-DBOSqlScript -Path $tranFailScripts @connParams -SchemaVersionTable $logTable -DeploymentMethod SingleTransaction } | Should throw 'name is already used by an existing object'
+            { $null = Install-DBOScript -Path $tranFailScripts @connParams -SchemaVersionTable $logTable -DeploymentMethod SingleTransaction } | Should throw 'name is already used by an existing object'
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
             # oracle has implicit commit, sorry folks
@@ -142,7 +142,7 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
         }
         It "Should throw an error and create one object" {
             #Running package
-            { $null = Install-DBOSqlScript -Path $tranFailScripts @connParams -SchemaVersionTable $logTable -DeploymentMethod NoTransaction } | Should throw 'name is already used by an existing object'
+            { $null = Install-DBOScript -Path $tranFailScripts @connParams -SchemaVersionTable $logTable -DeploymentMethod NoTransaction } | Should throw 'name is already used by an existing object'
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
             $logTable | Should BeIn $testResults.NAME
@@ -160,7 +160,7 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
             $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         It "should deploy version 1.0" {
-            $testResults = Install-DBOSqlScript -ScriptPath $v1scripts @connParams -SchemaVersionTable $logTable
+            $testResults = Install-DBOScript -ScriptPath $v1scripts @connParams -SchemaVersionTable $logTable
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Get-Item $v1scripts).Name
             $testResults.SqlInstance | Should Be $script:oracleInstance
@@ -183,7 +183,7 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
             'd' | Should Not BeIn $testResults.NAME
         }
         It "should deploy version 2.0" {
-            $testResults = Install-DBOSqlScript -ScriptPath $v2scripts @connParams -SchemaVersionTable $logTable
+            $testResults = Install-DBOScript -ScriptPath $v2scripts @connParams -SchemaVersionTable $logTable
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Get-Item $v2scripts).Name
             $testResults.SqlInstance | Should Be $script:oracleInstance
@@ -214,7 +214,7 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
             $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         It "should deploy 2.sql before 1.sql" {
-            $testResults = Install-DBOSqlScript -ScriptPath $v2scripts, $v1scripts @connParams -SchemaVersionTable $logTable
+            $testResults = Install-DBOScript -ScriptPath $v2scripts, $v1scripts @connParams -SchemaVersionTable $logTable
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Get-Item $v2scripts, $v1scripts).Name
             $testResults.SqlInstance | Should Be $script:oracleInstance
@@ -256,12 +256,12 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
     #         $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
     #     }
     #     It "should throw timeout error" {
-    #         { $null = Install-DBOSqlScript -ScriptPath "$workFolder\delay.sql" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 2 } | Should throw 'user requested cancel of current operation'
+    #         { $null = Install-DBOScript -ScriptPath "$workFolder\delay.sql" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 2 } | Should throw 'user requested cancel of current operation'
     #         $output = Get-Content "$workFolder\log.txt" -Raw
     #         $output | Should BeLike "*user requested cancel of current operation*"
     #     }
     #     It "should successfully run within specified timeout" {
-    #         $testResults = Install-DBOSqlScript -ScriptPath "$workFolder\delay.sql" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 6
+    #         $testResults = Install-DBOScript -ScriptPath "$workFolder\delay.sql" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 6
     #         $testResults.Successful | Should Be $true
     #         $testResults.Scripts.Name | Should Be "delay.sql"
     #         $testResults.SqlInstance | Should Be $script:oracleInstance
@@ -278,7 +278,7 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
     #         $output | Should Not BeLike '*user requested cancel of current operation*'
     #     }
     #     It "should successfully run with infinite timeout" {
-    #         $testResults = Install-DBOSqlScript -ScriptPath "$workFolder\delay.sql" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 0
+    #         $testResults = Install-DBOScript -ScriptPath "$workFolder\delay.sql" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 0
     #         $testResults.Successful | Should Be $true
     #         $testResults.Scripts.Name | Should Be "delay.sql"
     #         $testResults.SqlInstance | Should Be $script:oracleInstance
@@ -304,7 +304,7 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
             $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         It "should deploy nothing" {
-            $testResults = Install-DBOSqlScript -ScriptPath $v1scripts @connParams -SchemaVersionTable $logTable -WhatIf
+            $testResults = Install-DBOScript -ScriptPath $v1scripts @connParams -SchemaVersionTable $logTable -WhatIf
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Get-Item $v1scripts).Name
             $testResults.SqlInstance | Should Be $script:oracleInstance
@@ -338,7 +338,7 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
         It "should deploy version 1.0" {
             $before = Invoke-DBOQuery @connParams -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Install-DBOSqlScript -ScriptPath $v1scripts @connParams
+            $testResults = Install-DBOScript -ScriptPath $v1scripts @connParams
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Get-Item $v1scripts).Name
             $testResults.SqlInstance | Should Be $script:oracleInstance
@@ -364,7 +364,7 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
         It "should deploy version 2.0" {
             $before = Invoke-DBOQuery @connParams -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Install-DBOSqlScript -ScriptPath $v2scripts @connParams
+            $testResults = Install-DBOScript -ScriptPath $v2scripts @connParams
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Get-Item $v2scripts).Name
             $testResults.SqlInstance | Should Be $script:oracleInstance
@@ -398,7 +398,7 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
         It "should deploy version 1.0 without creating SchemaVersions" {
             $before = Invoke-DBOQuery @connParams -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Install-DBOSqlScript -ScriptPath $v1scripts @connParams -SchemaVersionTable $null
+            $testResults = Install-DBOScript -ScriptPath $v1scripts @connParams -SchemaVersionTable $null
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Get-Item $v1scripts).Name
             $testResults.SqlInstance | Should Be $script:oracleInstance
@@ -425,22 +425,27 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
     }
     Context "deployments with errors should throw terminating errors" {
         BeforeAll {
+            <<<<<<< HEAD
             $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
             $null = Install-DBOSqlScript -ScriptPath $v1scripts @connParams -SchemaVersionTable $null
+            =======
+            $null = Invoke-DBOQuery @adminParams -Query $createUserScript
+            $null = Install-DBOScript -ScriptPath $v1scripts @connParams -SchemaVersionTable $null
+            >>>>>>> a87a1a4... Renaming Install-DBOSqlScript to Install-DBOScript
         }
         AfterAll {
             $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         It "Should return terminating error when object exists" {
             #Running package
-            { $null = Install-DBOSqlScript -Path $tranFailScripts @connParams -SchemaVersionTable $logTable -DeploymentMethod NoTransaction } | Should throw 'name is already used by an existing object'
+            { $null = Install-DBOScript -Path $tranFailScripts @connParams -SchemaVersionTable $logTable -DeploymentMethod NoTransaction } | Should throw 'name is already used by an existing object'
         }
         It "should not deploy anything after throwing an error" {
             #Running package
             try {
                 $testResults = $null
-                $null = Install-DBOSqlScript -Path $tranFailScripts @connParams -SchemaVersionTable $logTable -DeploymentMethod NoTransaction
-                $testResults = Install-DBOSqlScript -ScriptPath $v2scripts @connParams -SchemaVersionTable $logTable
+                $null = Install-DBOScript -Path $tranFailScripts @connParams -SchemaVersionTable $logTable -DeploymentMethod NoTransaction
+                $testResults = Install-DBOScript -ScriptPath $v2scripts @connParams -SchemaVersionTable $logTable
             }
             catch {
                 $errorObject = $_

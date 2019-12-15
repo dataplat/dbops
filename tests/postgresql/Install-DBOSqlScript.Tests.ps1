@@ -42,7 +42,7 @@ $dropDatabaseScript = @(
 )
 $createDatabaseScript = 'CREATE DATABASE {0}' -f $newDbName
 
-Describe "Install-DBOSqlScript PostgreSQL integration tests" -Tag $commandName, IntegrationTests {
+Describe "Install-DBOScript PostgreSQL integration tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = New-Item $workFolder -ItemType Directory -Force
@@ -60,7 +60,7 @@ Describe "Install-DBOSqlScript PostgreSQL integration tests" -Tag $commandName, 
             # drop the database before installing the package
             $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
             [Npgsql.NpgsqlConnection]::ClearAllPools()
-            $testResults = Install-DBOSqlScript -Absolute -Type PostgreSQL -ScriptPath $v1scripts -CreateDatabase -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $testResults = Install-DBOScript -Absolute -Type PostgreSQL -ScriptPath $v1scripts -CreateDatabase -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:postgresqlInstance
@@ -94,7 +94,7 @@ Describe "Install-DBOSqlScript PostgreSQL integration tests" -Tag $commandName, 
         }
         It "Should throw an error and not create any objects" {
             #Running package
-            { $null = Install-DBOSqlScript -Absolute -Type PostgreSQL -Path $tranFailScripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod SingleTransaction -Silent } | Should throw 'relation "a" already exists'
+            { $null = Install-DBOScript -Absolute -Type PostgreSQL -Path $tranFailScripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod SingleTransaction -Silent } | Should throw 'relation "a" already exists'
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type PostgreSQL -SqlInstance $script:postgresqlInstance -Silent -Credential $script:postgresqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should -Not -BeIn $testResults.name
@@ -112,7 +112,7 @@ Describe "Install-DBOSqlScript PostgreSQL integration tests" -Tag $commandName, 
         }
         It "Should throw an error and create one object" {
             #Running package
-            { $null = Install-DBOSqlScript -Absolute -Type PostgreSQL -Path $tranFailScripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent } | Should throw 'relation "a" already exists'
+            { $null = Install-DBOScript -Absolute -Type PostgreSQL -Path $tranFailScripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent } | Should throw 'relation "a" already exists'
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type PostgreSQL -SqlInstance $script:postgresqlInstance -Silent -Credential $script:postgresqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
@@ -129,7 +129,7 @@ Describe "Install-DBOSqlScript PostgreSQL integration tests" -Tag $commandName, 
             $null = Invoke-DBOQuery @connParams -Database postgres -Query $createDatabaseScript
         }
         It "should deploy version 1.0" {
-            $testResults = Install-DBOSqlScript -Absolute -Type PostgreSQL -ScriptPath $v1scripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+            $testResults = Install-DBOScript -Absolute -Type PostgreSQL -ScriptPath $v1scripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:postgresqlInstance
@@ -153,7 +153,7 @@ Describe "Install-DBOSqlScript PostgreSQL integration tests" -Tag $commandName, 
             'd' | Should Not BeIn $testResults.name
         }
         It "should deploy version 2.0" {
-            $testResults = Install-DBOSqlScript -Absolute -Type PostgreSQL -ScriptPath $v2scripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+            $testResults = Install-DBOScript -Absolute -Type PostgreSQL -ScriptPath $v2scripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v2scripts).Path
             $testResults.SqlInstance | Should Be $script:postgresqlInstance
@@ -184,7 +184,7 @@ Describe "Install-DBOSqlScript PostgreSQL integration tests" -Tag $commandName, 
             $null = Invoke-DBOQuery @connParams -Database postgres -Query $createDatabaseScript
         }
         It "should deploy version 1.0" {
-            $testResults = Install-DBOSqlScript -Relative -Type PostgreSQL -ScriptPath $v1scripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+            $testResults = Install-DBOScript -Relative -Type PostgreSQL -ScriptPath $v1scripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be ((Resolve-Path $v1scripts -Relative) -replace '^.[\\|\/]', '')
             $testResults.SqlInstance | Should Be $script:postgresqlInstance
@@ -213,7 +213,7 @@ Describe "Install-DBOSqlScript PostgreSQL integration tests" -Tag $commandName, 
             $null = Invoke-DBOQuery @connParams -Database postgres -Query $createDatabaseScript
         }
         It "should deploy 2.sql before 1.sql" {
-            $testResults = Install-DBOSqlScript -Absolute -Type PostgreSQL -ScriptPath $v2scripts, $v1scripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+            $testResults = Install-DBOScript -Absolute -Type PostgreSQL -ScriptPath $v2scripts, $v1scripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v2scripts, $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:postgresqlInstance
@@ -251,13 +251,13 @@ Describe "Install-DBOSqlScript PostgreSQL integration tests" -Tag $commandName, 
             $null = Invoke-DBOQuery @connParams -Database postgres -Query $createDatabaseScript
         }
         It "should throw timeout error" {
-            { $null = Install-DBOSqlScript -Absolute -Type PostgreSQL -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 2 } | Should throw 'Exception while reading from stream'
+            { $null = Install-DBOScript -Absolute -Type PostgreSQL -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 2 } | Should throw 'Exception while reading from stream'
             $output = Get-Content "$workFolder\log.txt" -Raw
             $output | Should BeLike "*Unable to read data from the transport connection*"
             $output | Should Not BeLike '*Successful!*'
         }
         It "should successfully run within specified timeout" {
-            $testResults = Install-DBOSqlScript -Absolute -Type PostgreSQL -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 6
+            $testResults = Install-DBOScript -Absolute -Type PostgreSQL -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 6
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
             $testResults.SqlInstance | Should Be $script:postgresqlInstance
@@ -276,7 +276,7 @@ Describe "Install-DBOSqlScript PostgreSQL integration tests" -Tag $commandName, 
             $output | Should BeLike '*Successful!*'
         }
         It "should successfully run with infinite timeout" {
-            $testResults = Install-DBOSqlScript -Absolute -Type PostgreSQL -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 0
+            $testResults = Install-DBOScript -Absolute -Type PostgreSQL -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 0
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
             $testResults.SqlInstance | Should Be $script:postgresqlInstance
@@ -307,7 +307,7 @@ Describe "Install-DBOSqlScript PostgreSQL integration tests" -Tag $commandName, 
             $null = Invoke-DBOQuery @connParams -Database postgres -Query $createDatabaseScript
         }
         It "should not fail to read the script" {
-            $null = Install-DBOSqlScript -Absolute -Type PostgreSQL -ScriptPath "$workFolder\vars.sql" -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $null = Install-DBOScript -Absolute -Type PostgreSQL -ScriptPath "$workFolder\vars.sql" -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             $output = Get-Content "$workFolder\log.txt" -Raw
             $output | Should BeLike '*$a$*'
         }
@@ -321,7 +321,7 @@ Describe "Install-DBOSqlScript PostgreSQL integration tests" -Tag $commandName, 
         AfterAll {
         }
         It "should deploy nothing" {
-            $testResults = Install-DBOSqlScript -Absolute -Type PostgreSQL -ScriptPath $v1scripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent -WhatIf
+            $testResults = Install-DBOScript -Absolute -Type PostgreSQL -ScriptPath $v1scripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent -WhatIf
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v1scripts
             $testResults.SqlInstance | Should Be $script:postgresqlInstance
@@ -358,7 +358,7 @@ Describe "Install-DBOSqlScript PostgreSQL integration tests" -Tag $commandName, 
         It "should deploy version 1.0" {
             $before = Invoke-DBOQuery -Type PostgreSQL -SqlInstance $script:postgresqlInstance -Silent -Credential $script:postgresqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Install-DBOSqlScript -Type PostgreSQL -ScriptPath $v1scripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -Silent
+            $testResults = Install-DBOScript -Type PostgreSQL -ScriptPath $v1scripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Get-Item $v1scripts).Name
             $testResults.SqlInstance | Should Be $script:postgresqlInstance
@@ -385,7 +385,7 @@ Describe "Install-DBOSqlScript PostgreSQL integration tests" -Tag $commandName, 
         It "should deploy version 2.0" {
             $before = Invoke-DBOQuery -Type PostgreSQL -SqlInstance $script:postgresqlInstance -Silent -Credential $script:postgresqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Install-DBOSqlScript -Type PostgreSQL -ScriptPath $v2scripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -Silent
+            $testResults = Install-DBOScript -Type PostgreSQL -ScriptPath $v2scripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Get-Item $v2scripts).Name
             $testResults.SqlInstance | Should Be $script:postgresqlInstance
@@ -422,7 +422,7 @@ Describe "Install-DBOSqlScript PostgreSQL integration tests" -Tag $commandName, 
         It "should deploy version 1.0 without creating SchemaVersions" {
             $before = Invoke-DBOQuery -Type PostgreSQL -SqlInstance $script:postgresqlInstance -Silent -Credential $script:postgresqlCredential -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Install-DBOSqlScript -Absolute -Type PostgreSQL -ScriptPath $v1scripts  -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -Silent -SchemaVersionTable $null
+            $testResults = Install-DBOScript -Absolute -Type PostgreSQL -ScriptPath $v1scripts  -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -Silent -SchemaVersionTable $null
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:postgresqlInstance
@@ -453,18 +453,18 @@ Describe "Install-DBOSqlScript PostgreSQL integration tests" -Tag $commandName, 
             $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
             [Npgsql.NpgsqlConnection]::ClearAllPools()
             $null = Invoke-DBOQuery @connParams -Database postgres -Query $createDatabaseScript
-            $null = Install-DBOSqlScript -Absolute -Type PostgreSQL -ScriptPath $v1scripts  -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -Silent -SchemaVersionTable $null
+            $null = Install-DBOScript -Absolute -Type PostgreSQL -ScriptPath $v1scripts  -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -Silent -SchemaVersionTable $null
         }
         It "Should return terminating error when object exists" {
             #Running package
-            { $null = Install-DBOSqlScript -Absolute -Type PostgreSQL -Path $tranFailScripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent } | Should throw 'relation "a" already exists'
+            { $null = Install-DBOScript -Absolute -Type PostgreSQL -Path $tranFailScripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent } | Should throw 'relation "a" already exists'
         }
         It "should not deploy anything after throwing an error" {
             #Running package
             try {
                 $testResults = $null
-                $null = Install-DBOSqlScript -Absolute -Type PostgreSQL -Path $tranFailScripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent
-                $testResults = Install-DBOSqlScript -Absolute -Type PostgreSQL -ScriptPath $v2scripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+                $null = Install-DBOScript -Absolute -Type PostgreSQL -Path $tranFailScripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent
+                $testResults = Install-DBOScript -Absolute -Type PostgreSQL -ScriptPath $v2scripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
             }
             catch {
                 $errorObject = $_
