@@ -14,6 +14,15 @@ else {
     # Is a part of a batch, output some eye-catching happiness
     Write-Host "Running $commandName tests" -ForegroundColor Cyan
 }
+$userScope = switch ($isWindows) {
+    $false { 'FileUserLocal' }
+    default { 'UserDefault' }
+}
+
+$systemScope = switch ($isWindows) {
+    $false { 'FileUserShared' }
+    default { 'SystemDefault' }
+}
 
 Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
     BeforeAll {
@@ -23,12 +32,12 @@ Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
         Set-PSFConfig -FullName dbops.secret -Value (ConvertTo-SecureString -AsPlainText 'foo' -Force) -Initialize
     }
     AfterAll {
-        Unregister-PSFConfig -Module dbops -Name tc1 -Scope UserDefault
-        Unregister-PSFConfig -Module dbops -Name tc2 -Scope UserDefault
-        Unregister-PSFConfig -Module dbops -Name tc3 -Scope UserDefault
-        Unregister-PSFConfig -Module dbops -Name secret -Scope UserDefault
+        Unregister-PSFConfig -Module dbops -Name tc1 -Scope $userScope
+        Unregister-PSFConfig -Module dbops -Name tc2 -Scope $userScope
+        Unregister-PSFConfig -Module dbops -Name tc3 -Scope $userScope
+        Unregister-PSFConfig -Module dbops -Name secret -Scope $userScope
         try {
-            Unregister-PSFConfig -Module dbops -Name tc3 -Scope SystemDefault
+            Unregister-PSFConfig -Module dbops -Name tc3 -Scope $systemScope
         }
         catch {
             $_.Exception.Message | Should BeLike '*access*'
@@ -40,10 +49,10 @@ Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
             Set-PSFConfig -FullName dbops.tc2 -Value 'string2'
             Set-PSFConfig -FullName dbops.tc3 -Value 'another2'
             Set-PSFConfig -FullName dbops.secret -Value (ConvertTo-SecureString -AsPlainText 'bar' -Force)
-            Get-PSFConfig -FullName dbops.tc1 | Register-PSFConfig -Scope UserDefault
-            Get-PSFConfig -FullName dbops.tc2 | Register-PSFConfig -Scope UserDefault
-            Get-PSFConfig -FullName dbops.tc3 | Register-PSFConfig -Scope UserDefault
-            Get-PSFConfig -FullName dbops.secret | Register-PSFConfig -Scope UserDefault
+            Get-PSFConfig -FullName dbops.tc1 | Register-PSFConfig -Scope $userScope
+            Get-PSFConfig -FullName dbops.tc2 | Register-PSFConfig -Scope $userScope
+            Get-PSFConfig -FullName dbops.tc3 | Register-PSFConfig -Scope $userScope
+            Get-PSFConfig -FullName dbops.secret | Register-PSFConfig -Scope $userScope
         }
         It "resets one config" {
             Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 2
@@ -114,7 +123,7 @@ Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
         }
         It "resets an AllUsers-scoped value" {
             try {
-                Register-PSFConfig -FullName dbops.tc3 -Scope SystemDefault
+                Register-PSFConfig -FullName dbops.tc3 -Scope $systemScope
                 $testResult = Reset-DBODefaultSetting -Name tc3 -Scope AllUsers
                 $testResult | Should -BeNullOrEmpty
                 Get-PSFConfigValue -FullName dbops.tc3 | Should Be 'another'

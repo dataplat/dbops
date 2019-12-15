@@ -15,6 +15,16 @@ else {
     Write-Host "Running $commandName tests" -ForegroundColor Cyan
 }
 
+$userScope = switch ($isWindows) {
+    $false { 'FileUserLocal' }
+    default { 'UserDefault' }
+}
+
+$systemScope = switch ($isWindows) {
+    $false { 'FileUserShared' }
+    default { 'SystemDefault' }
+}
+
 Describe "Set-DBODefaultSetting tests" -Tag $commandName, UnitTests {
     BeforeAll {
         Set-PSFConfig -FullName dbops.tc1 -Value 1 -Initialize
@@ -23,10 +33,16 @@ Describe "Set-DBODefaultSetting tests" -Tag $commandName, UnitTests {
         Set-PSFConfig -FullName dbops.secret -Value (ConvertTo-SecureString -AsPlainText 'foo' -Force) -Initialize
     }
     AfterAll {
-        Unregister-PSFConfig -Module dbops -Name tc1
-        Unregister-PSFConfig -Module dbops -Name tc2
-        Unregister-PSFConfig -Module dbops -Name tc3
-        Unregister-PSFConfig -Module dbops -Name secret
+        Unregister-PSFConfig -Module dbops -Name tc1 -Scope $userScope
+        Unregister-PSFConfig -Module dbops -Name tc2 -Scope $userScope
+        Unregister-PSFConfig -Module dbops -Name tc3 -Scope $userScope
+        Unregister-PSFConfig -Module dbops -Name secret -Scope $userScope
+        try {
+            Unregister-PSFConfig -Module dbops -Name tc3 -Scope $systemScope
+        }
+        catch {
+            $_.Exception.Message | Should BeLike '*access*'
+        }
     }
     Context "Setting various configs" {
         It "sets plain value" {
