@@ -376,5 +376,8 @@ Describe "New-DBOPackage tests" -Tag $commandName, UnitTests {
         It "returns error when postscript path does not exist" {
             { New-DBOPackage -Name $packageName -ScriptPath "$here\etc\query1.sql" -PostScriptPath 'asduwheiruwnfelwefo\sdfpoijfdsf.sps' } | Should Throw 'The following path is not valid'
         }
+        It "should fail when the same script is added twice" {
+            { New-DBOPackage -Name $packageName -ScriptPath $script1, $script1 } | Should Throw 'already exists'
+        }
     }
 }
