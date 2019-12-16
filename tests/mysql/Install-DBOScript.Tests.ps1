@@ -13,7 +13,7 @@ if (!$Batch) {
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
-    Write-Host "Running $commandName tests" -ForegroundColor Cyan
+    Write-Host "Running MySQL $commandName tests" -ForegroundColor Cyan
 }
 
 . "$testRoot\constants.ps1"
@@ -208,7 +208,7 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
         BeforeAll {
             $file = "$workFolder\delay.sql"
             "DO SLEEP(5); SELECT 'Successful!'" | Out-File $file
-            $timeoutError = if ($PSVersionTable.PSVersion.Major -eq 6) { 'Fatal error encountered during command execution' } else { 'Timeout expired.'}
+            $timeoutError = if ($PSVersionTable.PSVersion.Major -eq 6) { 'Fatal error encountered during command execution' } else { 'Timeout expired.' }
         }
         BeforeEach {
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
