@@ -18,14 +18,12 @@ environment:
 
   matrix:
   - scenario: all
-#  - scenario: mysql
 
 
 for:
   - matrix:
       only:
         - image: Visual Studio 2017
-          #scenario: all
     environment:
         mssql_instance: localhost\SQL2017
         scenario: windows
@@ -41,9 +39,9 @@ for:
   - matrix:
       only:
         - image: Ubuntu1804
-          scenario: all
     environment:
         mssql_instance: localhost
+        scenario: all
     services:
       - mssql
       - mysql
