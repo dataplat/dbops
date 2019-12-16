@@ -23,7 +23,6 @@ for:
     environment:
         mssql_instance: localhost\SQL2017
         scenario: windows
-        TZ: GMT 
     services:
       - mssql2017
       - mysql
@@ -39,6 +38,7 @@ for:
     environment:
         mssql_instance: localhost
         scenario: all
+        TZ: GMT
     services:
       - mssql
       - mysql
