@@ -16,10 +16,6 @@ environment:
   PGUSER: postgres
   PGPASSWORD: Password12!
 
-  matrix:
-  - scenario: all
-
-
 for:
   - matrix:
       only:
@@ -51,14 +47,7 @@ for:
       - ps: .\tests\appveyor.prep.ps1
       - docker run --name dbops-oracle -d -p 1521:1521 -e ORACLE_ALLOW_REMOTE=true wnameless/oracle-xe-11g-r2
 
-# before_test:
-#   # run preparation scripts
-#   - ps: .\tests\appveyor.prep.ps1
-#   # create postres user
-
-
 test_script:
-  # Test with native PS version
   - ps: .\tests\appveyor.pester.ps1
   # Collecting results
   - ps: .\tests\appveyor.pester.ps1 -Finalize
