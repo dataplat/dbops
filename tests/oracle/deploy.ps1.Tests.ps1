@@ -28,8 +28,42 @@ $packageName = Join-PSFPath -Normalize $workFolder 'TempDeployment.zip'
 $oraUserName = 'DBOPSDEPLOYPS1'
 $oraPassword = 'S3cur_pAss'
 $testCredentials = [pscredential]::new($oraUserName, (ConvertTo-SecureString $oraPassword -AsPlainText -Force))
-$createUserScript = "CREATE USER $oraUserName IDENTIFIED BY $oraPassword; GRANT CONNECT, RESOURCE TO $oraUserName"
-$dropUserScript = "DROP USER $oraUserName CASCADE;"
+$connParams = @{
+    Type        = 'Oracle'
+    SqlInstance = $script:oracleInstance
+    Silent      = $true
+    Credential  = $testCredentials
+}
+$adminParams = @{
+    Type                = 'Oracle'
+    SqlInstance         = $script:oracleInstance
+    Silent              = $true
+    Credential          = $script:oracleCredential
+    ConnectionAttribute = @{
+        'DBA Privilege' = 'SYSDBA'
+    }
+}
+$createUserScript = "CREATE USER $oraUserName IDENTIFIED BY $oraPassword/
+GRANT CONNECT, RESOURCE, CREATE ANY TABLE TO $oraUserName/
+GRANT EXECUTE on dbms_lock to $oraUserName"
+$dropUserScript = "
+    BEGIN
+        FOR ln_cur IN (SELECT sid, serial# FROM v`$session WHERE username = '$oraUserName')
+        LOOP
+            EXECUTE IMMEDIATE ('ALTER SYSTEM KILL SESSION ''' || ln_cur.sid || ',' || ln_cur.serial# || ''' IMMEDIATE');
+        END LOOP;
+        FOR x IN ( SELECT count(*) cnt
+            FROM DUAL
+            WHERE EXISTS (SELECT * FROM DBA_USERS WHERE USERNAME = '$oraUserName')
+        )
+        LOOP
+            IF ( x.cnt = 1 ) THEN
+                EXECUTE IMMEDIATE 'DROP USER $oraUserName CASCADE';
+            END IF;
+        END LOOP;
+    END;
+    /"
+$dropObjectsScript = Join-PSFPath -Normalize "$testRoot\etc\oracle-tests\verification\drop.sql"
 
 Describe "deploy.ps1 Oracle integration tests" -Tag $commandName, IntegrationTests {
     BeforeEach {
@@ -41,15 +75,16 @@ Describe "deploy.ps1 Oracle integration tests" -Tag $commandName, IntegrationTes
         $null = New-Item $unpackedFolder -ItemType Directory -Force
         $packageName = New-DBOPackage -Path $packageName -ScriptPath $v1scripts -Build 1.0 -Force
         $null = Expand-Archive -Path $packageName -DestinationPath $workFolder -Force
-        $null = Invoke-DBOQuery -Type Oracle -SqlInstance $script:oracleInstance -Silent -Credential $script:oracleCredential -Query $createUserScript
+        $null = Invoke-DBOQuery @adminParams -Query $dropUserScript
+        $null = Invoke-DBOQuery @adminParams -Query $createUserScript
     }
     AfterAll {
-        $null = Invoke-DBOQuery -Type Oracle -SqlInstance $script:oracleInstance -Silent -Credential $script:oracleCredential -Query $dropUserScript
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
+        $null = Invoke-DBOQuery @adminParams -Query $dropUserScript
     }
     Context "testing deployment of extracted package" {
         BeforeEach {
-            $null = Invoke-DBOQuery -Type Oracle -SqlInstance $script:oracleInstance -Silent -Credential $script:oracleCredential -Query $dropUserScript, $createUserScript
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         It "should deploy with a -Configuration parameter" {
             $deploymentConfig = @{
@@ -75,7 +110,7 @@ Describe "deploy.ps1 Oracle integration tests" -Tag $commandName, IntegrationTes
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-DBOQuery -Type Oracle -SqlInstance $script:oracleInstance -Silent -Credential $testCredentials -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
@@ -83,7 +118,7 @@ Describe "deploy.ps1 Oracle integration tests" -Tag $commandName, IntegrationTes
             'd' | Should Not BeIn $testResults.name
         }
         It "should deploy with a set of parameters" {
-            $testResults = & $workFolder\deploy.ps1 -Type Oracle -SqlInstance $script:oracleInstance -Credential $testCredentials -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $testResults = & $workFolder\deploy.ps1 @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt"
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should Be $script:oracleInstance
@@ -99,7 +134,7 @@ Describe "deploy.ps1 Oracle integration tests" -Tag $commandName, IntegrationTes
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-DBOQuery -Type Oracle -SqlInstance $script:oracleInstance -Silent -Credential $testCredentials -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
@@ -109,12 +144,13 @@ Describe "deploy.ps1 Oracle integration tests" -Tag $commandName, IntegrationTes
     }
     Context  "$commandName whatif tests" {
         BeforeAll {
-            $null = Invoke-DBOQuery -Type Oracle -SqlInstance $script:oracleInstance -Silent -Credential $script:oracleCredential -Query $dropUserScript, $createUserScript
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         AfterAll {
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         It "should deploy nothing" {
-            $testResults = & $workFolder\deploy.ps1 -Type Oracle -SqlInstance $script:oracleInstance -Credential $testCredentials -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -WhatIf
+            $testResults = & $workFolder\deploy.ps1 @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -WhatIf
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should Be $script:oracleInstance
@@ -131,7 +167,7 @@ Describe "deploy.ps1 Oracle integration tests" -Tag $commandName, IntegrationTes
             $v1Journal | ForEach-Object { "$_ would have been executed - WhatIf mode." } | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-DBOQuery -Type Oracle -SqlInstance $script:oracleInstance -Silent -Credential $testCredentials -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
             $logTable | Should Not BeIn $testResults.name
             'a' | Should Not BeIn $testResults.name
             'b' | Should Not BeIn $testResults.name
