@@ -109,8 +109,7 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
     }
     AfterAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
-        $userExists = Invoke-DBOQuery @adminParams -Query "SELECT USERNAME FROM ALL_USERS WHERE USERNAME = '$oraUserName'" -As SingleValue
-        if ($userExists) { $null = Invoke-DBOQuery @adminParams -Query $dropUserScript }
+        $null = Invoke-DBOQuery @adminParams -Query $dropUserScript
     }
     Context "testing transactional deployment" {
         BeforeAll {
