@@ -1,0 +1,23 @@
+{
+    "ApplicationName":  "MyTestApp",
+    "SqlInstance":  "TestServer",
+    "Database":  "MyTestDB",
+    "DeploymentMethod":  "SingleTransaction",
+    "ConnectionTimeout":  40,
+    "Encrypt":  null,
+    "Credential":  {
+        "UserName": "CredentialUser",
+        "Password": "01000000d08c9ddf0115d1118c7a00c04fc297eb01000000ea24fd44b0f4ca479bc10651f4c768f000000000020000000000106600000001000020000000a8d926a77e8f615d795cf252d298c5802087a9c937bfaba13df9df8bd7bff1a8000000000e80000000020000200000005bb28f27b204ca4f1ad7226dbc706797faf2dab351d891f273c1bef42c0eb52f20000000346455b01842f5b1cf433c0b742354e49fdbcdce7773210ff8e15d83297db81040000000ea5df4a946cd59eed126b1f8c1e261d47e000b3573bd0fb07eb300d62f0d4f8a4a7776aa7f8b03fd4cf781b44619e155cdf7c94133fcd9e555d65825ae5c9324"
+    },
+    "Username":  "TestUser",
+    "Password":  "01000000d08c9ddf0115d1118c7a00c04fc297eb01000000ea24fd44b0f4ca479bc10651f4c768f000000000020000000000106600000001000020000000a8d926a77e8f615d795cf252d298c5802087a9c937bfaba13df9df8bd7bff1a8000000000e80000000020000200000005bb28f27b204ca4f1ad7226dbc706797faf2dab351d891f273c1bef42c0eb52f20000000346455b01842f5b1cf433c0b742354e49fdbcdce7773210ff8e15d83297db81040000000ea5df4a946cd59eed126b1f8c1e261d47e000b3573bd0fb07eb300d62f0d4f8a4a7776aa7f8b03fd4cf781b44619e155cdf7c94133fcd9e555d65825ae5c9324",
+    "SchemaVersionTable":  "test.Table",
+    "Silent":  true,
+    "Variables":  {
+        "foo": "bar",
+        "boo": "far"
+    },
+    "Schema": "testschema",
+    "CreateDatabase": false
+}
+
