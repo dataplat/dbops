@@ -240,62 +240,62 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
             $r1.scriptname | Should Be (Get-Item $v2scripts, $v1scripts).Name
         }
     }
-    Context "testing timeouts" {
-        BeforeAll {
-            $content = '
-                DECLARE
-                    in_time number := 3;
-                BEGIN
-                    DBMS_LOCK.sleep(in_time);
-                END;'
-            $file = Join-PSFPath -Normalize "$workFolder\delay.sql"
-            $content | Set-Content $file
-            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
-        }
-        AfterEach {
-            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
-        }
-        It "should throw timeout error" {
-            { $null = Install-DBOSqlScript -ScriptPath "$workFolder\delay.sql" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 2 } | Should throw 'user requested cancel of current operation'
-            $output = Get-Content "$workFolder\log.txt" -Raw
-            $output | Should BeLike "*user requested cancel of current operation*"
-        }
-        It "should successfully run within specified timeout" {
-            $testResults = Install-DBOSqlScript -ScriptPath "$workFolder\delay.sql" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 6
-            $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be "delay.sql"
-            $testResults.SqlInstance | Should Be $script:oracleInstance
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
-            $testResults.ConnectionType | Should Be 'Oracle'
-            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
-            $testResults.Error | Should BeNullOrEmpty
-            $testResults.Duration.TotalMilliseconds | Should -BeGreaterThan 3000
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should -BeGreaterThan $testResults.StartTime
+    # Context "testing timeouts" {
+    #     BeforeAll {
+    #         $content = '
+    #             DECLARE
+    #                 in_time number := 3;
+    #             BEGIN
+    #                 DBMS_LOCK.sleep(in_time);
+    #             END;'
+    #         $file = Join-PSFPath -Normalize "$workFolder\delay.sql"
+    #         $content | Set-Content $file
+    #         $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
+    #     }
+    #     AfterEach {
+    #         $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
+    #     }
+    #     It "should throw timeout error" {
+    #         { $null = Install-DBOSqlScript -ScriptPath "$workFolder\delay.sql" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 2 } | Should throw 'user requested cancel of current operation'
+    #         $output = Get-Content "$workFolder\log.txt" -Raw
+    #         $output | Should BeLike "*user requested cancel of current operation*"
+    #     }
+    #     It "should successfully run within specified timeout" {
+    #         $testResults = Install-DBOSqlScript -ScriptPath "$workFolder\delay.sql" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 6
+    #         $testResults.Successful | Should Be $true
+    #         $testResults.Scripts.Name | Should Be "delay.sql"
+    #         $testResults.SqlInstance | Should Be $script:oracleInstance
+    #         $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
+    #         $testResults.ConnectionType | Should Be 'Oracle'
+    #         $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+    #         $testResults.Error | Should BeNullOrEmpty
+    #         $testResults.Duration.TotalMilliseconds | Should -BeGreaterThan 3000
+    #         $testResults.StartTime | Should Not BeNullOrEmpty
+    #         $testResults.EndTime | Should Not BeNullOrEmpty
+    #         $testResults.EndTime | Should -BeGreaterThan $testResults.StartTime
 
-            $output = Get-Content "$workFolder\log.txt" -Raw
-            $output | Should Not BeLike '*user requested cancel of current operation*'
-        }
-        It "should successfully run with infinite timeout" {
-            $testResults = Install-DBOSqlScript -ScriptPath "$workFolder\delay.sql" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 0
-            $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be "delay.sql"
-            $testResults.SqlInstance | Should Be $script:oracleInstance
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
-            $testResults.ConnectionType | Should Be 'Oracle'
-            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
-            $testResults.Error | Should BeNullOrEmpty
-            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
-            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
+    #         $output = Get-Content "$workFolder\log.txt" -Raw
+    #         $output | Should Not BeLike '*user requested cancel of current operation*'
+    #     }
+    #     It "should successfully run with infinite timeout" {
+    #         $testResults = Install-DBOSqlScript -ScriptPath "$workFolder\delay.sql" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 0
+    #         $testResults.Successful | Should Be $true
+    #         $testResults.Scripts.Name | Should Be "delay.sql"
+    #         $testResults.SqlInstance | Should Be $script:oracleInstance
+    #         $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
+    #         $testResults.ConnectionType | Should Be 'Oracle'
+    #         $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+    #         $testResults.Error | Should BeNullOrEmpty
+    #         $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+    #         $testResults.StartTime | Should Not BeNullOrEmpty
+    #         $testResults.EndTime | Should Not BeNullOrEmpty
+    #         $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+    #         'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
-            $output = Get-Content "$workFolder\log.txt" -Raw
-            $output | Should Not BeLike "*user requested cancel of current operation*"
-        }
-    }
+    #         $output = Get-Content "$workFolder\log.txt" -Raw
+    #         $output | Should Not BeLike "*user requested cancel of current operation*"
+    #     }
+    # }
     Context  "$commandName whatif tests" {
         BeforeAll {
             $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript

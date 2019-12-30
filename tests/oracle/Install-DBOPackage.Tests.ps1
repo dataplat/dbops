@@ -293,69 +293,69 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             'd' | Should BeIn $testResults.name
         }
     }
-    Context "testing timeouts" {
-        BeforeAll {
-            $content = '
-                DECLARE
-                    in_time number := 5;
-                BEGIN
-                    DBMS_LOCK.sleep(in_time);
-                END;'
-            $file = Join-PSFPath -Normalize "$workFolder\delay.sql"
-            $content | Set-Content $file
-            $null = New-DBOPackage -ScriptPath $file -Name "$workFolder\delay" -Build 1.0 -Force -Configuration @{ ExecutionTimeout = 2 }
-        }
-        BeforeEach {
-            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
-        }
-        AfterAll {
-            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
-        }
-        It "should throw timeout error " {
-            { $null = Install-DBOPackage @connParams "$workFolder\delay.zip" -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" } | Should throw 'user requested cancel of current operation'
-            $output = Get-Content "$workFolder\log.txt" -Raw
-            $output | Should BeLike "*user requested cancel of current operation*"
-            $output | Should Not BeLike '*Upgrade successful*'
-        }
-        It "should successfully run within specified timeout" {
-            $testResults = Install-DBOPackage "$workFolder\delay.zip" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 6
-            $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be '1.0\delay.sql'
-            $testResults.SqlInstance | Should Be $script:oracleInstance
-            $testResults.Database | Should -BeNullOrEmpty
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\delay.zip")
-            $testResults.ConnectionType | Should Be 'Oracle'
-            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
-            $testResults.Error | Should BeNullOrEmpty
-            $testResults.Duration.TotalMilliseconds | Should -BeGreaterThan 3000
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should -BeGreaterThan $testResults.StartTime
-            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
+    # Context "testing timeouts" {
+    #     BeforeAll {
+    #         $content = '
+    #             DECLARE
+    #                 in_time number := 5;
+    #             BEGIN
+    #                 DBMS_LOCK.sleep(in_time);
+    #             END;'
+    #         $file = Join-PSFPath -Normalize "$workFolder\delay.sql"
+    #         $content | Set-Content $file
+    #         $null = New-DBOPackage -ScriptPath $file -Name "$workFolder\delay" -Build 1.0 -Force -Configuration @{ ExecutionTimeout = 2 }
+    #     }
+    #     BeforeEach {
+    #         $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
+    #     }
+    #     AfterAll {
+    #         $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
+    #     }
+    #     It "should throw timeout error " {
+    #         { $null = Install-DBOPackage @connParams "$workFolder\delay.zip" -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" } | Should throw 'user requested cancel of current operation'
+    #         $output = Get-Content "$workFolder\log.txt" -Raw
+    #         $output | Should BeLike "*user requested cancel of current operation*"
+    #         $output | Should Not BeLike '*Upgrade successful*'
+    #     }
+    #     It "should successfully run within specified timeout" {
+    #         $testResults = Install-DBOPackage "$workFolder\delay.zip" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 6
+    #         $testResults.Successful | Should Be $true
+    #         $testResults.Scripts.Name | Should Be '1.0\delay.sql'
+    #         $testResults.SqlInstance | Should Be $script:oracleInstance
+    #         $testResults.Database | Should -BeNullOrEmpty
+    #         $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\delay.zip")
+    #         $testResults.ConnectionType | Should Be 'Oracle'
+    #         $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+    #         $testResults.Error | Should BeNullOrEmpty
+    #         $testResults.Duration.TotalMilliseconds | Should -BeGreaterThan 3000
+    #         $testResults.StartTime | Should Not BeNullOrEmpty
+    #         $testResults.EndTime | Should Not BeNullOrEmpty
+    #         $testResults.EndTime | Should -BeGreaterThan $testResults.StartTime
+    #         'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
-            $output = Get-Content "$workFolder\log.txt" -Raw
-            $output | Should Not BeLike "*Unable to read data from the transport connection*"
-        }
-        It "should successfully run with infinite timeout" {
-            $testResults = Install-DBOPackage "$workFolder\delay.zip" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 0
-            $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be '1.0\delay.sql'
-            $testResults.SqlInstance | Should Be $script:oracleInstance
-            $testResults.Database | Should -BeNullOrEmpty
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\delay.zip")
-            $testResults.ConnectionType | Should Be 'Oracle'
-            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
-            $testResults.Error | Should BeNullOrEmpty
-            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
-            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
+    #         $output = Get-Content "$workFolder\log.txt" -Raw
+    #         $output | Should Not BeLike "*Unable to read data from the transport connection*"
+    #     }
+    #     It "should successfully run with infinite timeout" {
+    #         $testResults = Install-DBOPackage "$workFolder\delay.zip" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 0
+    #         $testResults.Successful | Should Be $true
+    #         $testResults.Scripts.Name | Should Be '1.0\delay.sql'
+    #         $testResults.SqlInstance | Should Be $script:oracleInstance
+    #         $testResults.Database | Should -BeNullOrEmpty
+    #         $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\delay.zip")
+    #         $testResults.ConnectionType | Should Be 'Oracle'
+    #         $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+    #         $testResults.Error | Should BeNullOrEmpty
+    #         $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+    #         $testResults.StartTime | Should Not BeNullOrEmpty
+    #         $testResults.EndTime | Should Not BeNullOrEmpty
+    #         $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+    #         'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
-            $output = Get-Content "$workFolder\log.txt" -Raw
-            $output | Should Not BeLike '*Unable to read data from the transport connection*'
-        }
-    }
+    #         $output = Get-Content "$workFolder\log.txt" -Raw
+    #         $output | Should Not BeLike '*Unable to read data from the transport connection*'
+    #     }
+    # }
     Context  "$commandName whatif tests" {
         BeforeAll {
             $null = New-DBOPackage -ScriptPath $v1scripts -Name $packageNamev1 -Build 1.0
