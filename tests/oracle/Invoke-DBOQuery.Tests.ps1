@@ -153,9 +153,11 @@ Describe "Invoke-DBOQuery Oracle tests" -Tag $commandName, IntegrationTests {
         }
         It "should throw a connection timeout error" {
             $query = "SELECT 1/0 FROM DUAL"
-            try { $null = Invoke-DBOQuery -Type Oracle -Query $query -SqlInstance localhost:6493 -Credential $script:oracleCredential -ConnectionTimeout 1 }
-            catch { $errVar = $_ }
-            $errVar.Exception.Message | Should -Match "Connection request timed out"
+            $message = switch ($IsWindows) {
+                $false { 'Network Transport: TCP transport address connect failure' }
+                default { "Connection request timed out" }
+            }
+            { $null = Invoke-DBOQuery -Type Oracle -Query $query -SqlInstance localhost:6493 -Credential $script:oracleCredential -ConnectionTimeout 1 } | Should throw $message
         }
         It "should fail when credentials are wrong" {
             try { Invoke-DBOQuery -Type Oracle -Query 'SELECT 1 FROM DUAL' -SqlInstance $script:oracleInstance -Credential ([pscredential]::new('nontexistent', ([securestring]::new()))) }
