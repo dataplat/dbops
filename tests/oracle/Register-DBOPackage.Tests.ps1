@@ -116,7 +116,7 @@ Describe "Register-DBOPackage Oracle integration tests" -Tag $commandName, Integ
 
             #Verifying SchemaVersions table
             $testResults = Invoke-DBOQuery @connParams -Query "SELECT * FROM $logTable ORDER BY SCHEMAVERSIONID"
-            $testResults.scriptname | Should Be $v1Journal
+            $testResults.SCRIPTNAME | Should Be $v1Journal
         }
         It "should register version 1.0 + 2.0 without creating any objects" {
             $before = Invoke-DBOQuery @connParams -InputFile $verificationScript
@@ -146,7 +146,7 @@ Describe "Register-DBOPackage Oracle integration tests" -Tag $commandName, Integ
 
             #Verifying SchemaVersions table
             $testResults = Invoke-DBOQuery @connParams -Query "SELECT * FROM $logTable ORDER BY SCHEMAVERSIONID"
-            $testResults.scriptname | Should Be (@($v1Journal) + @($v2Journal))
+            $testResults.SCRIPTNAME | Should Be (@($v1Journal) + @($v2Journal))
         }
     }
     Context  "$commandName whatif tests" {

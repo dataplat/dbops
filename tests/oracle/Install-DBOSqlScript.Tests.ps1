@@ -237,7 +237,7 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
             'd' | Should BeIn $testResults.NAME
             #Verifying order
             $r1 = Invoke-DBOQuery @connParams -Query "SELECT scriptname FROM $logtable ORDER BY SCHEMAVERSIONID"
-            $r1.scriptname | Should Be (Get-Item $v2scripts, $v1scripts).Name
+            $r1.SCRIPTNAME | Should Be (Get-Item $v2scripts, $v1scripts).Name
         }
     }
     # Context "testing timeouts" {
