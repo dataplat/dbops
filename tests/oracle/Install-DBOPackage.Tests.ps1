@@ -124,11 +124,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
             # oracle has implicit commit, sorry folks
-            $logTable | Should -BeIn $testResults.name
-            'a' | Should -BeIn $testResults.name
-            'b' | Should -Not -BeIn $testResults.name
-            'c' | Should -Not -BeIn $testResults.name
-            'd' | Should -Not -BeIn $testResults.name
+            $logTable | Should -BeIn $testResults.NAME
+            'a' | Should -BeIn $testResults.NAME
+            'b' | Should -Not -BeIn $testResults.NAME
+            'c' | Should -Not -BeIn $testResults.NAME
+            'd' | Should -Not -BeIn $testResults.NAME
         }
 
     }
@@ -144,11 +144,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             { $null = Install-DBOPackage $packageName @connParams -SchemaVersionTable $logTable -DeploymentMethod NoTransaction } | Should Throw 'name is already used by an existing object'
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should Not BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
     }
     Context "testing regular deployment" {
@@ -186,11 +186,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
         It "should re-deploy version 1.0 pipelining a string" {
             $testResults = "$workFolder\pv1.zip" | Install-DBOPackage @connParams -Build '1.0' -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt"
@@ -211,11 +211,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             'No new scripts need to be executed - completing.' | Should BeIn (Get-Content "$workFolder\log.txt" | Select-Object -Skip 1)
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
         It "should deploy version 2.0 using pipelined Get-DBOPackage" {
             $testResults = Get-DBOPackage "$workFolder\pv1.zip" | Install-DBOPackage @connParams -Build '1.0', '2.0' -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt"
@@ -237,11 +237,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             $output | Should BeIn $standardOutput2
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should BeIn $testResults.name
-            'd' | Should BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should BeIn $testResults.NAME
+            'd' | Should BeIn $testResults.NAME
         }
         It "should re-deploy version 2.0 using pipelined FileSystemObject" {
             $testResults = Get-Item "$workFolder\pv1.zip" | Install-DBOPackage @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt"
@@ -262,11 +262,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             'No new scripts need to be executed - completing.' | Should BeIn (Get-Content "$workFolder\log.txt" | Select-Object -Skip 1)
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should BeIn $testResults.name
-            'd' | Should BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should BeIn $testResults.NAME
+            'd' | Should BeIn $testResults.NAME
         }
         It "should deploy in a reversed order: 2.0 before 1.0" {
             $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
@@ -286,11 +286,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should BeIn $testResults.name
-            'd' | Should BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should BeIn $testResults.NAME
+            'd' | Should BeIn $testResults.NAME
         }
     }
     # Context "testing timeouts" {
@@ -381,11 +381,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should Not BeIn $testResults.name
-            'a' | Should Not BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should Not BeIn $testResults.NAME
+            'a' | Should Not BeIn $testResults.NAME
+            'b' | Should Not BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
     }
     Context "testing regular deployment with configuration overrides" {
@@ -433,11 +433,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
         It "should deploy version 2.0 using -Configuration object override" {
             $testResults = Install-DBOPackage -Type Oracle "$workFolder\pv2.zip" -Configuration @{
@@ -466,11 +466,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             $output | Should BeIn $standardOutput2
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should BeIn $testResults.name
-            'd' | Should BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should BeIn $testResults.NAME
+            'd' | Should BeIn $testResults.NAME
         }
     }
     Context "testing deployment without specifying SchemaVersion table" {
@@ -502,11 +502,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            'SchemaVersions' | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            'SchemaVersions' | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 3)
         }
         It "should deploy version 2.0" {
@@ -529,11 +529,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            'SchemaVersions' | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should BeIn $testResults.name
-            'd' | Should BeIn $testResults.name
+            'SchemaVersions' | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should BeIn $testResults.NAME
+            'd' | Should BeIn $testResults.NAME
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 2)
         }
     }
@@ -567,11 +567,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            'SchemaVersions' | Should Not BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            'SchemaVersions' | Should Not BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 2)
         }
     }
@@ -646,9 +646,9 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             'The "{0}" table has been created' -f $logTable | Should -BeIn $output
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 3)
         }
     }
@@ -687,11 +687,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             'The "{0}" table has been created' -f $logTable | Should -BeIn $output
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
     }
 }

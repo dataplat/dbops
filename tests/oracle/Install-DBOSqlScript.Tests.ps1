@@ -106,11 +106,11 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
     }
     Context "testing transactional deployment of scripts" {
@@ -126,11 +126,11 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
             # oracle has implicit commit, sorry folks
-            $logTable | Should -BeIn $testResults.name
-            'a' | Should -BeIn $testResults.name
-            'b' | Should -Not -BeIn $testResults.name
-            'c' | Should -Not -BeIn $testResults.name
-            'd' | Should -Not -BeIn $testResults.name
+            $logTable | Should -BeIn $testResults.NAME
+            'a' | Should -BeIn $testResults.NAME
+            'b' | Should -Not -BeIn $testResults.NAME
+            'c' | Should -Not -BeIn $testResults.NAME
+            'd' | Should -Not -BeIn $testResults.NAME
         }
     }
     Context "testing non transactional deployment of scripts" {
@@ -145,11 +145,11 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
             { $null = Install-DBOSqlScript -Path $tranFailScripts @connParams -SchemaVersionTable $logTable -DeploymentMethod NoTransaction } | Should throw 'name is already used by an existing object'
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should Not BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
     }
     Context "testing script deployment" {
@@ -176,11 +176,11 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
         It "should deploy version 2.0" {
             $testResults = Install-DBOSqlScript -ScriptPath $v2scripts @connParams -SchemaVersionTable $logTable
@@ -199,11 +199,11 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should BeIn $testResults.name
-            'd' | Should BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should BeIn $testResults.NAME
+            'd' | Should BeIn $testResults.NAME
         }
     }
     Context "testing deployment order" {
@@ -230,11 +230,11 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should BeIn $testResults.name
-            'd' | Should BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should BeIn $testResults.NAME
+            'd' | Should BeIn $testResults.NAME
             #Verifying order
             $r1 = Invoke-DBOQuery @connParams -Query "SELECT scriptname FROM $logtable ORDER BY SCHEMAVERSIONID"
             $r1.scriptname | Should Be (Get-Item $v2scripts, $v1scripts).Name
@@ -321,11 +321,11 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should Not BeIn $testResults.name
-            'a' | Should Not BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should Not BeIn $testResults.NAME
+            'a' | Should Not BeIn $testResults.NAME
+            'b' | Should Not BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
     }
     Context "testing deployment without specifying SchemaVersion table" {
@@ -354,11 +354,11 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            'SchemaVersions' | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            'SchemaVersions' | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 3)
         }
         It "should deploy version 2.0" {
@@ -380,11 +380,11 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            'SchemaVersions' | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should BeIn $testResults.name
-            'd' | Should BeIn $testResults.name
+            'SchemaVersions' | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should BeIn $testResults.NAME
+            'd' | Should BeIn $testResults.NAME
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 2)
         }
     }
@@ -415,11 +415,11 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            'SchemaVersions' | Should Not BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            'SchemaVersions' | Should Not BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 2)
         }
     }
@@ -450,10 +450,10 @@ Describe "Install-DBOSqlScript Oracle integration tests" -Tag $commandName, Inte
             $errorObject.Exception.Message | Should -BeLike '*name is already used by an existing object'
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
     }
 }

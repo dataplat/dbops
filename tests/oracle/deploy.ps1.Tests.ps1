@@ -111,11 +111,11 @@ Describe "deploy.ps1 Oracle integration tests" -Tag $commandName, IntegrationTes
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
         It "should deploy with a set of parameters" {
             $testResults = & $workFolder\deploy.ps1 @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt"
@@ -135,11 +135,11 @@ Describe "deploy.ps1 Oracle integration tests" -Tag $commandName, IntegrationTes
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
     }
     Context  "$commandName whatif tests" {
@@ -168,11 +168,11 @@ Describe "deploy.ps1 Oracle integration tests" -Tag $commandName, IntegrationTes
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should Not BeIn $testResults.name
-            'a' | Should Not BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should Not BeIn $testResults.NAME
+            'a' | Should Not BeIn $testResults.NAME
+            'b' | Should Not BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
     }
 }

@@ -107,11 +107,11 @@ Describe "Register-DBOPackage Oracle integration tests" -Tag $commandName, Integ
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should Not BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should Not BeIn $testResults.NAME
+            'b' | Should Not BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 1)
 
             #Verifying SchemaVersions table
@@ -137,11 +137,11 @@ Describe "Register-DBOPackage Oracle integration tests" -Tag $commandName, Integ
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should Not BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should Not BeIn $testResults.NAME
+            'b' | Should Not BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
             ($testResults | Measure-Object).Count | Should Be $rowsBefore
 
             #Verifying SchemaVersions table
@@ -172,11 +172,11 @@ Describe "Register-DBOPackage Oracle integration tests" -Tag $commandName, Integ
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should Not BeIn $testResults.name
-            'a' | Should Not BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should Not BeIn $testResults.NAME
+            'a' | Should Not BeIn $testResults.NAME
+            'b' | Should Not BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
     }
 }
