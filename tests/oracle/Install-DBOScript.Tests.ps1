@@ -425,13 +425,8 @@ Describe "Install-DBOScript Oracle integration tests" -Tag $commandName, Integra
     }
     Context "deployments with errors should throw terminating errors" {
         BeforeAll {
-            <<<<<<< HEAD
             $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
-            $null = Install-DBOSqlScript -ScriptPath $v1scripts @connParams -SchemaVersionTable $null
-            =======
-            $null = Invoke-DBOQuery @adminParams -Query $createUserScript
             $null = Install-DBOScript -ScriptPath $v1scripts @connParams -SchemaVersionTable $null
-            >>>>>>> a87a1a4... Renaming Install-DBOSqlScript to Install-DBOScript
         }
         AfterAll {
             $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
