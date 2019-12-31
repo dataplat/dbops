@@ -29,29 +29,33 @@ function Install-NugetPackage {
     }
     $packageName = $packageInfo.id
     $packageLowerName = $packageName.ToLower()
-
-    # get package versions
-    $baseAddressUrl = $indexObject.resources | Where-Object { $_.'@type' -eq 'PackageBaseAddress/3.0.0' } | Select-Object -First 1
-    $packageVersions = Invoke-WebRequest -Uri "$($baseAddressUrl.'@id')$packageLowerName/index.json" -ErrorAction Stop
-    $packageVersionsObject = $packageVersions.Content | ConvertFrom-Json
-    [array]$versionList = $packageVersionsObject.Versions
+    [array]$versionList = $packageInfo.versions.version
     Write-PSFMessage -Level Verbose -Message "Found a total of $($versionList.Count) versions of $packageName"
 
     # filter out the versions we don't need based on parameters
-    if ($SkipPreRelease) {
-        $versionList = $versionList | Where-Object { try { [version]$_ } catch { $false } }
-    }
     if ($MinimumVersion) {
-        $versionList = $versionList | Where-Object { $_ -ge $MinimumVersion }
+        $position = $versionList.IndexOf($MinimumVersion)
+        if ($position -eq -1) {
+            $versionList = $versionList | Where-Object { try { [version]$_ -ge $MinimumVersion } catch { $false } }
+        }
+        else {
+            $versionList = $versionList[$position..($versionList.Count - 1)]
+        }
     }
     if ($MaximumVersion) {
-        $versionList = $versionList | Where-Object { $_ -le $MaximumVersion }
+        $position = $versionList.IndexOf($MinimumVersion)
+        if ($position -eq -1) {
+            $versionList = $versionList | Where-Object { try { [version]$_ -le $MaximumVersion } catch { $false } }
+        }
+        else {
+            $versionList = $versionList[0..$position]
+        }
     }
     if ($RequiredVersion) {
         $versionList = $versionList | Where-Object { $_ -eq $RequiredVersion }
     }
     Write-PSFMessage -Level Verbose -Message "$($versionList.Count) versions left after applying filters"
-    $selectedVersion = $versionList | Sort-Object -Descending | Select-Object -First 1
+    $selectedVersion = $versionList | Select-Object -Last 1
     if (-Not $selectedVersion) {
         Write-PSFMessage -Level Critical -Message "Version could not be found using current parameters" -EnableException $true
     }
@@ -80,6 +84,7 @@ function Install-NugetPackage {
     if ((Test-Path $packagePath) -and -Not $Force) {
         Write-PSFMessage -Level Critical -Message "File $packagePath already exists at destination" -EnableException $true
     }
+    $baseAddressUrl = $indexObject.resources | Where-Object { $_.'@type' -eq 'PackageBaseAddress/3.0.0' } | Select-Object -First 1
     $downloadUrl = "$($baseAddressUrl.'@id')$packageLowerName/$selectedVersion/$fileName"
     Invoke-WebRequest -Uri $downloadUrl -OutFile $packagePath -ErrorAction Stop
     Write-PSFMessage -Level Verbose -Message "Extracting $fileName to $folder"

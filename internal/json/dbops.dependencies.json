@@ -2,7 +2,7 @@
     "Oracle": [
         {
             "Name": "Oracle.ManagedDataAccess",
-            "Version": "12.2.1100",
+            "MinimumVersion": "12.2.1100",
             "Path": [
                 "lib\\net40\\Oracle.ManagedDataAccess.dll"
             ],
@@ -12,7 +12,7 @@
         },
         {
             "Name": "Oracle.ManagedDataAccess.Core",
-            "Version": "2.18.3",
+            "MinimumVersion": "2.18.3",
             "Path": [
                 "lib\\netstandard2.0\\Oracle.ManagedDataAccess.dll"
             ],
@@ -25,7 +25,7 @@
     "MySQL": [
         {
             "Name": "MySql.Data",
-            "Version": "6.9.5",
+            "MinimumVersion": "6.9.12",
             "Path": [
                 "lib\\net45\\MySql.Data.dll"
             ],
@@ -35,7 +35,7 @@
         },
         {
             "Name": "MySql.Data",
-            "Version": "6.10.8",
+            "MinimumVersion": "6.10.8",
             "Path": [
                 "lib\\netstandard2.0\\MySql.Data.dll"
             ],
@@ -47,7 +47,7 @@
     "PostgreSQL": [
         {
             "Name": "System.Threading.Tasks.Extensions",
-            "Version": "4.3.0",
+            "RequiredVersion": "4.3.0",
             "Path": [
                 "lib\\netstandard1.0\\System.Threading.Tasks.Extensions.dll"
             ],
@@ -57,7 +57,7 @@
         },
         {
             "Name": "Npgsql",
-            "Version": "3.2.6",
+            "RequiredVersion": "3.2.6",
             "Path": [
                 "lib\\net451\\Npgsql.dll"
             ],
@@ -67,7 +67,7 @@
         },
         {
             "Name": "Npgsql",
-            "Version": "4.0.4",
+            "MinimumVersion": "4.0.4",
             "Path": [
                 "lib\\netstandard2.0\\Npgsql.dll"
             ],

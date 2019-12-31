@@ -20,15 +20,19 @@ Describe "Install-NugetPackage tests" -Tag $commandName, UnitTests {
         foreach ($d in ($dependencies | Get-Member | Where-Object MemberType -eq NoteProperty | Select-Object -ExpandProperty Name)) {
             It "should attempt to install $d libraries" {
                 foreach ($package in $dependencies.$d) {
-                    $null = Get-Package $package.Name -RequiredVersion $package.Version -ProviderName nuget -Scope CurrentUser -ErrorAction SilentlyContinue | Uninstall-Package $package.Name -ErrorAction SilentlyContinue -Force
-                    $result = Install-NugetPackage -Name $package.Name -RequiredVersion $package.Version -Scope CurrentUser -Force -Confirm:$false
+                    $packageSplat = @{ Name = $package.Name }
+                    if ($package.MinimumVersion) { $packageSplat.MinimumVersion = $package.MinimumVersion }
+                    if ($package.MaximumVersion) { $packageSplat.MaximumVersion = $package.MaximumVersion }
+                    if ($package.RequiredVersion) { $packageSplat.RequiredVersion = $package.RequiredVersion }
+                    $null = Get-Package @packageSplat -ProviderName nuget -Scope CurrentUser -ErrorAction SilentlyContinue -AllVersions | Uninstall-Package -ErrorAction SilentlyContinue -Force
+                    $result = Install-NugetPackage @packageSplat -Scope CurrentUser -Force -Confirm:$false
                     $result.Source | Should -Not -BeNullOrEmpty
                     $result.Name | Should -Be $package.Name
-                    $result.Version | Should -Be $package.Version
+                    $result.Version | Should -Not -BeNullOrEmpty
 
-                    $testResult = Get-Package $package.Name -RequiredVersion $package.Version -ProviderName nuget -Scope CurrentUser
+                    $testResult = Get-Package @packageSplat -ProviderName nuget -Scope CurrentUser
                     $testResult.Name | Should Be $result.Name
-                    $testResult.Version | Should -Be $result.Version
+                    $testResult.Version | Should -Not -BeNullOrEmpty
                     $testResult.Source | Should -Be $result.Source
                     Test-Path (Join-PSFPath (Split-Path $testResult.Source) lib -Normalize) | Should -Be $true
                 }
