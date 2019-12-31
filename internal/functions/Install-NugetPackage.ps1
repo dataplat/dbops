@@ -43,7 +43,7 @@ function Install-NugetPackage {
         }
     }
     if ($MaximumVersion) {
-        $position = $versionList.IndexOf($MinimumVersion)
+        $position = $versionList.IndexOf($MaximumVersion)
         if ($position -eq -1) {
             $versionList = $versionList | Where-Object { try { [version]$_ -le $MaximumVersion } catch { $false } }
         }
@@ -79,11 +79,17 @@ function Install-NugetPackage {
         }
     }
     $path = Join-PSFPath $scopePath "$packageName.$selectedVersion"
-    $folder = New-Item -ItemType Directory -Path $path -Force
     $packagePath = Join-PSFPath $path $fileName
-    if ((Test-Path $packagePath) -and -Not $Force) {
-        Write-PSFMessage -Level Critical -Message "File $packagePath already exists at destination" -EnableException $true
+    if (Test-Path $path) {
+        if ($Force) {
+            Remove-Item $path -Recurse -Force
+        }
+        else {
+            Write-PSFMessage -Level Critical -Message "$packageName.$selectedVersion already exists at destination" -EnableException $true
+        }
     }
+    $folder = New-Item -ItemType Directory -Path $path -Force
+
     $baseAddressUrl = $indexObject.resources | Where-Object { $_.'@type' -eq 'PackageBaseAddress/3.0.0' } | Select-Object -First 1
     $downloadUrl = "$($baseAddressUrl.'@id')$packageLowerName/$selectedVersion/$fileName"
     Invoke-WebRequest -Uri $downloadUrl -OutFile $packagePath -ErrorAction Stop
