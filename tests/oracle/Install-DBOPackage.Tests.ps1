@@ -36,10 +36,27 @@ $adminParams = @{
         'DBA Privilege' = 'SYSDBA'
     }
 }
-$createUserScript = "CREATE USER $oraUserName IDENTIFIED BY $oraPassword;
-  GRANT CONNECT, RESOURCE, CREATE ANY TABLE TO $oraUserName;
-  GRANT EXECUTE on dbms_lock to $oraUserName;"
-$dropUserScript = "DROP USER $oraUserName CASCADE;"
+$createUserScript = "CREATE USER $oraUserName IDENTIFIED BY $oraPassword/
+GRANT CONNECT, RESOURCE, CREATE ANY TABLE TO $oraUserName/
+GRANT EXECUTE on dbms_lock to $oraUserName"
+$dropUserScript = "
+    BEGIN
+        FOR ln_cur IN (SELECT sid, serial# FROM v`$session WHERE username = '$oraUserName')
+        LOOP
+            EXECUTE IMMEDIATE ('ALTER SYSTEM KILL SESSION ''' || ln_cur.sid || ',' || ln_cur.serial# || ''' IMMEDIATE');
+        END LOOP;
+        FOR x IN ( SELECT count(*) cnt
+            FROM DUAL
+            WHERE EXISTS (SELECT * FROM DBA_USERS WHERE USERNAME = '$oraUserName')
+        )
+        LOOP
+            IF ( x.cnt = 1 ) THEN
+                EXECUTE IMMEDIATE 'DROP USER $oraUserName CASCADE';
+            END IF;
+        END LOOP;
+    END;
+    /"
+$dropObjectsScript = Join-PSFPath -Normalize "$testRoot\etc\oracle-tests\verification\drop.sql"
 Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
         $workFolder = Join-PSFPath -Normalize "$testRoot\etc" "$commandName.Tests.dbops"
@@ -86,19 +103,20 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
         $null = New-Item $workFolder -ItemType Directory -Force
         $null = New-Item $unpackedFolder -ItemType Directory -Force
         (Get-Content $fullConfigSource -Raw) -replace 'replaceMe', $encryptedString | Out-File $fullConfig -Force
+
+        $null = Invoke-DBOQuery @adminParams -Query $dropUserScript
+        $null = Invoke-DBOQuery @adminParams -Query $createUserScript
     }
     AfterAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
-        $userExists = Invoke-DBOQuery @adminParams -Query "SELECT USERNAME FROM ALL_USERS WHERE USERNAME = '$oraUserName'" -As SingleValue
-        if ($userExists) { $null = Invoke-DBOQuery @adminParams -Query $dropUserScript }
+        $null = Invoke-DBOQuery @adminParams -Query $dropUserScript
     }
     Context "testing transactional deployment" {
         BeforeAll {
-            $null = Invoke-DBOQuery @adminParams -Query $createUserScript
             $null = New-DBOPackage -ScriptPath $tranFailScripts -Name $packageName -Build 1.0 -Force
         }
         AfterAll {
-            $null = Invoke-DBOQuery @adminParams -Query $dropUserScript
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         It "Should throw an error and create 2 tables" {
             #Running package
@@ -106,37 +124,35 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
             # oracle has implicit commit, sorry folks
-            $logTable | Should -BeIn $testResults.name
-            'a' | Should -BeIn $testResults.name
-            'b' | Should -Not -BeIn $testResults.name
-            'c' | Should -Not -BeIn $testResults.name
-            'd' | Should -Not -BeIn $testResults.name
+            $logTable | Should -BeIn $testResults.NAME
+            'a' | Should -BeIn $testResults.NAME
+            'b' | Should -Not -BeIn $testResults.NAME
+            'c' | Should -Not -BeIn $testResults.NAME
+            'd' | Should -Not -BeIn $testResults.NAME
         }
 
     }
     Context "testing non transactional deployment" {
         BeforeAll {
-            $null = Invoke-DBOQuery @adminParams -Query $createUserScript
             $null = New-DBOPackage -ScriptPath $tranFailScripts -Name $packageName -Build 1.0 -Force
         }
         AfterAll {
-            $null = Invoke-DBOQuery @adminParams -Query $dropUserScript
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         It "Should throw an error and create one object" {
             #Running package
-            { $null = Install-DBOPackage $packageName @connParams -SchemaVersionTable $logTable -DeploymentMethod NoTransaction  } | Should Throw 'name is already used by an existing object'
+            { $null = Install-DBOPackage $packageName @connParams -SchemaVersionTable $logTable -DeploymentMethod NoTransaction } | Should Throw 'name is already used by an existing object'
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should Not BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
     }
     Context "testing regular deployment" {
         BeforeAll {
-            $null = Invoke-DBOQuery @adminParams -Query $createUserScript
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
             $p1 = Add-DBOBuild -ScriptPath $v2scripts -Name $p1 -Build 2.0
             #versions should not be sorted by default - creating a package where 1.0 is the second build
@@ -145,7 +161,7 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             $outputFile = Join-PSFPath -Normalize "$workFolder\log.txt"
         }
         AfterAll {
-            $null = Invoke-DBOQuery @adminParams -Query $dropUserScript
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         It "should deploy version 1.0" {
             $testResults = Install-DBOPackage $p1 -Build '1.0' @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt"
@@ -170,11 +186,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
         It "should re-deploy version 1.0 pipelining a string" {
             $testResults = "$workFolder\pv1.zip" | Install-DBOPackage @connParams -Build '1.0' -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt"
@@ -195,11 +211,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             'No new scripts need to be executed - completing.' | Should BeIn (Get-Content "$workFolder\log.txt" | Select-Object -Skip 1)
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
         It "should deploy version 2.0 using pipelined Get-DBOPackage" {
             $testResults = Get-DBOPackage "$workFolder\pv1.zip" | Install-DBOPackage @connParams -Build '1.0', '2.0' -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt"
@@ -221,11 +237,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             $output | Should BeIn $standardOutput2
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should BeIn $testResults.name
-            'd' | Should BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should BeIn $testResults.NAME
+            'd' | Should BeIn $testResults.NAME
         }
         It "should re-deploy version 2.0 using pipelined FileSystemObject" {
             $testResults = Get-Item "$workFolder\pv1.zip" | Install-DBOPackage @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt"
@@ -246,14 +262,14 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             'No new scripts need to be executed - completing.' | Should BeIn (Get-Content "$workFolder\log.txt" | Select-Object -Skip 1)
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should BeIn $testResults.name
-            'd' | Should BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should BeIn $testResults.NAME
+            'd' | Should BeIn $testResults.NAME
         }
         It "should deploy in a reversed order: 2.0 before 1.0" {
-            $null = Invoke-DBOQuery @adminParams -Query $dropUserScript, $createUserScript
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
             $testResults = Install-DBOPackage "$workFolder\pv3.zip" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt"
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (@((Get-Item $v1scripts).Name | ForEach-Object { "2.0\$_" }), ((Get-Item $v2scripts).Name | ForEach-Object { "1.0\$_" }))
@@ -270,88 +286,82 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should BeIn $testResults.name
-            'd' | Should BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should BeIn $testResults.NAME
+            'd' | Should BeIn $testResults.NAME
         }
     }
-    # Disabled for now - see https://github.com/DbUp/DbUp/issues/334
-    #     Context "testing timeouts" {
-    #         BeforeAll {
-    #             $functionScript = @'
-    # create or replace function {0}.f_sleep( in_time number ) return number is
-    # begin
-    # dbms_lock.sleep(in_time);
-    # return 1;
-    # end;
-    # '@ -f $oraUserName
-    #             $null = Invoke-DBOQuery @adminParams -Query $createUserScript
-    #             $file = Join-PSFPath -Normalize "$workFolder\delay.sql"
-    #             'DBMS_LOCK.Sleep( 5 ); SELECT ''Successful!'' FROM DUAL;' | Set-Content $file
-    #             $null = New-DBOPackage -ScriptPath $file -Name "$workFolder\delay" -Build 1.0 -Force -Configuration @{ ExecutionTimeout = 2 }
-    #         }
-    #         BeforeEach {
-    #             $null = Invoke-DBOQuery @adminParams -Query $dropUserScript, $createUserScript
-    #         }
-    #         AfterAll {
-    #             $null = Invoke-DBOQuery @adminParams -Query $dropUserScript
-    #         }
-    #         It "should throw timeout error " {
-    #             { $null = Install-DBOPackage @connParams "$workFolder\delay.zip" -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" } | Should throw 'Exception while reading from stream'
-    #             $output = Get-Content "$workFolder\log.txt" -Raw
-    #             $output | Should BeLike "*Unable to read data from the transport connection*"
-    #             $output | Should Not BeLike '*Successful!*'
-    #         }
-    #         It "should successfully run within specified timeout" {
-    #             $testResults = Install-DBOPackage "$workFolder\delay.zip" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 6
-    #             $testResults.Successful | Should Be $true
-    #             $testResults.Scripts.Name | Should Be '1.0\delay.sql'
-    #             $testResults.SqlInstance | Should Be $script:oracleInstance
-    #             $testResults.Database | Should -BeNullOrEmpty
-    #             $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\delay.zip")
-    #             $testResults.ConnectionType | Should Be 'Oracle'
-    #             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
-    #             $testResults.Error | Should BeNullOrEmpty
-    #             $testResults.Duration.TotalMilliseconds | Should -BeGreaterThan 3000
-    #             $testResults.StartTime | Should Not BeNullOrEmpty
-    #             $testResults.EndTime | Should Not BeNullOrEmpty
-    #             $testResults.EndTime | Should -BeGreaterThan $testResults.StartTime
-    #             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
-
-    #             $output = Get-Content "$workFolder\log.txt" -Raw
-    #             $output | Should Not BeLike "*Unable to read data from the transport connection*"
-    #             $output | Should BeLike '*Successful!*'
-    #         }
-    #         It "should successfully run with infinite timeout" {
-    #             $testResults = Install-DBOPackage "$workFolder\delay.zip" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 0
-    #             $testResults.Successful | Should Be $true
-    #             $testResults.Scripts.Name | Should Be '1.0\delay.sql'
-    #             $testResults.SqlInstance | Should Be $script:oracleInstance
-    #             $testResults.Database | Should -BeNullOrEmpty
-    #             $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\delay.zip")
-    #             $testResults.ConnectionType | Should Be 'Oracle'
-    #             $testResults.Configuration.SchemaVersionTable | Should Be $logTable
-    #             $testResults.Error | Should BeNullOrEmpty
-    #             $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-    #             $testResults.StartTime | Should Not BeNullOrEmpty
-    #             $testResults.EndTime | Should Not BeNullOrEmpty
-    #             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
-    #             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
-
-    #             $output = Get-Content "$workFolder\log.txt" -Raw
-    #             $output | Should Not BeLike '*Unable to read data from the transport connection*'
-    #             $output | Should BeLike '*Successful!*'
-    #         }
+    # Context "testing timeouts" {
+    #     BeforeAll {
+    #         $content = '
+    #             DECLARE
+    #                 in_time number := 5;
+    #             BEGIN
+    #                 DBMS_LOCK.sleep(in_time);
+    #             END;'
+    #         $file = Join-PSFPath -Normalize "$workFolder\delay.sql"
+    #         $content | Set-Content $file
+    #         $null = New-DBOPackage -ScriptPath $file -Name "$workFolder\delay" -Build 1.0 -Force -Configuration @{ ExecutionTimeout = 2 }
     #     }
+    #     BeforeEach {
+    #         $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
+    #     }
+    #     AfterAll {
+    #         $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
+    #     }
+    #     It "should throw timeout error " {
+    #         { $null = Install-DBOPackage @connParams "$workFolder\delay.zip" -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" } | Should throw 'user requested cancel of current operation'
+    #         $output = Get-Content "$workFolder\log.txt" -Raw
+    #         $output | Should BeLike "*user requested cancel of current operation*"
+    #         $output | Should Not BeLike '*Upgrade successful*'
+    #     }
+    #     It "should successfully run within specified timeout" {
+    #         $testResults = Install-DBOPackage "$workFolder\delay.zip" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 6
+    #         $testResults.Successful | Should Be $true
+    #         $testResults.Scripts.Name | Should Be '1.0\delay.sql'
+    #         $testResults.SqlInstance | Should Be $script:oracleInstance
+    #         $testResults.Database | Should -BeNullOrEmpty
+    #         $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\delay.zip")
+    #         $testResults.ConnectionType | Should Be 'Oracle'
+    #         $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+    #         $testResults.Error | Should BeNullOrEmpty
+    #         $testResults.Duration.TotalMilliseconds | Should -BeGreaterThan 3000
+    #         $testResults.StartTime | Should Not BeNullOrEmpty
+    #         $testResults.EndTime | Should Not BeNullOrEmpty
+    #         $testResults.EndTime | Should -BeGreaterThan $testResults.StartTime
+    #         'Upgrade successful' | Should BeIn $testResults.DeploymentLog
+
+    #         $output = Get-Content "$workFolder\log.txt" -Raw
+    #         $output | Should Not BeLike "*Unable to read data from the transport connection*"
+    #     }
+    #     It "should successfully run with infinite timeout" {
+    #         $testResults = Install-DBOPackage "$workFolder\delay.zip" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 0
+    #         $testResults.Successful | Should Be $true
+    #         $testResults.Scripts.Name | Should Be '1.0\delay.sql'
+    #         $testResults.SqlInstance | Should Be $script:oracleInstance
+    #         $testResults.Database | Should -BeNullOrEmpty
+    #         $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\delay.zip")
+    #         $testResults.ConnectionType | Should Be 'Oracle'
+    #         $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+    #         $testResults.Error | Should BeNullOrEmpty
+    #         $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+    #         $testResults.StartTime | Should Not BeNullOrEmpty
+    #         $testResults.EndTime | Should Not BeNullOrEmpty
+    #         $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+    #         'Upgrade successful' | Should BeIn $testResults.DeploymentLog
+
+    #         $output = Get-Content "$workFolder\log.txt" -Raw
+    #         $output | Should Not BeLike '*Unable to read data from the transport connection*'
+    #     }
+    # }
     Context  "$commandName whatif tests" {
         BeforeAll {
-            $null = Invoke-DBOQuery @adminParams -Query $createUserScript
             $null = New-DBOPackage -ScriptPath $v1scripts -Name $packageNamev1 -Build 1.0
         }
         AfterAll {
-            $null = Invoke-DBOQuery @adminParams -Query $dropUserScript
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         It "should deploy nothing" {
             $testResults = Install-DBOPackage $packageNamev1 @connParams -SchemaVersionTable $logTable -WhatIf
@@ -371,16 +381,15 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should Not BeIn $testResults.name
-            'a' | Should Not BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should Not BeIn $testResults.NAME
+            'a' | Should Not BeIn $testResults.NAME
+            'b' | Should Not BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
     }
     Context "testing regular deployment with configuration overrides" {
         BeforeAll {
-            $null = Invoke-DBOQuery @adminParams -Query $createUserScript
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force -ConfigurationFile $fullConfig
             $p2 = New-DBOPackage -ScriptPath $v2scripts -Name "$workFolder\pv2" -Build 2.0 -Force -Configuration @{
                 SqlInstance        = 'nonexistingServer'
@@ -391,7 +400,7 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             $outputFile = "$workFolder\log.txt"
         }
         AfterAll {
-            $null = Invoke-DBOQuery @adminParams -Query $dropUserScript
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         It "should deploy version 1.0 using -Configuration file override" {
             $configFile = "$workFolder\config.custom.json"
@@ -424,11 +433,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
         It "should deploy version 2.0 using -Configuration object override" {
             $testResults = Install-DBOPackage -Type Oracle "$workFolder\pv2.zip" -Configuration @{
@@ -457,22 +466,21 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             $output | Should BeIn $standardOutput2
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should BeIn $testResults.name
-            'd' | Should BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should BeIn $testResults.NAME
+            'd' | Should BeIn $testResults.NAME
         }
     }
     Context "testing deployment without specifying SchemaVersion table" {
         BeforeAll {
-            $null = Invoke-DBOQuery @adminParams -Query $createUserScript
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
             $p2 = New-DBOPackage -ScriptPath $v2scripts -Name "$workFolder\pv2" -Build 2.0 -Force
             $outputFile = "$workFolder\log.txt"
         }
         AfterAll {
-            $null = Invoke-DBOQuery @adminParams -Query $dropUserScript
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         It "should deploy version 1.0" {
             $before = Invoke-DBOQuery @connParams -InputFile $verificationScript
@@ -494,11 +502,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            'SchemaVersions' | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            'SchemaVersions' | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 3)
         }
         It "should deploy version 2.0" {
@@ -521,21 +529,23 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            'SchemaVersions' | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should BeIn $testResults.name
-            'd' | Should BeIn $testResults.name
+            'SchemaVersions' | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should BeIn $testResults.NAME
+            'd' | Should BeIn $testResults.NAME
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 2)
         }
     }
     Context "testing deployment with no history`: SchemaVersion is null" {
+        BeforeAll {
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
+        }
         BeforeEach {
             $null = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
-            $null = Invoke-DBOQuery @adminParams -Query $createUserScript
         }
         AfterEach {
-            $null = Invoke-DBOQuery @adminParams -Query $dropUserScript
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         It "should deploy version 1.0 without creating SchemaVersions" {
             $before = Invoke-DBOQuery @connParams -InputFile $verificationScript
@@ -557,23 +567,22 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            'SchemaVersions' | Should Not BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            'SchemaVersions' | Should Not BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 2)
         }
     }
     # Disabled for now - see https://github.com/DbUp/DbUp/issues/391
     # Context "testing deployment with defined schema" {
     #     BeforeAll {
-    #         $null = Invoke-DBOQuery @adminParams -Query $createUserScript
     #         $null = Invoke-DBOQuery @adminParams -Query "CREATE USER testschema IDENTIFIED BY $oraPassword"
     #         $null = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
     #     }
     #     AfterAll {
-    #         $null = Invoke-DBOQuery @adminParams -Query $dropUserScript
+    #         $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
     #         $null = Invoke-DBOQuery @adminParams -Query "DROP USER testschema CASCADE"
     #     }
     #     It "should deploy version 1.0 into testschema" {
@@ -606,17 +615,17 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
     # }
     Context "testing deployment using variables in config" {
         BeforeAll {
-            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force -Configuration @{SqlInstance = '#{srv}'; Database = '#{db}'}
+            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force -Configuration @{SqlInstance = '#{srv}'; Database = '#{db}' }
             $outputFile = "$workFolder\log.txt"
-            $null = Invoke-DBOQuery @adminParams -Query $createUserScript
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         AfterAll {
-            $null = Invoke-DBOQuery @adminParams -Query $dropUserScript
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         It "should deploy version 1.0" {
             $before = Invoke-DBOQuery @connParams -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Install-DBOPackage -Type Oracle "$workFolder\pv1.zip" -Credential $testCredentials -Variables @{srv = $script:oracleInstance; db = $newDbName} -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $testResults = Install-DBOPackage -Type Oracle "$workFolder\pv1.zip" -Credential $testCredentials -Variables @{srv = $script:oracleInstance; db = $newDbName } -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should Be $script:oracleInstance
@@ -637,19 +646,18 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             'The "{0}" table has been created' -f $logTable | Should -BeIn $output
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 3)
         }
     }
     Context "testing deployment with custom connection string" {
         BeforeAll {
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
-            $null = Invoke-DBOQuery @adminParams -Query $createUserScript
         }
         AfterAll {
-            $null = Invoke-DBOQuery @adminParams -Query $dropUserScript
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         It "should deploy version 1.0" {
             $configCS = New-DBOConfig -Configuration @{
@@ -679,11 +687,11 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             'The "{0}" table has been created' -f $logTable | Should -BeIn $output
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should BeIn $testResults.NAME
+            'b' | Should BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
     }
 }
