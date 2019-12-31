@@ -62,7 +62,7 @@ Example code:
 
 ```powershell
 # Ad-hoc deployment of the scripts from a folder myscripts
-Install-DBOSqlScript -ScriptPath C:\temp\myscripts -SqlInstance server1 -Database MyDB
+Install-DBOScript -ScriptPath C:\temp\myscripts -SqlInstance server1 -Database MyDB
 
 # Execute a list of files as an Ad-hoc query
 Get-ChildItem C:\temp\myscripts | Invoke-DBOQuery -SqlInstance server1 -Database MyDB

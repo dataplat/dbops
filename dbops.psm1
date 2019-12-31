@@ -200,3 +200,15 @@ if ($typeData) {
         } -ErrorAction Ignore
     }
 }
+
+# Aliases
+
+$aliases = @(
+    @{
+        "AliasName"  = "Install-DBOSqlScript"
+        "Definition" = "Install-DBOScript"
+    }
+)
+$aliases | ForEach-Object {
+    if (-not (Test-Path Alias:$($_.AliasName))) { Set-Alias -Scope Global -Name $($_.AliasName) -Value $($_.Definition) }
+}
