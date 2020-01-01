@@ -173,6 +173,12 @@ Set-PSFConfig -FullName dbops.security.usecustomencryptionkey -Value ($PSVersion
 Set-PSFConfig -FullName dbops.rdbms.type -Value 'SqlServer' -Validation connectionType -Initialize -Description "Assumes a certain RDBMS as a default one for each command. SQLServer by default"
 Set-PSFConfig -FullName dbops.package.slim -Value $false -Validation bool -Initialize -Description "Decides whether to make the packages 'slim' and omit module files when creating the package. Default: `$false"
 Set-PSFConfig -FullName dbops.config.variabletoken -Value "\#\{(token)\}" -Validation tokenRegex -Initialize -Description "Variable replacement token. Regex string that will be replaced with values from -Variables parameters. Default: \#\{(token)\}"
+try {
+    Set-PSFConfig -FullName dbops.runtime.dotnetversion -Value ([version](dotnet --version)) -Description "Current dotnet runtime." -Hidden
+}
+catch {
+    Set-PSFConfig -FullName dbops.runtime.dotnetversion -Value $null -Description "Current dotnet runtime." -Hidden
+}
 
 # extensions for SMO
 $typeData = Get-TypeData -TypeName 'Microsoft.SqlServer.Management.Smo.Database'

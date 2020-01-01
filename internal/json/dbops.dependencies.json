@@ -18,7 +18,8 @@
             ],
             "PSEdition": [
                 "Core"
-            ]
+            ],
+            "DotNetCore": "2.0"
         }
     ],
     "SQLServer": [],
@@ -26,7 +27,7 @@
         {
             "Name": "MySql.Data",
             "MinimumVersion": "6.10.7",
-            "MaximumVersion": "6.99.0",
+            "MaximumVersion": "6.10.9",
             "Path": [
                 "lib\\net452\\MySql.Data.dll"
             ],
@@ -37,26 +38,17 @@
         {
             "Name": "MySql.Data",
             "MinimumVersion": "6.10.7",
-            "MaximumVersion": "6.99.0",
+            "MaximumVersion": "6.10.9",
             "Path": [
                 "lib\\netstandard2.0\\MySql.Data.dll"
             ],
             "PSEdition": [
                 "Core"
-            ]
+            ],
+            "DotNetCore": "2.0"
         }
     ],
     "PostgreSQL": [
-        {
-            "Name": "System.Threading.Tasks.Extensions",
-            "RequiredVersion": "4.3.0",
-            "Path": [
-                "lib\\netstandard1.0\\System.Threading.Tasks.Extensions.dll"
-            ],
-            "PSEdition": [
-                "Desktop"
-            ]
-        },
         {
             "Name": "Npgsql",
             "RequiredVersion": "3.2.6",
@@ -65,17 +57,39 @@
             ],
             "PSEdition": [
                 "Desktop"
+            ],
+            "Dependencies": [
+                {
+                    "Name": "System.Threading.Tasks.Extensions",
+                    "RequiredVersion": "4.3.0",
+                    "Path": [
+                        "lib\\netstandard1.0\\System.Threading.Tasks.Extensions.dll"
+                    ]
+                }
             ]
         },
         {
             "Name": "Npgsql",
             "MinimumVersion": "4.0.4",
+            "MaximumVersion": "4.0.10",
             "Path": [
                 "lib\\netstandard2.0\\Npgsql.dll"
             ],
             "PSEdition": [
                 "Core"
-            ]
+            ],
+            "DotNetCore": "2.0"
+        },
+        {
+            "Name": "Npgsql",
+            "MinimumVersion": "4.1.0",
+            "Path": [
+                "lib\\netstandard2.1\\Npgsql.dll"
+            ],
+            "PSEdition": [
+                "Core"
+            ],
+            "DotNetCore": "3.0"
         }
     ]
 }
