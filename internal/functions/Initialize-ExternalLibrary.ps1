@@ -14,7 +14,7 @@ function Initialize-ExternalLibrary {
             break
         }
         else {
-            Write-PSFMessage -Level Verbose -Message "$($dPackage.Name) was found among the loaded libraries, assuming that the library is fully loaded"
+            Write-PSFMessage -Level Verbose -Message "$($dPackage.Name) ($dPackage.Version) was found among the loaded libraries, assuming that the library is fully loaded"
         }
     }
     if ($isLoaded) {
