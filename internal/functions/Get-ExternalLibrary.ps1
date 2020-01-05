@@ -9,7 +9,7 @@ function Get-ExternalLibrary {
         )
         $jsonClause = {
             ((-Not $_.PSEdition) -or ($_.PSEdition -eq $PSVersionTable.PSEdition)) -and
-            ((-Not $runtime) -or (-Not $_.DotNetCore) -or ($runtime -and $runtime -ge [version]$_.DotNetCore))
+            ((-Not $runtime -and -Not $_.DotNetCore) -or (-Not $_.DotNetCore) -or ($runtime -and $runtime -ge [version]$_.DotNetCore))
         }
         $output = @()
         $applicableDependencies = $Node | Where-Object $jsonClause
