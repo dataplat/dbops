@@ -61,7 +61,7 @@ function Install-NugetPackage {
     }
 
     # download and extract the files
-    Write-PSFMessage -Level Verbose -Message "Downloading version $selectedVersion of $packageName"
+    Write-PSFMessage -Level Output -Message "Downloading version $selectedVersion of $packageName"
     $fileName = "$packageName.$selectedVersion.nupkg"
     # Path reference: https://github.com/OneGet/oneget/blob/master/src/Microsoft.PackageManagement/Utility/Platform/OSInformation.cs
     $scopePath = switch ($Scope) {
