@@ -25,7 +25,7 @@ function Install-NugetPackage {
     $packageInfoObject = $packageInfoResponse.Content | ConvertFrom-Json
     $packageInfo = $packageInfoObject.data | Select-Object -First 1
     if (-Not $packageInfo) {
-        Write-PSFMessage -Level Critical -Message "Package $Name was not found"
+        Stop-PSFFunction -Message "Package $Name was not found"
     }
     $packageName = $packageInfo.id
     $packageLowerName = $packageName.ToLower()
@@ -57,11 +57,11 @@ function Install-NugetPackage {
     Write-PSFMessage -Level Verbose -Message "$($versionList.Count) versions left after applying filters"
     $selectedVersion = $versionList | Select-Object -Last 1
     if (-Not $selectedVersion) {
-        Write-PSFMessage -Level Critical -Message "Version could not be found using current parameters" -EnableException $true
+        Stop-PSFFunction -Message "Version could not be found using current parameters" -EnableException $true
     }
 
     # download and extract the files
-    Write-PSFMessage -Level Output -Message "Downloading version $selectedVersion of $packageName"
+    Write-PSFMessage -Level Verbose -Message "Version $selectedVersion of $packageName was selected"
     $fileName = "$packageName.$selectedVersion.nupkg"
     # Path reference: https://github.com/OneGet/oneget/blob/master/src/Microsoft.PackageManagement/Utility/Platform/OSInformation.cs
     $scopePath = switch ($Scope) {
@@ -80,32 +80,34 @@ function Install-NugetPackage {
     }
     $path = Join-PSFPath $scopePath "$packageName.$selectedVersion"
     $packagePath = Join-PSFPath $path $fileName
-    if (Test-Path $path) {
-        if ($Force) {
-            Remove-Item $path -Recurse -Force
+    if ($PSCmdlet.ShouldProcess($fileName, "Download package")) {
+        if (Test-Path $path) {
+            if ($Force) {
+                Remove-Item $path -Recurse -Force
+            }
+            else {
+                Write-PSFMessage -Level Critical -Message "$packageName.$selectedVersion already exists at destination" -EnableException $true
+            }
+        }
+        $folder = New-Item -ItemType Directory -Path $path -Force
+
+        $baseAddressUrl = $indexObject.resources | Where-Object { $_.'@type' -eq 'PackageBaseAddress/3.0.0' } | Select-Object -First 1
+        $downloadUrl = "$($baseAddressUrl.'@id')$packageLowerName/$selectedVersion/$fileName"
+        Invoke-WebRequest -Uri $downloadUrl -OutFile $packagePath -ErrorAction Stop
+        Write-PSFMessage -Level Verbose -Message "Extracting $fileName to $folder"
+        if ($isCoreCLR) {
+            [System.IO.Compression.ZipFile]::ExtractToDirectory($packagePath, $folder, $true)
         }
         else {
-            Write-PSFMessage -Level Critical -Message "$packageName.$selectedVersion already exists at destination" -EnableException $true
+            [System.IO.Compression.ZipFile]::ExtractToDirectory($packagePath, $folder)
         }
-    }
-    $folder = New-Item -ItemType Directory -Path $path -Force
 
-    $baseAddressUrl = $indexObject.resources | Where-Object { $_.'@type' -eq 'PackageBaseAddress/3.0.0' } | Select-Object -First 1
-    $downloadUrl = "$($baseAddressUrl.'@id')$packageLowerName/$selectedVersion/$fileName"
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $packagePath -ErrorAction Stop
-    Write-PSFMessage -Level Verbose -Message "Extracting $fileName to $folder"
-    if ($isCoreCLR) {
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($packagePath, $folder, $true)
+        #return output
+        [PSCustomObject]@{
+            Name    = $packageName
+            Source  = $packagePath
+            Version = $selectedVersion
+            Uri     = $downloadUrl
+        } | Select-Object *
     }
-    else {
-        [System.IO.Compression.ZipFile]::ExtractToDirectory($packagePath, $folder)
-    }
-
-    #return output
-    [PSCustomObject]@{
-        Name    = $packageName
-        Source  = $packagePath
-        Version = $selectedVersion
-        Uri     = $downloadUrl
-    } | Select-Object *
 }
