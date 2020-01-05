@@ -25,10 +25,9 @@
     "MySQL": [
         {
             "Name": "MySql.Data",
-            "MinimumVersion": "6.10.7",
-            "MaximumVersion": "6.10.9",
+            "RequiredVersion": "6.9.12",
             "Path": [
-                "lib\\net452\\MySql.Data.dll"
+                "lib\\net45\\MySql.Data.dll"
             ],
             "PSEdition": [
                 "Desktop"
@@ -76,17 +75,6 @@
             "PSEdition": [
                 "Core"
             ]
-        },
-        {
-            "Name": "Npgsql",
-            "MinimumVersion": "4.1.0",
-            "Path": [
-                "lib\\netstandard2.1\\Npgsql.dll"
-            ],
-            "PSEdition": [
-                "Core"
-            ],
-            "DotNetCore": "3.0"
         }
     ]
 }
