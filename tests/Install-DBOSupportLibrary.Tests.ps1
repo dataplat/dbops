@@ -21,7 +21,7 @@ Describe "Install-DBOSupportLibrary tests" -Tag $commandName, UnitTests {
             It "should attempt to install $d libraries" {
                 Install-DBOSupportLibrary -Type $d -Scope CurrentUser -Force -Confirm:$false
                 foreach ($package in $dependencies.$d) {
-                    $testResult = Get-Package $package.Name -MinimumVersion $package.Version -ProviderName nuget
+                    $testResult = Get-NugetPackage $package
                     $testResult.Name | Should Be $package.Name
                     foreach ($dPath in $package.Path) {
                         $dllPath = Join-PSFPath -Normalize (Split-Path $testResult.Source -Parent) $dPath
