@@ -19,6 +19,9 @@ Describe "Install-NugetPackage tests" -Tag $commandName, UnitTests {
         $dependencies = Get-ExternalLibrary
         foreach ($d in ($dependencies | Get-Member | Where-Object MemberType -eq NoteProperty | Select-Object -ExpandProperty Name)) {
             It "should attempt to install $d libraries" {
+                if ($d -ne 'SqlServer') {
+                    $dependencies.$d | Measure-Object | Select-Object -ExpandProperty Count | Should -BeGreaterThan 0
+                }
                 foreach ($package in $dependencies.$d) {
                     $packageSplat = @{ Name = $package.Name }
                     if ($package.MinimumVersion) { $packageSplat.MinimumVersion = $package.MinimumVersion }

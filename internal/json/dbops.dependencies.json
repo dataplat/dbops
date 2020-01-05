@@ -18,8 +18,7 @@
             ],
             "PSEdition": [
                 "Core"
-            ],
-            "DotNetCore": "2.0"
+            ]
         }
     ],
     "SQLServer": [],
@@ -44,8 +43,7 @@
             ],
             "PSEdition": [
                 "Core"
-            ],
-            "DotNetCore": "2.0"
+            ]
         }
     ],
     "PostgreSQL": [
@@ -77,8 +75,7 @@
             ],
             "PSEdition": [
                 "Core"
-            ],
-            "DotNetCore": "2.0"
+            ]
         },
         {
             "Name": "Npgsql",
