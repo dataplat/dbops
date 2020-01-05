@@ -9,12 +9,26 @@ function Initialize-ExternalLibrary {
     $dependencies = Get-ExternalLibrary -Type $Type
     $isLoaded = $true
     foreach ($dPackage in $dependencies) {
-        if ($libs.Name -notcontains $dPackage.Name) {
-            $isLoaded = $false
-            break
+        if ($lib = $libs | Where-Object Name -eq $dPackage.Name) {
+            if ($minVersion = $dPackage.MinimumVersion -as [version]) {
+                if ($minVersion -gt $lib.Version) {
+                    $isLoaded = $false; break
+                }
+            }
+            if ($maxVersion = $dPackage.MaximumVersion -as [version]) {
+                if ($maxVersion -lt $lib.Version) {
+                    $isLoaded = $false; break
+                }
+            }
+            if ($reqVersion = $dPackage.RequiredVersion -as [version]) {
+                if ($reqVersion -eq $lib.Version) {
+                    $isLoaded = $false; break
+                }
+            }
+            Write-PSFMessage -Level Verbose -Message "$($lib.Name) $($lib.Version) was found among the loaded libraries, assuming that the library is fully loaded"
         }
         else {
-            Write-PSFMessage -Level Verbose -Message "$($dPackage.Name) ($dPackage.Version) was found among the loaded libraries, assuming that the library is fully loaded"
+            $isLoaded = $false; break
         }
     }
     if ($isLoaded) {

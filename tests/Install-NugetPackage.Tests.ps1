@@ -40,6 +40,11 @@ Describe "Install-NugetPackage tests" -Tag $commandName, UnitTests {
                     Test-Path (Join-PSFPath (Split-Path $testResult.Source) lib -Normalize) | Should -Be $true
                 }
             }
+            It "should attempt to install $d libraries for a wrong version" {
+                foreach ($package in $dependencies.$d) {
+                    { Install-NugetPackage -Name $package.Name -RequiredVersion "0.somerandomversion" -Scope CurrentUser -Force -Confirm:$false } | Should throw 'Version could not be found'
+                }
+            }
         }
     }
 }

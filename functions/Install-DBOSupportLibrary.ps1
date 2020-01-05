@@ -18,8 +18,8 @@ Function Install-DBOSupportLibrary {
     .PARAMETER SkipDependencies
     Skips dependencies of the package with the connectivity libraries, only downloading a single package.
 
-    .PARAMETER AllowPreRelease
-    Allows latest pre-release versions of the packages to be downloaded.
+    .PARAMETER SkipPreRelease
+    Skip pre-release versions of the packages to be downloaded.
 
     .PARAMETER Confirm
     Prompts to confirm certain actions
@@ -44,7 +44,7 @@ Function Install-DBOSupportLibrary {
         [ValidateSet('CurrentUser', 'AllUsers')]
         [string]$Scope = 'AllUsers',
         #[switch]$SkipDependencies, # disabling for now, dependencies are not supported anyways
-        [switch]$AllowPreRelease,
+        [switch]$SkipPreRelease,
         [switch]$Force
     )
     begin {
@@ -56,11 +56,7 @@ Function Install-DBOSupportLibrary {
         foreach ($t in $Type) {
             # Check existance
             foreach ($package in $dependencies.$t) {
-                $packageSplat = @{ Name = $package.Name }
-                if ($package.MinimumVersion) { $packageSplat.MinimumVersion = $package.MinimumVersion }
-                if ($package.MaximumVersion) { $packageSplat.MaximumVersion = $package.MaximumVersion }
-                if ($package.RequiredVersion) { $packageSplat.RequiredVersion = $package.RequiredVersion }
-                $p = Get-Package @packageSplat -ProviderName nuget -ErrorAction SilentlyContinue
+                $p = Get-NugetPackage -Package $package
                 if (-Not $p -or $Force) { $packagesToUpdate += $packageSplat }
             }
         }
@@ -68,7 +64,7 @@ Function Install-DBOSupportLibrary {
             # Install dependencies
             foreach ($packageSplat in $packagesToUpdate) {
                 Write-PSFMessage -Level Verbose -Message "Installing package`: $($packageSplat | ConvertTo-Json -Compress)"
-                $null = Install-NugetPackage @packageSplat -Force:$Force -Scope $Scope -SkipPreRelease:(-Not $AllowPreRelease)
+                $null = Install-NugetPackage @packageSplat -Force:$Force -Scope $Scope -SkipPreRelease:$SkipPreRelease
             }
         }
     }

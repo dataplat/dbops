@@ -22,16 +22,16 @@ Function Test-DBOSupportedSystem {
         [Alias('System', 'Database')]
         [DBOps.ConnectionType]$Type
     )
-    begin {}
+    begin { }
     process {
         $dependencies = Get-ExternalLibrary -Type $Type
         foreach ($package in $dependencies) {
-            $packageEntry = Get-Package $package.Name -RequiredVersion $package.Version -ProviderName nuget -ErrorAction SilentlyContinue
+            $packageEntry = Get-NugetPackage -Package $package
             if (!$packageEntry) {
                 return $false
             }
         }
         return $true
     }
-    end {}
+    end { }
 }
