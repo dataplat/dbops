@@ -28,7 +28,6 @@ Describe "Install-NugetPackage tests" -Tag $commandName, UnitTests {
                         MinimumVersion  = $package.MinimumVersion
                         MaximumVersion  = $package.MaximumVersion
                         RequiredVersion = $package.RequiredVersion
-                        ProviderName    = "nuget"
                     }
                     #$null = Get-Package @packageSplat -ProviderName nuget -Scope CurrentUser -ErrorAction SilentlyContinue -AllVersions | Uninstall-Package  -Force
                     $result = Install-NugetPackage @packageSplat -Scope CurrentUser -Force -Confirm:$false
