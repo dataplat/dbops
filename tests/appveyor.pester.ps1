@@ -160,8 +160,8 @@ function Send-CodecovReport($CodecovReport) {
 if (-not $Finalize) {
     # Welcome message
     Write-Host -ForegroundColor DarkGreen "Running dbops build $((Get-Module dbops).Version.ToString()) on PS $($PSVersionTable.PsVersion.ToString()), .Net $(Get-PSFConfigValue dbops.runtime.dotnetversion)"
-    Write-Host -ForegroundColor DarkGreen "Loaded libraries:"
-    [System.AppDomain]::CurrentDomain.GetAssemblies().GetName() | Sort-Object -Property Name | ForEach-Object { Write-Host -ForegroundColor DarkCyan "$($_.Name) $($_.Version)" }
+    # Write-Host -ForegroundColor DarkGreen "Loaded libraries:"
+    # [System.AppDomain]::CurrentDomain.GetAssemblies().GetName() | Sort-Object -Property Name | ForEach-Object { Write-Host -ForegroundColor DarkCyan "$($_.Name) $($_.Version)" }
     # Invoke pester.groups.ps1 to know which tests to run
     . "$ModuleBase\tests\pester.groups.ps1"
 
