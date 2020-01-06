@@ -42,7 +42,8 @@ Describe "Install-NugetPackage tests" -Tag $commandName, UnitTests {
             }
             It "should attempt to install $d libraries for a wrong version" {
                 foreach ($package in $dependencies.$d) {
-                    { Install-NugetPackage -Name $package.Name -RequiredVersion "0.somerandomversion" -Scope CurrentUser -Force -Confirm:$false } | Should throw 'Version could not be found'
+                    { Install-NugetPackage -Name $package.Name -RequiredVersion "0.somerandomversion" -Scope CurrentUser -Force -Confirm:$false } | Should throw 'Not Found'
+                    { Install-NugetPackage -Name $package.Name -MinimumVersion "10.0" -MaximumVersion "1.0" -Scope CurrentUser -Force -Confirm:$false } | Should throw 'Version could not be found'
                 }
             }
         }

@@ -29,32 +29,36 @@ function Install-NugetPackage {
     }
     $packageName = $packageInfo.id
     $packageLowerName = $packageName.ToLower()
-    [array]$versionList = $packageInfo.versions.version
-    Write-PSFMessage -Level Verbose -Message "Found a total of $($versionList.Count) versions of $packageName"
-
-    # filter out the versions we don't need based on parameters
-    if ($MinimumVersion) {
-        $position = $versionList.IndexOf($MinimumVersion)
-        if ($position -eq -1) {
-            $versionList = $versionList | Where-Object { try { [version]$_ -ge $MinimumVersion } catch { $false } }
-        }
-        else {
-            $versionList = $versionList[$position..($versionList.Count - 1)]
-        }
-    }
-    if ($MaximumVersion) {
-        $position = $versionList.IndexOf($MaximumVersion)
-        if ($position -eq -1) {
-            $versionList = $versionList | Where-Object { try { [version]$_ -le $MaximumVersion } catch { $false } }
-        }
-        else {
-            $versionList = $versionList[0..$position]
-        }
-    }
     if ($RequiredVersion) {
-        $versionList = $versionList | Where-Object { $_ -eq $RequiredVersion }
+        $versionList = @($RequiredVersion)
+        Write-PSFMessage -Level Verbose -Message "Using RequiredVersion $RequiredVersion of $packageName"
     }
-    Write-PSFMessage -Level Verbose -Message "$($versionList.Count) versions left after applying filters"
+    else {
+        [array]$versionList = $packageInfo.versions.version
+        Write-PSFMessage -Level Verbose -Message "Found a total of $($versionList.Count) versions of $packageName"
+
+        # filter out the versions we don't need based on parameters
+        if ($versionList -and $MinimumVersion) {
+            $position = $versionList.IndexOf($MinimumVersion)
+            if ($position -eq -1) {
+                $versionList = $versionList | Where-Object { try { [version]$_ -ge $MinimumVersion } catch { $false } }
+            }
+            else {
+                $versionList = $versionList[$position..($versionList.Count - 1)]
+            }
+        }
+        if ($versionList -and $MaximumVersion) {
+            $position = $versionList.IndexOf($MaximumVersion)
+            if ($position -eq -1) {
+                $versionList = $versionList | Where-Object { try { [version]$_ -le $MaximumVersion } catch { $false } }
+            }
+            else {
+                $versionList = $versionList[0..$position]
+            }
+        }
+        Write-PSFMessage -Level Verbose -Message "$($versionList.Count) versions left after applying filters"
+    }
+
     $selectedVersion = $versionList | Select-Object -Last 1
     if (-Not $selectedVersion) {
         Stop-PSFFunction -Message "Version could not be found using current parameters" -EnableException $true
