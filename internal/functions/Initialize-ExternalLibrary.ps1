@@ -49,7 +49,14 @@ function Initialize-ExternalLibrary {
     }
     $dependencies = Get-ExternalLibrary -Type $Type
     foreach ($dPackage in $dependencies) {
-        $localPackage = Get-NugetPackage $dPackage
+        $packageSplat = @{
+            Name            = $package.Name
+            MinimumVersion  = $package.MinimumVersion
+            MaximumVersion  = $package.MaximumVersion
+            RequiredVersion = $package.RequiredVersion
+            ProviderName    = "nuget"
+        }
+        $localPackage = Get-Package @packageSplat
         foreach ($dPath in $dPackage.Path) {
             Write-PSFMessage -Level Debug -Message "Loading library $dPath from $($localPackage.Source)"
             try {

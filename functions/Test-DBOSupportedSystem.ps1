@@ -26,7 +26,14 @@ Function Test-DBOSupportedSystem {
     process {
         $dependencies = Get-ExternalLibrary -Type $Type
         foreach ($package in $dependencies) {
-            $packageEntry = Get-NugetPackage -Package $package
+            $packageSplat = @{
+                Name            = $package.Name
+                MinimumVersion  = $package.MinimumVersion
+                MaximumVersion  = $package.MaximumVersion
+                RequiredVersion = $package.RequiredVersion
+                ProviderName    = "nuget"
+            }
+            $packageEntry = Get-Package @packageSplat -ErrorAction SilentlyContinue
             if (!$packageEntry) {
                 return $false
             }
