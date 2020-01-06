@@ -6,8 +6,8 @@ version: 0.1.{build}
 #images
 
 image:
-  - Ubuntu1804
   - Visual Studio 2017
+  - Ubuntu1804
 
 # Set build info
 environment:

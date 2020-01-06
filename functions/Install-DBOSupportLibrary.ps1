@@ -18,6 +18,9 @@ Function Install-DBOSupportLibrary {
     .PARAMETER SkipDependencies
     Skips dependencies of the package with the connectivity libraries, only downloading a single package.
 
+    .PARAMETER SkipPreRelease
+    Skip pre-release versions of the packages to be downloaded.
+
     .PARAMETER Confirm
     Prompts to confirm certain actions
 
@@ -41,6 +44,7 @@ Function Install-DBOSupportLibrary {
         [ValidateSet('CurrentUser', 'AllUsers')]
         [string]$Scope = 'AllUsers',
         #[switch]$SkipDependencies, # disabling for now, dependencies are not supported anyways
+        [switch]$SkipPreRelease,
         [switch]$Force
     )
     begin {
@@ -52,15 +56,21 @@ Function Install-DBOSupportLibrary {
         foreach ($t in $Type) {
             # Check existance
             foreach ($package in $dependencies.$t) {
-                $p = Get-Package -name $package.Name -RequiredVersion $package.Version -ProviderName nuget -ErrorAction SilentlyContinue
-                if (-Not $p -or $Force) { $packagesToUpdate += $package }
+                $packageSplat = @{
+                    Name            = $package.Name
+                    MinimumVersion  = $package.MinimumVersion
+                    MaximumVersion  = $package.MaximumVersion
+                    RequiredVersion = $package.RequiredVersion
+                }
+                $p = Get-Package @packageSplat -ProviderName nuget -ErrorAction SilentlyContinue
+                if (-Not $p -or $Force) { $packagesToUpdate += $packageSplat }
             }
         }
         if ($packagesToUpdate -and $PSCmdlet.ShouldProcess("Scope: $Scope", "Installing dependent package(s) $($packagesToUpdate.Name -join ', ') from nuget.org")) {
             # Install dependencies
-            foreach ($package in $packagesToUpdate) {
-                Write-PSFMessage -Level Verbose -Message "Installing package $($package.Name)($($package.Version))"
-                $null = Install-NugetPackage -Name $package.Name -RequiredVersion $package.Version -Force:$Force -Scope $Scope
+            foreach ($packageSplat in $packagesToUpdate) {
+                Write-PSFMessage -Level Verbose -Message "Installing package`: $($packageSplat | ConvertTo-Json -Compress)"
+                $null = Install-NugetPackage @packageSplat -Force:$Force -Scope $Scope -SkipPreRelease:$SkipPreRelease
             }
         }
     }
