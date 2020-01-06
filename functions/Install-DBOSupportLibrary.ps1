@@ -56,7 +56,13 @@ Function Install-DBOSupportLibrary {
         foreach ($t in $Type) {
             # Check existance
             foreach ($package in $dependencies.$t) {
-                $p = Get-NugetPackage -Package $package
+                $packageSplat = @{
+                    Name            = $package.Name
+                    MinimumVersion  = $package.MinimumVersion
+                    MaximumVersion  = $package.MaximumVersion
+                    RequiredVersion = $package.RequiredVersion
+                }
+                $p = Get-Package @packageSplat -ProviderName nuget -ErrorAction SilentlyContinue
                 if (-Not $p -or $Force) { $packagesToUpdate += $packageSplat }
             }
         }

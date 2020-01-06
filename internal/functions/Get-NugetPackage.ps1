@@ -3,9 +3,11 @@ function Get-NugetPackage {
     Param (
         [object]$Package
     )
-    $packageSplat = @{ Name = $package.Name }
-    if ($package.MinimumVersion) { $packageSplat.MinimumVersion = $package.MinimumVersion }
-    if ($package.MaximumVersion) { $packageSplat.MaximumVersion = $package.MaximumVersion }
-    if ($package.RequiredVersion) { $packageSplat.RequiredVersion = $package.RequiredVersion }
+    $packageSplat = @{
+        Name            = $package.Name
+        MinimumVersion  = $package.MinimumVersion
+        MaximumVersion  = $package.MaximumVersion
+        RequiredVersion = $package.RequiredVersion
+    }
     Get-Package @packageSplat -ProviderName nuget -ErrorAction SilentlyContinue
 }
