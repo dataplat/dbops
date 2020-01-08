@@ -4,7 +4,7 @@
     RootModule             = 'dbops.psm1'
 
     # Version number of this module.
-    ModuleVersion          = '0.5.8'
+    ModuleVersion          = '0.6.0'
 
     # ID used to uniquely identify this module
     GUID                   = '16dff216-533a-4fa3-9b2e-4408dbe15e63'
@@ -42,7 +42,7 @@
     # Modules that must be imported into the global environment prior to importing
     # this module
     RequiredModules        = @(
-        @{ ModuleName = 'PSFramework'; ModuleVersion = '0.10.30.165'}
+        @{ ModuleName = 'PSFramework'; ModuleVersion = '0.10.30.165' }
     )
 
     # Assemblies that must be loaded prior to importing this module
@@ -67,7 +67,6 @@
         'Add-DBOBuild',
         'Get-DBOConfig',
         'Install-DBOPackage',
-        'Invoke-DBODeployment',
         'New-DBOPackage',
         'Remove-DBOBuild',
         'Get-DBOPackage',
@@ -81,7 +80,7 @@
         'Get-DBOPackageArtifact',
         'Publish-DBOPackageArtifact',
         'Copy-DBOPackageArtifact',
-        'Install-DBOSqlScript',
+        'Install-DBOScript',
         'Register-DBOPackage',
         'Send-DBOMailMessage',
         'Reset-DBODefaultSetting',
@@ -89,7 +88,8 @@
         'Export-DBOConfig',
         'ConvertTo-EncryptedString',
         'ConvertFrom-EncryptedString',
-        'Invoke-DBOQuery'
+        'Invoke-DBOQuery',
+        'Update-DBOPackage'
     )
 
     # Cmdlets to export from this module

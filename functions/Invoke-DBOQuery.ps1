@@ -74,6 +74,9 @@ function Invoke-DBOQuery {
     .PARAMETER As
         Specifies output type. Valid options for this parameter are 'DataSet', 'DataTable', 'DataRow', 'PSObject', and 'SingleValue'
 
+    .PARAMETER ReturnAsText
+        Postgres only: returns all fields of the dataset as text values. This helps with the datatypes that are unknown to npgsql.
+
     .PARAMETER Parameter
         Uses values in specified hashtable as parameters inside the SQL query.
         For example, <Invoke-DBOQuery -Query 'SELECT @p1' -Parameter @{ p1 = 1 }> would return "1" on SQL Server.
@@ -161,7 +164,8 @@ function Invoke-DBOQuery {
             Position = 1,
             ParameterSetName = 'Interactive')]
         [Alias('i')]
-        [switch]$Interactive
+        [switch]$Interactive,
+        [switch]$ReturnAsText
     )
 
     begin {
@@ -214,7 +218,7 @@ function Invoke-DBOQuery {
     process {
         $config = New-DBOConfig -Configuration $Configuration
         #Merge custom parameters into a configuration
-        $newConfig = @{}
+        $newConfig = @{ }
         foreach ($key in ($PSBoundParameters.Keys)) {
             if ($key -in [DBOpsConfig]::EnumProperties()) {
                 $newConfig.$key = $PSBoundParameters[$key]
@@ -240,7 +244,8 @@ function Invoke-DBOQuery {
         # Define the queries
         if ($Query) {
             $queryText = $Query
-        } else {
+        }
+        else {
             $fileObjects = @()
             try {
                 if ($InputFile) {
@@ -249,7 +254,8 @@ function Invoke-DBOQuery {
                 if ($InputObject) {
                     $fileObjects += $InputObject | Get-Item -ErrorAction Stop
                 }
-            } catch {
+            }
+            catch {
                 Stop-PSFFunction -Message 'File not found' -ErrorRecord $_ -EnableException $true
             }
             $queryText = $fileObjects | Get-Content -Raw
@@ -265,13 +271,15 @@ function Invoke-DBOQuery {
         Write-PSFMessage -Level Verbose -Message "Establishing connection with $Type $($config.SqlInstance)"
         try {
             $dataConnection.Open()
-        } catch {
+        }
+        catch {
             Stop-PSFFunction -EnableException $true -Message "Failed to connect to the server" -ErrorRecord $_
             return
         }
         if ($Interactive) {
             Write-PSFMessage -Level Host -Message "Running in interactive mode. Finish the query with a $delimiter to execute it immediately. \q, exit, or quit to exit."
-        } else {
+        }
+        else {
             Write-PSFMessage -Level Debug -Message "Preparing to run $($queryList.Count) queries"
         }
         # wrapping everything in a big try {} to support graceful disconnect
@@ -307,9 +315,13 @@ function Invoke-DBOQuery {
                                 Write-PSFMessage -Level Verbose -Message "Executing sub-query $splitQuery"
                                 # only Sql Server supports messaging right now
                                 if ($Type -eq 'SqlServer') {
+                                    # Generate event id
+                                    $eventId = "DBOpsMessaging-$(New-Guid)"
                                     # Add message events
-                                    Unregister-Event -SourceIdentifier "DBOpsMessaging" -ErrorAction SilentlyContinue
-                                    $eventOutput = Register-ObjectEvent -InputObject $dataConnection -EventName "InfoMessage" -SourceIdentifier "DBOpsMessaging" -Action { $EventArgs.Message }
+                                    if (Get-Event | Where-Object { $_.SourceIdentifier -eq $eventId }) {
+                                        Unregister-Event -SourceIdentifier $eventId -ErrorAction SilentlyContinue
+                                    }
+                                    $eventOutput = Register-ObjectEvent -InputObject $dataConnection -EventName "InfoMessage" -SourceIdentifier $eventId -Action { $EventArgs.Message }
                                 }
                                 # create a new command object and define text/parameters
                                 $command = $dataConnection.CreateCommand()
@@ -322,6 +334,9 @@ function Invoke-DBOQuery {
                                         }
                                         default { $command.Parameters.AddWithValue($key, $Parameter[$key]) }
                                     }
+                                }
+                                if ($Type -eq 'Postgresql' -and $ReturnAsText) {
+                                    $command.AllResultTypesAreUnknown = $true;
                                 }
                                 # create an async reader and wait for output receiving logs in the process
                                 $readerTask = $command.ExecuteReaderAsync()
@@ -340,7 +355,7 @@ function Invoke-DBOQuery {
                                     # once completed, receive the final part and unregister the ivent
                                     $logScript.Invoke()
                                     # lastly, unregister the event
-                                    Unregister-Event -SourceIdentifier "DBOpsMessaging"
+                                    Unregister-Event -SourceIdentifier $eventId
                                 }
                                 $reader = $readerTask.GetAwaiter().GetResult()
                                 $setCounter = 0
@@ -356,8 +371,9 @@ function Invoke-DBOQuery {
                                         }
                                         if ($datatype.FullName -eq 'System.DBNull') {
                                             $datatype = [string]
-                                        } elseif (!$datatype.FullName) {
-                                            $datatype = [string[]]
+                                        }
+                                        elseif (!$datatype.FullName) {
+                                            $datatype = [string]
                                         }
                                         $null = $table.Columns.Add($name, $datatype)
                                     }
@@ -377,10 +393,11 @@ function Invoke-DBOQuery {
                                 $reader.Close()
                                 $reader.Dispose()
                                 $command.Dispose()
-                            } catch {
+                            }
+                            catch {
                                 $dbUpLog.WriteError($_.Exception.InnerException.Message, $null)
-                                if ($Type -eq 'SqlServer') {
-                                    Unregister-Event -SourceIdentifier "DBOpsMessaging" -ErrorAction SilentlyContinue
+                                if ($Type -eq 'SqlServer' -and (Get-Event | Where-Object { $_.SourceIdentifier -eq $eventId })) {
+                                    Unregister-Event -SourceIdentifier $eventId -ErrorAction SilentlyContinue
                                 }
                                 if (-not $Interactive) {
                                     Stop-PSFFunction -EnableException $true -Message "Failed to run the query" -ErrorRecord $_
@@ -392,7 +409,8 @@ function Invoke-DBOQuery {
                 if ($Interactive) {
                     # output right to the screen
                     Write-HostTable -Table $ds.Tables[0]
-                } else {
+                }
+                else {
                     # output as object
                     switch ($As) {
                         'DataSet' {
@@ -421,10 +439,12 @@ function Invoke-DBOQuery {
                     }
                 }
             } while ($Interactive)
-        } catch {
+        }
+        catch {
             # don't really need anything else here
             throw $_
-        } finally {
+        }
+        finally {
             # close the connection even when interrupted by Ctrl+C
             $dataConnection.Close()
             $dataConnection.Dispose()

@@ -61,9 +61,19 @@ function Reset-DBODefaultSetting {
             }
         }
         elseif ($All) { $settings = Get-PSFConfig -Module dbops }
-        $newScope = switch ($Scope) {
-            'CurrentUser' { 'UserDefault' }
-            'AllUsers' { 'SystemDefault' }
+        $newScope = switch ($isWindows) {
+            $false {
+                switch ($Scope) {
+                    'CurrentUser' { 'FileUserLocal' }
+                    'AllUsers' { 'FileUserShared' }
+                }
+            }
+            default {
+                switch ($Scope) {
+                    'CurrentUser' { 'UserDefault' }
+                    'AllUsers' { 'SystemDefault' }
+                }
+            }
         }
         foreach ($config in $settings) {
             $sName = $config.fullName -replace '^dbops\.', ''

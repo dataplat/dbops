@@ -36,10 +36,28 @@ $adminParams = @{
         'DBA Privilege' = 'SYSDBA'
     }
 }
-$createUserScript = "CREATE USER $oraUserName IDENTIFIED BY $oraPassword;
-  GRANT CONNECT, RESOURCE, CREATE ANY TABLE TO $oraUserName;
-  GRANT EXECUTE on dbms_lock to $oraUserName;"
-$dropUserScript = "DROP USER $oraUserName CASCADE;"
+$createUserScript = "CREATE USER $oraUserName IDENTIFIED BY $oraPassword/
+GRANT CONNECT, RESOURCE, CREATE ANY TABLE TO $oraUserName/
+GRANT EXECUTE on dbms_lock to $oraUserName"
+$dropUserScript = "
+    BEGIN
+        FOR ln_cur IN (SELECT sid, serial# FROM v`$session WHERE username = '$oraUserName')
+        LOOP
+            EXECUTE IMMEDIATE ('ALTER SYSTEM KILL SESSION ''' || ln_cur.sid || ',' || ln_cur.serial# || ''' IMMEDIATE');
+        END LOOP;
+        FOR x IN ( SELECT count(*) cnt
+            FROM DUAL
+            WHERE EXISTS (SELECT * FROM DBA_USERS WHERE USERNAME = '$oraUserName')
+        )
+        LOOP
+            IF ( x.cnt = 1 ) THEN
+                EXECUTE IMMEDIATE 'DROP USER $oraUserName CASCADE';
+            END IF;
+        END LOOP;
+    END;
+    /"
+$dropObjectsScript = Join-PSFPath -Normalize "$testRoot\etc\oracle-tests\verification\drop.sql"
+
 
 $workFolder = Join-PSFPath -Normalize "$testRoot\etc" "$commandName.Tests.dbops"
 $logTable = "testdeploy"
@@ -54,24 +72,21 @@ Describe "Register-DBOPackage Oracle integration tests" -Tag $commandName, Integ
     BeforeAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = New-Item $workFolder -ItemType Directory -Force
-        $userExists = Invoke-DBOQuery @adminParams -Query "SELECT USERNAME FROM ALL_USERS WHERE USERNAME = '$oraUserName'" -As SingleValue
-        if ($userExists) { $null = Invoke-DBOQuery @adminParams -Query $dropUserScript }
+        $null = Invoke-DBOQuery @adminParams -Query $dropUserScript
+        $null = Invoke-DBOQuery @adminParams -Query $createUserScript
     }
     AfterAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
-        $userExists = Invoke-DBOQuery @adminParams -Query "SELECT USERNAME FROM ALL_USERS WHERE USERNAME = '$oraUserName'" -As SingleValue
-        if ($userExists) { $null = Invoke-DBOQuery @adminParams -Query $dropUserScript }
+        $null = Invoke-DBOQuery @adminParams -Query $dropUserScript
     }
     Context "testing registration of scripts" {
         BeforeAll {
             $p2 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv2" -Build 1.0 -Force
             $p2 = Add-DBOBuild -ScriptPath $v2scripts -Package $p2 -Build 2.0
             $outputFile = "$workFolder\log.txt"
-            $null = Invoke-DBOQuery @adminParams -Query $createUserScript
         }
         AfterAll {
-            $userExists = Invoke-DBOQuery @adminParams -Query "SELECT USERNAME FROM ALL_USERS WHERE USERNAME = '$oraUserName'" -As SingleValue
-            if ($userExists) { $null = Invoke-DBOQuery @adminParams -Query $dropUserScript }
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         It "should register version 1.0 without creating any objects" {
             $before = Invoke-DBOQuery @connParams -InputFile $verificationScript
@@ -92,16 +107,16 @@ Describe "Register-DBOPackage Oracle integration tests" -Tag $commandName, Integ
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should Not BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should Not BeIn $testResults.NAME
+            'b' | Should Not BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 1)
 
             #Verifying SchemaVersions table
             $testResults = Invoke-DBOQuery @connParams -Query "SELECT * FROM $logTable ORDER BY SCHEMAVERSIONID"
-            $testResults.scriptname | Should Be $v1Journal
+            $testResults.SCRIPTNAME | Should Be $v1Journal
         }
         It "should register version 1.0 + 2.0 without creating any objects" {
             $before = Invoke-DBOQuery @connParams -InputFile $verificationScript
@@ -122,26 +137,25 @@ Describe "Register-DBOPackage Oracle integration tests" -Tag $commandName, Integ
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should Not BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should BeIn $testResults.NAME
+            'a' | Should Not BeIn $testResults.NAME
+            'b' | Should Not BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
             ($testResults | Measure-Object).Count | Should Be $rowsBefore
 
             #Verifying SchemaVersions table
             $testResults = Invoke-DBOQuery @connParams -Query "SELECT * FROM $logTable ORDER BY SCHEMAVERSIONID"
-            $testResults.scriptname | Should Be (@($v1Journal) + @($v2Journal))
+            $testResults.SCRIPTNAME | Should Be (@($v1Journal) + @($v2Journal))
         }
     }
     Context  "$commandName whatif tests" {
         BeforeAll {
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
-            $null = Invoke-DBOQuery @adminParams -Query $createUserScript
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         AfterAll {
-            $userExists = Invoke-DBOQuery @adminParams -Query "SELECT USERNAME FROM ALL_USERS WHERE USERNAME = '$oraUserName'" -As SingleValue
-            if ($userExists) { $null = Invoke-DBOQuery @adminParams -Query $dropUserScript }
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
         }
         It "should deploy nothing" {
             $testResults = Register-DBOPackage $p1 @connParams -SchemaVersionTable $logTable -WhatIf
@@ -158,11 +172,11 @@ Describe "Register-DBOPackage Oracle integration tests" -Tag $commandName, Integ
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should Not BeIn $testResults.name
-            'a' | Should Not BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should Not BeIn $testResults.NAME
+            'a' | Should Not BeIn $testResults.NAME
+            'b' | Should Not BeIn $testResults.NAME
+            'c' | Should Not BeIn $testResults.NAME
+            'd' | Should Not BeIn $testResults.NAME
         }
     }
 }

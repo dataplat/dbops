@@ -1,4 +1,4 @@
-﻿function Install-DBOSqlScript {
+﻿function Install-DBOScript {
     <#
     .SYNOPSIS
         Deploys genering SQL scripts to a target database
@@ -120,23 +120,23 @@
 
     .EXAMPLE
         # Deploys all SQL scripts from the folder .\SqlCode to the target database
-        Install-DBOSqlScript .\SqlCode\*.sql -SqlInstance 'myserver\instance1' -Database 'MyDb'
+        Install-DBOScript .\SqlCode\*.sql -SqlInstance 'myserver\instance1' -Database 'MyDb'
 
     .EXAMPLE
         # Deploys script file using specific connection parameters
-        Get-Item .\SqlCode\Script1.sql | Install-DBOSqlScript -SqlInstance 'Srv1' -Database 'MyDb' -ExecutionTimeout 3600
+        Get-Item .\SqlCode\Script1.sql | Install-DBOScript -SqlInstance 'Srv1' -Database 'MyDb' -ExecutionTimeout 3600
 
     .EXAMPLE
         # Deploys all the scripts from the .\SqlCode folder using custom logging parameters and schema tracking table
-        Get-ChildItem .\SqlCode | Install-DBOSqlScript -SqlInstance 'Srv1' -Database 'MyDb' -SchemaVersionTable dbo.SchemaHistory -OutputFile .\out.log -Append
+        Get-ChildItem .\SqlCode | Install-DBOScript -SqlInstance 'Srv1' -Database 'MyDb' -SchemaVersionTable dbo.SchemaHistory -OutputFile .\out.log -Append
 
     .EXAMPLE
         # Deploys two scripts from the current folder using custom configuration file
-        Install-DBOSqlScript -Path .\Script1.sql,.\Script2.sql -SqlInstance 'Srv1' -Database 'MyDb' -ConfigurationFile .\localconfig.json
+        Install-DBOScript -Path .\Script1.sql,.\Script2.sql -SqlInstance 'Srv1' -Database 'MyDb' -ConfigurationFile .\localconfig.json
 
     .EXAMPLE
         # Deploys two scripts from the current folder using variables instead of specifying values directly
-        '.\Script1.sql','.\Script2.sql' | Install-DBOSqlScript -SqlInstance '#{server}' -Database '#{db}' -Variables @{server = 'Srv1'; db = 'MyDb'}
+        '.\Script1.sql','.\Script2.sql' | Install-DBOScript -SqlInstance '#{server}' -Database '#{db}' -Variables @{server = 'Srv1'; db = 'MyDb'}
 #>
     # ShouldProcess is handled in the underlying command
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSShouldProcess", "")]
@@ -210,7 +210,7 @@
         $config = New-DBOConfig -Configuration $Configuration
 
         #Merge custom parameters into a configuration
-        $newConfig = @{}
+        $newConfig = @{ }
         foreach ($key in ($PSBoundParameters.Keys)) {
             if ($key -in [DBOpsConfig]::EnumProperties()) {
                 $newConfig.$key = $PSBoundParameters[$key]
@@ -231,5 +231,8 @@
         }
         Write-PSFMessage -Level Verbose -Message "Preparing to start the deployment of $($Path.Count) file(s)"
         Invoke-DBODeployment @params
+
+        # Test name deprecation
+        Test-AliasDeprecation -DeprecatedOn "1.0.0" -EnableException:$false -Alias Install-DBOSqlScript
     }
 }

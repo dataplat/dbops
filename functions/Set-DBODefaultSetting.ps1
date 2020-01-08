@@ -72,9 +72,19 @@ function Set-DBODefaultSetting {
             Set-PSFConfig -Module dbops -Name $Name -Value $newValue -EnableException
         }
 
-        $newScope = switch ($Scope) {
-            'CurrentUser' { 'UserDefault' }
-            'AllUsers' { 'SystemDefault' }
+        $newScope = switch ($isWindows) {
+            $false {
+                switch ($Scope) {
+                    'CurrentUser' { 'FileUserLocal' }
+                    'AllUsers' { 'FileUserShared' }
+                }
+            }
+            default {
+                switch ($Scope) {
+                    'CurrentUser' { 'UserDefault' }
+                    'AllUsers' { 'SystemDefault' }
+                }
+            }
         }
         if (!$Temporary) {
             if ($PSCmdlet.ShouldProcess($Name, "Registering the value in the $newScope scope")) {

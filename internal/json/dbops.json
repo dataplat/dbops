@@ -23,7 +23,6 @@
         "functions\\Add-DBOBuild.ps1",
         "functions\\Get-DBOConfig.ps1",
         "functions\\Install-DBOPackage.ps1",
-        "functions\\Invoke-DBODeployment.ps1",
         "functions\\New-DBOPackage.ps1",
         "functions\\Remove-DBOBuild.ps1",
         "functions\\Get-DBOPackage.ps1",
@@ -37,7 +36,7 @@
         "functions\\Get-DBOPackageArtifact.ps1",
         "functions\\Publish-DBOPackageArtifact.ps1",
         "functions\\Copy-DBOPackageArtifact.ps1",
-        "functions\\Install-DBOSqlScript.ps1",
+        "functions\\Install-DBOScript.ps1",
         "functions\\Register-DBOPackage.ps1",
         "functions\\Send-DBOMailMessage.ps1",
         "functions\\Reset-DBODefaultSetting.ps1",
@@ -45,7 +44,8 @@
         "functions\\Export-DBOConfig.ps1",
         "functions\\ConvertTo-EncryptedString.ps1",
         "functions\\ConvertFrom-EncryptedString.ps1",
-        "functions\\Invoke-DBOQuery.ps1"
+        "functions\\Invoke-DBOQuery.ps1",
+        "functions\\Update-DBOPackage.ps1"
     ],
     "Internal": [
         "internal\\classes\\DBOps.enums.ps1",
@@ -65,6 +65,9 @@
         "internal\\functions\\Get-DbUpJournal.ps1",
         "internal\\functions\\Invoke-EnsureDatabase.ps1",
         "internal\\functions\\Get-DatabaseConnection.ps1",
+        "internal\\functions\\Invoke-DBODeployment.ps1",
+        "internal\\functions\\Install-NugetPackage.ps1",
+        "internal\\functions\\Test-AliasDeprecation.ps1",
         "internal\\classes\\DBOpsHelper.class.ps1",
         "internal\\classes\\DBOps.class.ps1",
         "internal\\classes\\DBOpsDeploymentStatus.class.ps1",

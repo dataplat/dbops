@@ -46,12 +46,8 @@ Set-Location $ModuleBase
 Remove-Module dbops -ErrorAction Ignore
 #imports the module making sure DLL is loaded ok
 Import-Module "$ModuleBase\dbops.psd1"
-$error[0]| select *
-$error[0].Exception|select *
 #import module internal functions
 Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
-
-
 
 function Get-CoverageIndications($Path, $ModuleBase) {
     # takes a test file path and figures out what to analyze for coverage (i.e. dependencies)
@@ -91,7 +87,7 @@ function Get-CoverageIndications($Path, $ModuleBase) {
 
 function Get-CodecovReport($Results, $ModuleBase) {
     #handle coverage https://docs.codecov.io/reference#upload
-    $report = @{'coverage' = @{}}
+    $report = @{'coverage' = @{ } }
     #needs correct casing to do the replace
     $ModuleBase = (Resolve-Path $ModuleBase).Path
     # things we wanna a report for (and later backfill if not tested)
@@ -99,11 +95,11 @@ function Get-CodecovReport($Results, $ModuleBase) {
 
     $missed = $results.CodeCoverage | Select-Object -ExpandProperty MissedCommands | Sort-Object -Property File, Line -Unique
     $hits = $results.CodeCoverage | Select-Object -ExpandProperty HitCommands | Sort-Object -Property File, Line -Unique
-    $LineCount = @{}
+    $LineCount = @{ }
     $hits | ForEach-Object {
         $filename = $_.File.Replace("$ModuleBase\", '').Replace('\', '/')
         if ($filename -notin $report['coverage'].Keys) {
-            $report['coverage'][$filename] = @{}
+            $report['coverage'][$filename] = @{ }
             $LineCount[$filename] = (Get-Content $_.File -Raw | Measure-Object -Line).Lines
         }
         $report['coverage'][$filename][$_.Line] = 1
@@ -112,7 +108,7 @@ function Get-CodecovReport($Results, $ModuleBase) {
     $missed | ForEach-Object {
         $filename = $_.File.Replace("$ModuleBase\", '').Replace('\', '/')
         if ($filename -notin $report['coverage'].Keys) {
-            $report['coverage'][$filename] = @{}
+            $report['coverage'][$filename] = @{ }
             $LineCount[$filename] = (Get-Content $_.File | Measure-Object -Line).Lines
         }
         if ($_.Line -notin $report['coverage'][$filename].Keys) {
@@ -121,9 +117,9 @@ function Get-CodecovReport($Results, $ModuleBase) {
         }
     }
 
-    $newreport = @{'coverage' = [ordered]@{}}
+    $newreport = @{'coverage' = [ordered]@{ } }
     foreach ($fname in $report['coverage'].Keys) {
-        $Linecoverage = [ordered]@{}
+        $Linecoverage = [ordered]@{ }
         for ($i = 1; $i -le $LineCount[$fname]; $i++) {
             if ($i -in $report['coverage'][$fname].Keys) {
                 $Linecoverage["$i"] = $report['coverage'][$fname][$i]
@@ -136,14 +132,14 @@ function Get-CodecovReport($Results, $ModuleBase) {
     foreach ($target in $allfiles) {
         $target_relative = $target.FullName.Replace("$ModuleBase\", '').Replace('\', '/')
         if ($target_relative -notin $newreport['coverage'].Keys) {
-            $newreport['coverage'][$target_relative] = @{"1" = $null}
+            $newreport['coverage'][$target_relative] = @{"1" = $null }
         }
     }
     $newreport
 }
 
 function Send-CodecovReport($CodecovReport) {
-    $params = @{}
+    $params = @{ }
     $params['branch'] = $env:APPVEYOR_REPO_BRANCH
     $params['service'] = "appveyor"
     $params['job'] = $env:APPVEYOR_ACCOUNT_NAME
@@ -163,24 +159,25 @@ function Send-CodecovReport($CodecovReport) {
 
 if (-not $Finalize) {
     # Welcome message
-    Write-Host -ForegroundColor DarkGreen "Running dbops build $((Get-Module dbops).Version.ToString()) on PS $($PSVersionTable.PsVersion.ToString())"
+    Write-Host -ForegroundColor DarkGreen "Running dbops build $((Get-Module dbops).Version.ToString()) on PS $($PSVersionTable.PsVersion.ToString()), .Net $(Get-PSFConfigValue dbops.runtime.dotnetversion)"
+    # Write-Host -ForegroundColor DarkGreen "Loaded libraries:"
+    # [System.AppDomain]::CurrentDomain.GetAssemblies().GetName() | Sort-Object -Property Name | ForEach-Object { Write-Host -ForegroundColor DarkCyan "$($_.Name) $($_.Version)" }
     # Invoke pester.groups.ps1 to know which tests to run
     . "$ModuleBase\tests\pester.groups.ps1"
 
     # do we have a scenario ?
     if ($env:scenario -in $TestsRunGroups.Keys) {
+        Write-Host "Preparing to run scenario $($env:scenario) with the following tests`: $($TestsRunGroups[$env:scenario] -join ', ')" -ForegroundColor DarkGreen
         $AllScenarioTests = Get-ChildItem -File -Path $TestsRunGroups[$env:scenario] -Filter *.Tests.ps1
     }
     else {
         # retrieve all .Tests.
+        Write-Host "Preparing to run all tests from the tests folder" -ForegroundColor DarkGreen
         $AllScenarioTests = Get-ChildItem -File -Path "$ModuleBase\tests\*.Tests.ps1"
     }
     # exclude "disabled"
     $AllScenarioTests = $AllScenarioTests | Where-Object { ($_.Name -replace '^([^.]+)(.+)?.Tests.ps1', '$1') -notin $TestsRunGroups['disabled'] }
-
-    if ($AllScenarioTests.Count -eq 0) {
-        throw "something went wrong, nothing to test"
-    }
+    Write-Host "$($AllScenarioTests.Count) tests in the queue."
 
     #Run a test with the current version of PowerShell
     #Make things faster by removing most output
@@ -191,7 +188,7 @@ if (-not $Finalize) {
         return
     }
     # invoking a single invoke-pester consumes too much memory, let's go file by file
-    $AllTestsWithinScenario = Get-ChildItem -File -Path $AllScenarioTests
+    $AllTestsWithinScenario = Get-ChildItem -File -Path $AllScenarioTests.FullName
     $Counter = 0
     foreach ($f in $AllTestsWithinScenario) {
         $Counter += 1
@@ -220,7 +217,8 @@ if (-not $Finalize) {
         $msgFile = "$ModuleBase\dbops_log_messages.xml"
         Write-Host -ForegroundColor DarkGreen "Dumping message log into $msgFile"
         Get-PSFMessage -ModuleName dbops | Select-Object FunctionName, Level, TimeStamp, Message | Export-Clixml -Path $msgFile -ErrorAction Stop
-    } catch {
+    }
+    catch {
         Write-Host -ForegroundColor Red "Message collection failed: $($_.Exception.Message)"
     }
     # Gather errors
@@ -228,7 +226,8 @@ if (-not $Finalize) {
         $msgFile = "$ModuleBase\dbops_log_errors.xml"
         Write-Host -ForegroundColor DarkGreen "Dumping error log into $msgFile"
         $error | Export-Clixml -Path $msgFile -ErrorAction Stop
-    } catch {
+    }
+    catch {
         Write-Host -ForegroundColor Red "Error collection failed: $($_.Exception.Message)"
     }
 }
