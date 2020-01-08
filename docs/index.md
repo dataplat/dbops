@@ -168,4 +168,8 @@ Get-DBOPackageArtifact -Path myPackage.zip -Repository \\data\repo | Install-DBO
 
 ## Contacts
 Submitting issues - [GitHub issues](https://github.com/sqlcollaborative/dbops/issues)
-SQLCommunity Slack: https://sqlcommunity.slack.com #devops or @nvarscar
+
+SQL Community Slack: https://sqlcommunity.slack.com
+
+   - #dbops channel
+   - @nvarscar
