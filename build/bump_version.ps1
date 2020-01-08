@@ -8,6 +8,7 @@ Write-Host "Current build $version"
 
 $magicPhrase = "Bumping up version"
 $commitMessage = git log -1 --pretty=%B
+Install-PackageProvider nuget -force
 $publishedVersion = Find-Module dbops -ErrorAction Stop | Select-Object -ExpandProperty Version
 
 if ($version -le $publishedVersion -and $commitMessage -notlike "$magicPhrase*") {
