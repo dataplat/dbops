@@ -72,6 +72,7 @@ if ($ApiKey) {
     }
     Invoke-RestMethod @RequestParams -Uri 'https://api.github.com/' | Out-String | Write-Verbose
 }
+$RequestParams = if ($AuthSession) { @{ WebSession = $AuthSession } } else { @{ } }
 $gitParams = @(
     '--no-pager'
     'log'
