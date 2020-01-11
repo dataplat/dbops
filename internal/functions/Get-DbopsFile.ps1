@@ -14,12 +14,12 @@
         )
         Write-PSFMessage -Level Debug -Message "Getting child items from $Item; Root defined as $Root"
         $fileItems = Get-ChildItem $Item.FullName
-        if ($Match) { $fileItems = $fileItems | Where-Object Name -match ($Match -join '|') }
         foreach ($childItem in $fileItems) {
             if ($childItem.PSIsContainer) {
                 if ($Recurse) { Select-DbopsFile -Item (Get-Item $childItem.FullName) -Root $Root }
             }
             else {
+                if ($Match -and $childItem.Name -notmatch ($Match -join '|')) { continue }
                 if ($Relative) {
                     $pkgPath = Resolve-Path $childItem.FullName -Relative
                 }
