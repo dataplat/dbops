@@ -192,7 +192,7 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
             $testResults.Name | Should Be (Split-Path $packageNameTest -Leaf)
             Test-Path $packageNameTest | Should Be $true
             $scripts = $testResults.GetBuild('2.0').Scripts
-            Join-PSFPath -Normalize 'content\2.0' ((Resolve-Path $v2scripts -Relative) -replace '^\.\\|^\.\/', '')| Should BeIn $scripts.GetPackagePath()
+            Join-PSFPath -Normalize 'content\2.0' ((Resolve-Path $v2scripts -Relative) -replace '^\.\\|^\.\/', '') | Should BeIn $scripts.GetPackagePath()
             Join-PSFPath -Normalize 'content\2.0\1.sql' | Should Not BeIn $scripts.GetPackagePath()
             $items = Get-ArchiveItem $packageNameTest
             Join-PSFPath -Normalize 'content\1.0\1.sql' | Should BeIn $items.Path
@@ -204,7 +204,7 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
             $testResults.Name | Should Be (Split-Path $packageNameTest -Leaf)
             Test-Path $packageNameTest | Should Be $true
             $scripts = $testResults.GetBuild('2.0').Scripts
-            Join-PSFPath -Normalize 'content\2.0' ($v2scripts -replace ':', '')| Should BeIn $scripts.GetPackagePath()
+            Join-PSFPath -Normalize 'content\2.0' ($v2scripts -replace ':', '') | Should BeIn $scripts.GetPackagePath()
             Join-PSFPath -Normalize 'content\2.0\1.sql' | Should Not BeIn $scripts.GetPackagePath()
             $items = Get-ArchiveItem $packageNameTest
             Join-PSFPath -Normalize 'content\1.0\1.sql' | Should BeIn $items.Path
@@ -242,6 +242,22 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
             Join-PSFPath -Normalize 'content\2.0\2.sql' | Should BeIn $items.Path
             Join-PSFPath -Normalize 'content\2.0\3.sql' | Should Not BeIn $items.Path
         }
+        It "Should add only matched files from a recursive folder" {
+            $testResults = Add-DBOBuild -ScriptPath $noRecurseFolder\* -Name $packageNameTest -Build 2.0 -Match '2\.sql'
+            $testResults | Should Not Be $null
+            $testResults.Name | Should Be (Split-Path $packageNameTest -Leaf)
+            Test-Path $packageNameTest | Should Be $true
+            $scripts = $testResults.GetBuild('2.0').Scripts
+            $scripts | Should -Not -BeNullOrEmpty
+            Join-PSFPath -Normalize 'content\2.0\success\1.sql' | Should Not BeIn $scripts.GetPackagePath()
+            Join-PSFPath -Normalize 'content\2.0\success\2.sql' | Should BeIn $scripts.GetPackagePath()
+            Join-PSFPath -Normalize 'content\2.0\success\3.sql' | Should Not BeIn $scripts.GetPackagePath()
+            $items = Get-ArchiveItem $packageNameTest
+            Join-PSFPath -Normalize 'content\1.0\1.sql' | Should BeIn $items.Path
+            Join-PSFPath -Normalize 'content\2.0\success\1.sql' | Should Not BeIn $items.Path
+            Join-PSFPath -Normalize 'content\2.0\success\2.sql' | Should BeIn $items.Path
+            Join-PSFPath -Normalize 'content\2.0\success\3.sql' | Should Not BeIn $items.Path
+        }
     }
     Context "negative tests" {
         BeforeAll {
@@ -267,7 +283,7 @@ Describe "Add-DBOBuild tests" -Tag $commandName, UnitTests {
             $errorResult.Exception.Message -join ';' | Should BeLike '*Incorrect package format*'
         }
         It "should throw error when package zip does not exist" {
-            { Add-DBOBuild -Name ".\nonexistingpackage.zip" -ScriptPath $v1scripts -ErrorAction Stop} | Should Throw
+            { Add-DBOBuild -Name ".\nonexistingpackage.zip" -ScriptPath $v1scripts -ErrorAction Stop } | Should Throw
         }
         It "should throw error when path cannot be resolved" {
             try {
