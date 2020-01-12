@@ -72,21 +72,19 @@ if ($ApiKey) {
     }
     Invoke-RestMethod @RequestParams -Uri 'https://api.github.com/' | Out-String | Write-Verbose
 }
+$RequestParams = if ($AuthSession) { @{ WebSession = $AuthSession } } else { @{ } }
 $gitParams = @(
     '--no-pager'
     'log'
     '--first-parent'
     "$CommitID..$HeadCommitID"
     '--format="%H"'
-    '--'
-    '.'
-    '":(exclude)*.md"'
 )
 $commits = & git @gitParams
 
 $prs = @()
 foreach ($commit in $commits) {
-    $result = Invoke-RestMethod @RequestParams -Uri "https://api.github.com/search/issues?q=$($commit)is%3Amerged"
+    $result = Invoke-RestMethod @RequestParams -Uri "https://api.github.com/search/issues?q=$($commit)+is%3Amerged+is%3Apr"
     if ($result.total_count -gt 0) {
         $prs += $result.items | Sort-Object -Property score -Descending | Select-Object -First 1
     }

@@ -1,3 +1,7 @@
+# Release notes for v0.6.1:
+- ### Files in subfolders are not being added when -Match is used (#104) by @nvarscar
+   ------
+   * Folders are no longer filtered out by the -Match regex string
 # Release notes for v0.6.0:
 - ### Adding prescripts and postscripts (#91) by @nvarscar
    ------
