@@ -103,6 +103,31 @@ Describe "deploy.ps1 integration tests" -Tag $commandName, IntegrationTests {
             'c' | Should Not BeIn $testResults.name
             'd' | Should Not BeIn $testResults.name
         }
+        It "should deploy with no components loaded" {
+            $scriptBlock = {
+                param (
+                    $Path,
+                    $Instance,
+                    [pscredential]$Credential,
+                    $Database
+                )
+                $testResults = & $Path\deploy.ps1 -SqlInstance $Instance -Credential $Credential -Database $Database -Silent
+                $testResults.Successful | Should -Be $true
+                $testResults.Scripts.Name | Should -Not -BeNullOrEmpty
+                $testResults.SqlInstance | Should -Be $Instance
+                $testResults.Database | Should Be $Database
+                $testResults.SourcePath | Should Be $Path
+                $testResults.ConnectionType | Should Be 'SQLServer'
+                $testResults.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
+                $testResults.Error | Should BeNullOrEmpty
+                $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+                $testResults.StartTime | Should -Not -BeNullOrEmpty
+                $testResults.EndTime | Should -Not -BeNullOrEmpty
+                $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+            }
+            $job = Start-Job -ScriptBlock $scriptBlock -ArgumentList $workFolder, $script:mssqlInstance, $script:mssqlCredential, $newDbName
+            $job | Wait-Job | Receive-Job -ErrorAction Stop
+        }
     }
     Context  "$commandName whatif tests" {
         BeforeAll {
