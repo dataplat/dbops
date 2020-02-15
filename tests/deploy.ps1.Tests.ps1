@@ -125,8 +125,26 @@ Describe "deploy.ps1 integration tests" -Tag $commandName, IntegrationTests {
                 $testResults.EndTime | Should -Not -BeNullOrEmpty
                 $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
             }
-            $job = Start-Job -ScriptBlock $scriptBlock -ArgumentList $workFolder, $script:mssqlInstance, $script:mssqlCredential, $newDbName
-            $job | Wait-Job | Receive-Job -ErrorAction Stop
+            # Get modules
+            $modules = Get-Module dbops, PSFramework, Pester | Select-Object -ExpandProperty Path
+            $sessionstate = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
+            foreach ($modulePath in $modules) {
+                $sessionstate.ImportPSModule($modulePath)
+            }
+            #Create runspace pool
+            $runspacepool = [runspacefactory]::CreateRunspacePool(1, 5, $sessionstate, $Host)
+            $runspacepool.Open()
+            $script:runspaces = New-Object System.Collections.ArrayList
+            $powershell = [powershell]::Create()
+            $params = @{
+                Path       = $workFolder
+                Instance   = $script:mssqlInstance
+                Credential = $script:mssqlCredential
+                Database   = $newDbName
+            }
+            [void]$powershell.AddScript($scriptBlock).AddParameters($params)
+            $powershell.RunspacePool = $runspacepool
+            $powershell.Invoke()
         }
     }
     Context  "$commandName whatif tests" {
