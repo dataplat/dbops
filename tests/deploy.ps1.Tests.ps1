@@ -103,6 +103,66 @@ Describe "deploy.ps1 integration tests" -Tag $commandName, IntegrationTests {
             'c' | Should Not BeIn $testResults.name
             'd' | Should Not BeIn $testResults.name
         }
+        It "should deploy with no components loaded" {
+            $scriptBlock = {
+                param (
+                    $Path,
+                    $DotSource,
+                    $Database
+                )
+                . $DotSource
+                $testResults = & $Path\deploy.ps1 -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $Database -Silent
+                $testResults.Successful | Should -Be $true
+                $testResults.Scripts.Name | Should -Not -BeNullOrEmpty
+                $testResults.SqlInstance | Should -Be $script:mssqlInstance
+                $testResults.Database | Should Be $Database
+                $testResults.SourcePath | Should Be $Path
+                $testResults.ConnectionType | Should Be 'SQLServer'
+                $testResults.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
+                $testResults.Error | Should BeNullOrEmpty
+                $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+                $testResults.StartTime | Should -Not -BeNullOrEmpty
+                $testResults.EndTime | Should -Not -BeNullOrEmpty
+                $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+                Get-ChildItem function:\ | Where-Object Name -eq Invoke-DBODeployment | Should -BeNullOrEmpty
+            }
+            $job = Start-Job -ScriptBlock $scriptBlock -ArgumentList $workFolder, "$here\constants.ps1", $newDbName
+            $job | Wait-Job | Receive-Job -ErrorAction Stop
+            # # Get modules
+            # $modules = Get-Module Pester | Select-Object -ExpandProperty Path
+            # $sessionstate = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
+            # foreach ($modulePath in $modules) {
+            #     $sessionstate.ImportPSModule($modulePath)
+            # }
+            # # Create runspace pool
+            # $runspacepool = [runspacefactory]::CreateRunspacePool(1, 5, $sessionstate, $Host)
+            # $runspacepool.Open()
+            # $powershell = [powershell]::Create()
+            # $params = @{
+            #     Path       = $workFolder
+            #     Instance   = $script:mssqlInstance
+            #     Credential = $script:mssqlCredential
+            #     Database   = $newDbName
+            # }
+            # [void]$powershell.AddScript($scriptBlock).AddParameters($params)
+            # $powershell.RunspacePool = $runspacepool
+            # try {
+            #     $handle = $powershell.BeginInvoke()
+            #     $cycles = 0
+            #     do { Start-Sleep 1; $cycles++ } while (-not $handle.IsCompleted -and $cycles -lt 5)
+            #     if ($powershell.Streams.Error.Count -gt 0) {
+            #         throw $powershell.Streams.Error[0]
+            #     }
+            #     $powershell.EndInvoke($handle)
+            # }
+            # catch {
+            #     throw $_
+            # }
+            # finally {
+            #     $powershell.Dispose()
+            #     $runspacepool.Close()
+            # }
+        }
     }
     Context  "$commandName whatif tests" {
         BeforeAll {

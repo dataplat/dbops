@@ -41,7 +41,7 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
             $pkg = [DBOpsPackage]::new()
             $pkg.ScriptDirectory | Should Be 'content'
             $pkg.DeployFile.ToString() | Should Be 'Deploy.ps1'
-            $pkg.DeployFile.GetContent() | Should BeLike '*Invoke-DBODeployment @params*'
+            $pkg.DeployFile.GetContent() | Should BeLike '*Install-DBOPackage @params*'
             $pkg.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
             $pkg.FileName | Should BeNullOrEmpty
             $pkg.Version | Should BeNullOrEmpty
@@ -73,7 +73,7 @@ Describe "DBOpsPackage class tests" -Tag $commandName, UnitTests, DBOpsPackage {
             $pkg = [DBOpsPackage]::new($packageName)
             $pkg.ScriptDirectory | Should Be 'content'
             $pkg.DeployFile.ToString() | Should Be 'Deploy.ps1'
-            $pkg.DeployFile.GetContent() | Should BeLike '*Invoke-DBODeployment @params*'
+            $pkg.DeployFile.GetContent() | Should BeLike '*Install-DBOPackage @params*'
             $pkg.ConfigurationFile.ToString() | Should Be 'dbops.config.json'
             ($pkg.ConfigurationFile.GetContent() | ConvertFrom-Json).SchemaVersionTable | Should Be 'SchemaVersions'
             $pkg.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'

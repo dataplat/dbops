@@ -54,7 +54,7 @@ Describe "DBOpsPackageFile class tests" -Tag $commandName, UnitTests, DBOpsPacka
             $p = [DBOpsPackageFile]::new((Join-PSFPath -Normalize "$here\etc\LoadFromFile\dbops.package.json"))
             $p.ScriptDirectory | Should Be 'content'
             $p.DeployFile.ToString() | Should Be 'Deploy.ps1'
-            $p.DeployFile.GetContent() | Should BeLike '*Invoke-DBODeployment @params*'
+            $p.DeployFile.GetContent() | Should BeLike '*Install-DBOPackage @params*'
             $p.ConfigurationFile.ToString() | Should Be 'dbops.config.json'
             ($p.ConfigurationFile.GetContent() | ConvertFrom-Json).SchemaVersionTable | Should Be 'SchemaVersions'
             $p.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'

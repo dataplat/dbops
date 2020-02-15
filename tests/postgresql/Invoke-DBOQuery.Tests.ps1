@@ -66,6 +66,11 @@ Describe "Invoke-DBOQuery PostgreSQL tests" -Tag $commandName, IntegrationTests 
             $result.varchar | Should -Be ([DBNull]::Value)
             $result.timestamp | Should -Be ([DBNull]::Value)
         }
+        It "should process 0 rows" {
+            $query = "SELECT 1 WHERE 1 = 0"
+            $result = Invoke-DBOQuery -Query $query @connParams
+            $result | Should -BeNullOrEmpty
+        }
         It "should run the query with semicolon" {
             $query = "SELECT 1 AS A, 2 AS B;
             SELECT 3 AS A, 4 AS B"
