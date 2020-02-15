@@ -124,6 +124,7 @@ Describe "deploy.ps1 integration tests" -Tag $commandName, IntegrationTests {
                 $testResults.StartTime | Should -Not -BeNullOrEmpty
                 $testResults.EndTime | Should -Not -BeNullOrEmpty
                 $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+                Get-ChildItem function:\ | Where-Object Name -eq Invoke-DBODeployment | Should -BeNullOrEmpty
             }
             $job = Start-Job -ScriptBlock $scriptBlock -ArgumentList $workFolder, "$here\constants.ps1", $newDbName
             $job | Wait-Job | Receive-Job -ErrorAction Stop
