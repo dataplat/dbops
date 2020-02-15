@@ -37,22 +37,25 @@ foreach ($module in @('PSFramework', 'dbops')) {
         Import-Module "$PSScriptRoot\Modules\$module"
     }
 }
-
-$config = Get-DBOConfig -Path "$PSScriptRoot\dbops.config.json" -Configuration $Configuration
+#Open package from the current folder
+$package = Get-DBOPackage -Path $PSScriptRoot -Unpacked
+#Merge configuration if provided
+if ($Configuration) {
+    $package.Configuration.Merge($Configuration)
+}
 
 #Merge custom parameters into a configuration
-$newConfig = @{}
+$newConfig = @{ }
 foreach ($key in ($PSBoundParameters.Keys)) {
     if ($key -in [DBOps.ConfigProperty].GetEnumNames()) {
         $newConfig.$key = $PSBoundParameters[$key]
     }
 }
-$config.Merge($newConfig)
+$package.Configuration.Merge($newConfig)
 
 #Prepare deployment function call parameters
 $params = @{
-    PackageFile   = "$PSScriptRoot\dbops.package.json"
-    Configuration = $config
+    InputObject = $package
 }
 foreach ($key in ($PSBoundParameters.Keys)) {
     #If any custom properties were specified
@@ -62,9 +65,9 @@ foreach ($key in ($PSBoundParameters.Keys)) {
 }
 
 if ($PSCmdlet.ShouldProcess($params.PackageFile, "Initiating the deployment of the package")) {
-    Invoke-DBODeployment @params
+    Install-DBOPackage @params
 }
 else {
-    Invoke-DBODeployment @params -WhatIf
+    Install-DBOPackage @params -WhatIf
 }
 
