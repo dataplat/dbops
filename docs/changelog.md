@@ -1,3 +1,5 @@
+# Release notes for v0.6.2:
+- ### Ensuring deploy.ps1 only uses public functions (#108) by @nvarscar
 # Release notes for v0.6.1:
 - ### Files in subfolders are not being added when -Match is used (#104) by @nvarscar
    ------
