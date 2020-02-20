@@ -24,7 +24,7 @@
     foreach ($obj in $InputObject) {
         if ($obj -is [string]) {
             $output = $obj
-            foreach ($token in (Get-VariableToken -InputString $obj -RegexString $TokenRegex.Replace('token', '[a-zA-Z0-9\.]+'))) {
+            foreach ($token in (Get-VariableToken -InputString $obj -RegexString $TokenRegex.Replace('token', '[a-zA-Z0-9\-.]+'))) {
                 #Replace variables found in the config
                 $tokenRegExString = $TokenRegex.Replace('token', [Regex]::Escape($token))
                 if ($Runtime) {
