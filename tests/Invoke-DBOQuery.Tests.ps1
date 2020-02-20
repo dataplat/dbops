@@ -147,10 +147,14 @@ Describe "Invoke-DBOQuery tests" -Tag $commandName, IntegrationTests {
             (Get-PSFConfig -FullName dbops.config.variabletoken).ResetValue()
         }
         It "should connect to the server from a custom variable" {
-            $query = "SELECT 1 AS A, 2 AS B UNION ALL SELECT 3 AS A, 4 AS B"
-            $result = Invoke-DBOQuery -Query $query -SqlInstance '#{srv}' -Credential $script:mssqlCredential -As DataTable -Variables @{ Srv = $script:mssqlInstance }
-            $result.A | Should -Be '1', '3'
-            $result.B | Should -Be '2', '4'
+            $query = "SELECT 1 AS A, 2 AS B UNION ALL SELECT '#{tst}' AS A, #{a.b-c} AS B"
+            $result = Invoke-DBOQuery -Query $query -SqlInstance '#{srv}' -Credential $script:mssqlCredential -As DataTable -Variables @{
+                Srv     = $script:mssqlInstance
+                tst     = 3
+                "a.b-c" = 4
+            }
+            $result.A | Should -Be 1, '3'
+            $result.B | Should -Be 2, 4
         }
         It "should run the query with custom parameters" {
             $query = "SELECT @p1 AS A, @p2 AS B"
