@@ -369,10 +369,7 @@ function Invoke-DBOQuery {
                                         for ($j = 1; -not $name; $j++) {
                                             if ($table.Columns.ColumnName -notcontains "Column$j") { $name = "Column$j" }
                                         }
-                                        if ($datatype.FullName -eq 'System.DBNull') {
-                                            $datatype = [string]
-                                        }
-                                        elseif (!$datatype.FullName) {
+                                        if ($ReturnAsText -or $datatype.FullName -eq 'System.DBNull' -or -not $datatype.FullName) {
                                             $datatype = [string]
                                         }
                                         $null = $table.Columns.Add($name, $datatype)
