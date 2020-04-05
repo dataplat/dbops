@@ -179,11 +179,12 @@ Describe "Invoke-DBOQuery PostgreSQL tests" -Tag $commandName, IntegrationTests 
             $result.b | Should -Be 3, 4
         }
         It "should select an unsupported datatype as text" {
-            $query = "select cast(null as aclitem[]) as a, cast('{=c/postgres}' as aclitem[]) as b"
+            $query = "select cast(null as aclitem[]) as a, cast('{=c/postgres}' as aclitem[]) as b, E'\\001'::bytea as c"
             $result = Invoke-DBOQuery -Query $query @connParams -As DataTable -ReturnAsText
-            $result.Columns.ColumnName | Should -Be @('a', 'b')
+            $result.Columns.ColumnName | Should -Be @('a', 'b', 'c')
             $result.a | Should -Be ([System.DBNull]::Value)
             $result.b | Should -Be '{=c/postgres}'
+            $result.c | Should -Be '\x01'
         }
     }
     Context "Negative tests" {
