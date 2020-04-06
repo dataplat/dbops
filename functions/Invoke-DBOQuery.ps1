@@ -75,7 +75,7 @@ function Invoke-DBOQuery {
         Specifies output type. Valid options for this parameter are 'DataSet', 'DataTable', 'DataRow', 'PSObject', and 'SingleValue'
 
     .PARAMETER ReturnAsText
-        Postgres only: returns all fields of the dataset as text values. This helps with the datatypes that are unknown to npgsql.
+        Converts all fields of the dataset to a string datatype. This helps with the datatypes that are unknown to connectivity libraries and can't be automatically converted.
 
     .PARAMETER Parameter
         Uses values in specified hashtable as parameters inside the SQL query.
@@ -369,10 +369,7 @@ function Invoke-DBOQuery {
                                         for ($j = 1; -not $name; $j++) {
                                             if ($table.Columns.ColumnName -notcontains "Column$j") { $name = "Column$j" }
                                         }
-                                        if ($datatype.FullName -eq 'System.DBNull') {
-                                            $datatype = [string]
-                                        }
-                                        elseif (!$datatype.FullName) {
+                                        if ($ReturnAsText -or $datatype.FullName -eq 'System.DBNull' -or -not $datatype.FullName) {
                                             $datatype = [string]
                                         }
                                         $null = $table.Columns.Add($name, $datatype)

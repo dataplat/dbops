@@ -1,3 +1,5 @@
+# Release notes for v0.6.4:
+- ### Forcing the string datatype onto columns when -ReturnAsText is used (#115) by @nvarscar
 # Release notes for v0.6.3:
 - ### Adding hyphen to the variable token symbols (#112) by @nvarscar
 # Release notes for v0.6.2:
