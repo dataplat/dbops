@@ -97,7 +97,7 @@
             Write-PSFMessage -Level Debug -Message "Adding script $scriptDeploymentPath"
             # Replace tokens in the scripts
             $scriptContent = Resolve-VariableToken -InputObject $Script.GetContent() -Runtime $Variables
-            return [DbUp.Engine.SqlScript]::new($scriptDeploymentPath, $scriptContent)
+            return [DBOps.Extensions.SqlScript]::new($scriptDeploymentPath, $scriptContent)
         }
         Function Initialize-DbUpBuilder {
             Param (
@@ -211,7 +211,7 @@
                 else {
                     $scriptContent = ""
                 }
-                $scriptCollection += [DbUp.Engine.SqlScript]::new($scriptItem.PackagePath, $scriptContent)
+                $scriptCollection += [DBOps.Extensions.SqlScript]::new($scriptItem.PackagePath, $scriptContent)
             }
         }
 

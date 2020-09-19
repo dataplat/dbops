@@ -15,6 +15,7 @@ function Get-DbUpBuilder {
         }
         else {
             $dbUp = [SqlServerExtensions]::SqlDatabase($dbUp, $dbUpConnection)
+            $dbUp.Configure({ param($c); $c.ScriptExecutor = [DBOps.Extensions.SqlScriptExecutor]::new({ $c.ConnectionManager }, { $c.Log }, $Schema, { $c.VariablesEnabled }, $c.ScriptPreprocessors, { $c.Journal }) })
         }
     }
     elseif ($Type -eq [DBOps.ConnectionType]::Oracle) {

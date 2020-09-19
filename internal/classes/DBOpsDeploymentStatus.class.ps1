@@ -4,7 +4,7 @@ class DBOpsDeploymentStatus {
     [string[]] $SourcePath
     [System.Nullable[DBOps.ConnectionType]] $ConnectionType
     [DBOpsConfig] $Configuration
-    [DbUp.Engine.SqlScript[]] $Scripts
+    [DBOps.Extensions.SqlScript[]] $Scripts
     [Exception] $Error
     [System.Nullable[bool]] $Successful
     [System.Nullable[datetime]] $StartTime

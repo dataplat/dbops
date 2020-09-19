@@ -145,6 +145,10 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
             'b' | Should BeIn $testResults.name
             'c' | Should Not BeIn $testResults.name
             'd' | Should Not BeIn $testResults.name
+
+            #Validating schema version table
+            $svResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -Query 'SELECT * FROM $logTable'
+            $svResults.ExecutionTime | Should -BeGreaterThan 0
         }
         It "should deploy version 2.0" {
             $testResults = Install-DBOScript -ScriptPath $v2scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent

@@ -25,8 +25,8 @@ Describe "Send-DBOMailMessage tests" -Tag $commandName, UnitTests {
         $status.Database = 'TestDatabase'
         $status.EndTime = [datetime]::Now.AddMinutes(10)
         $status.DeploymentLog = @('1','2','3')
-        $status.Scripts += [DbUp.Engine.SqlScript]::new('1', '')
-        $status.Scripts += [DbUp.Engine.SqlScript]::new('2', '')
+        $status.Scripts += [DBOps.Extensions.SqlScript]::new('1', '')
+        $status.Scripts += [DBOps.Extensions.SqlScript]::new('2', '')
 
         $mailParams = @{
             SmtpServer                 = 'test.smtp'

@@ -31,7 +31,7 @@ function Get-DbUpJournal {
             if (!$schemaName) {
                 $schemaName = 'dbo'
             }
-            $dbUpJournalType = [DbUp.SqlServer.SqlTableJournal]
+            $dbUpJournalType = [DBOps.Extensions.SqlTableJournal]
         }
         elseif ($Type -eq [DBOps.ConnectionType]::Oracle) {
             $dbUpJournalType = [DbUp.Oracle.OracleTableJournal]
