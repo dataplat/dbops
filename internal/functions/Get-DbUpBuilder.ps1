@@ -3,7 +3,7 @@ function Get-DbUpBuilder {
     Param (
         [Parameter(Mandatory)]
         [object]$Connection,
-        [string]$Schema,
+        $Schema,
         [object[]]$Script,
         [object]$Config,
         [DBOps.ConnectionType]$Type
@@ -11,11 +11,10 @@ function Get-DbUpBuilder {
     $dbUp = [DbUp.DeployChanges]::To
     if ($Type -eq [DBOps.ConnectionType]::SqlServer) {
         if ($Schema) {
-            $dbUp = [SqlServerExtensions]::SqlDatabase($dbUp, $dbUpConnection, $Schema)
+            $dbUp = [DBOps.Extensions.SqlServerExtensions]::SqlDatabase($dbUp, $dbUpConnection, $Schema)
         }
         else {
-            $dbUp = [SqlServerExtensions]::SqlDatabase($dbUp, $dbUpConnection)
-            $dbUp.Configure({ param($c); $c.ScriptExecutor = [DBOps.Extensions.SqlScriptExecutor]::new({ $c.ConnectionManager }, { $c.Log }, $Schema, { $c.VariablesEnabled }, $c.ScriptPreprocessors, { $c.Journal }) })
+            $dbUp = [DBOps.Extensions.SqlServerExtensions]::SqlDatabase($dbUp, $dbUpConnection)
         }
     }
     elseif ($Type -eq [DBOps.ConnectionType]::Oracle) {

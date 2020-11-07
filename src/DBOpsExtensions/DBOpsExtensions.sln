@@ -3,7 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29306.81
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DBOpsExtensions", "DBOpsExtensions.csproj", "{9C2BB45E-58FB-42C4-A0C1-E23388C174BE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DBOpsExtensions", "DBOpsExtensions.csproj", "{9C2BB45E-58FB-42C4-A0C1-E23388C174BE}"
+	ProjectSection(ProjectDependencies) = postProject
+		{76BBBC4B-7504-4DBE-8B5D-67410457F584} = {76BBBC4B-7504-4DBE-8B5D-67410457F584}
+		{95BCDAC1-E8CC-4EC4-A8B1-48B02179D9BD} = {95BCDAC1-E8CC-4EC4-A8B1-48B02179D9BD}
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DBOpsExtensionsTests", "..\DBOpsExtensionsTests\DBOpsExtensionsTests.csproj", "{64FDC104-4755-4EBA-80FB-DD4F68B4E9E2}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbup-core", "E:\Git\DbUp\src\dbup-core\dbup-core.csproj", "{76BBBC4B-7504-4DBE-8B5D-67410457F584}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbup-sqlserver", "E:\Git\DbUp\src\dbup-sqlserver\dbup-sqlserver.csproj", "{95BCDAC1-E8CC-4EC4-A8B1-48B02179D9BD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +25,18 @@ Global
 		{9C2BB45E-58FB-42C4-A0C1-E23388C174BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9C2BB45E-58FB-42C4-A0C1-E23388C174BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9C2BB45E-58FB-42C4-A0C1-E23388C174BE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{64FDC104-4755-4EBA-80FB-DD4F68B4E9E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64FDC104-4755-4EBA-80FB-DD4F68B4E9E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64FDC104-4755-4EBA-80FB-DD4F68B4E9E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64FDC104-4755-4EBA-80FB-DD4F68B4E9E2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{76BBBC4B-7504-4DBE-8B5D-67410457F584}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{76BBBC4B-7504-4DBE-8B5D-67410457F584}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{76BBBC4B-7504-4DBE-8B5D-67410457F584}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{76BBBC4B-7504-4DBE-8B5D-67410457F584}.Release|Any CPU.Build.0 = Release|Any CPU
+		{95BCDAC1-E8CC-4EC4-A8B1-48B02179D9BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{95BCDAC1-E8CC-4EC4-A8B1-48B02179D9BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{95BCDAC1-E8CC-4EC4-A8B1-48B02179D9BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{95BCDAC1-E8CC-4EC4-A8B1-48B02179D9BD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

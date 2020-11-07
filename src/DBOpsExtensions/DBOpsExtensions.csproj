@@ -5,28 +5,10 @@
     <RootNamespace>DBOps.Extensions</RootNamespace>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
-    <Reference Include="dbup-core">
-      <HintPath>..\..\bin\lib\net45\dbup-core.dll</HintPath>
-    </Reference>
-    <!--<Reference Include="dbup-mysql">
-      <HintPath>..\..\bin\lib\net45\dbup-mysql.dll</HintPath>
-    </Reference>
-    <Reference Include="dbup-oracle">
-      <HintPath>..\..\bin\lib\net45\dbup-oracle.dll</HintPath>
-    </Reference>
-    <Reference Include="dbup-postgresql">
-      <HintPath>..\..\bin\lib\net45\dbup-postgresql.dll</HintPath>
-    </Reference>-->
-    <Reference Include="dbup-sqlserver">
-      <HintPath>..\..\bin\lib\net35\dbup-sqlserver.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+  <!--<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
     <Reference Include="dbup-core">
       <HintPath>..\..\bin\lib\netstandard2.0\dbup-core.dll</HintPath>
-    </Reference>
+    </Reference>-->
     <!--<Reference Include="dbup-mysql">
       <HintPath>..\..\bin\lib\netstandard2.0\dbup-mysql.dll</HintPath>
     </Reference>
@@ -36,9 +18,14 @@
     <Reference Include="dbup-postgresql">
       <HintPath>..\..\bin\lib\netstandard2.0\dbup-postgresql.dll</HintPath>
     </Reference>-->
-    <Reference Include="dbup-sqlserver">
+    <!--<Reference Include="dbup-sqlserver">
       <HintPath>..\..\bin\lib\netstandard1.3\dbup-sqlserver.dll</HintPath>
     </Reference>
+  </ItemGroup>-->
+
+  <ItemGroup>
+    <ProjectReference Include="E:\Git\DbUp\src\dbup-core\dbup-core.csproj" />
+    <ProjectReference Include="E:\Git\DbUp\src\dbup-sqlserver\dbup-sqlserver.csproj" />
   </ItemGroup>
 
 </Project>

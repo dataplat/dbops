@@ -9,6 +9,10 @@ using System.Text;
 
 namespace DBOps.Extensions
 {
+    /// <summary>
+    /// An child class of <see cref="DbUp.SqlServer.SqlTableJournal"/> that adds custom fields to the 
+    /// SchemaVersions table.
+    /// </summary>
     public class SqlTableJournal: DbUp.SqlServer.SqlTableJournal
     {
         bool journalExists;
@@ -55,7 +59,7 @@ namespace DBOps.Extensions
         }
         protected string GetInsertJournalEntrySql(string @scriptName, string @applied, string @checksum, string @executionTime)
         {
-            return $"insert into {FqSchemaTableName} (ScriptName, Applied, CheckSum, ExecutionTime) values ({@scriptName}, {@applied}, {@checksum}, {@executionTime})";
+            return $"insert into {FqSchemaTableName} (ScriptName, Applied, CheckSum, AppliedBy, ExecutionTime) values ({@scriptName}, {@applied}, {@checksum}, USER_NAME(), {@executionTime})";
         }
 
         protected override string CreateSchemaTableSql(string quotedPrimaryKeyName)
@@ -66,19 +70,20 @@ $@"create table {FqSchemaTableName} (
     [ScriptName] nvarchar(512) not null,
     [Applied] datetime not null,
     [Checksum] nvarchar(255),
-    [AppliedBy] nvarchar(255) DEFAULT USER_NAME(),
+    [AppliedBy] nvarchar(255),
     [ExecutionTime] bigint,
     [Success] bit DEFAULT 1
 )";
         }
 
-        protected IDbCommand GetInsertScriptCommand(Func<IDbCommand> dbCommandFactory, SqlScript script)
+        protected new IDbCommand GetInsertScriptCommand(Func<IDbCommand> dbCommandFactory, DbUp.Engine.SqlScript script)
         {
+            SqlScript s = (SqlScript)script;
             var command = dbCommandFactory();
 
             var scriptNameParam = command.CreateParameter();
             scriptNameParam.ParameterName = "scriptName";
-            scriptNameParam.Value = script.Name;
+            scriptNameParam.Value = s.Name;
             command.Parameters.Add(scriptNameParam);
 
             var appliedParam = command.CreateParameter();
@@ -88,12 +93,12 @@ $@"create table {FqSchemaTableName} (
 
             var checksumParam = command.CreateParameter();
             checksumParam.ParameterName = "checksum";
-            checksumParam.Value = CreateMD5(script.Contents);
+            checksumParam.Value = CreateMD5(s.Contents);
             command.Parameters.Add(checksumParam);
 
             var etParam = command.CreateParameter();
             etParam.ParameterName = "executionTime";
-            etParam.Value = script.ExecutionTime;
+            etParam.Value = s.ExecutionTime;
             command.Parameters.Add(etParam);
 
 
@@ -109,7 +114,7 @@ $@"create table {FqSchemaTableName} (
             {
                 sqlList.Add($@"alter table {FqSchemaTableName} add 
     [Checksum] nvarchar(255),
-    [AppliedBy] nvarchar(255) DEFAULT USER_NAME(),
+    [AppliedBy] nvarchar(255),
     [ExecutionTime] int,
     [Success] bit DEFAULT 1");
                 sqlList.Add($@"UPDATE {FqSchemaTableName} SET [Success] = 1 WHERE [Success] IS NULL");
@@ -161,6 +166,21 @@ $@"create table {FqSchemaTableName} (
                     sb.Append(hashBytes[i].ToString("X2"));
                 }
                 return sb.ToString();
+            }
+        }
+
+        /// <summary>
+        /// Records a database upgrade for a database specified in a given connection string.
+        /// </summary>
+        /// <param name="script">The script.</param>
+        /// <param name="dbCommandFactory"></param>
+        public override void StoreExecutedScript(DbUp.Engine.SqlScript script, Func<IDbCommand> dbCommandFactory)
+        {
+            SqlScript s = (SqlScript)script;
+            EnsureTableExistsAndIsLatestVersion(dbCommandFactory);
+            using (var command = GetInsertScriptCommand(dbCommandFactory, s))
+            {
+                command.ExecuteNonQuery();
             }
         }
     }

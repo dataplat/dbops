@@ -23,12 +23,13 @@ namespace DBOps.Extensions
             : base(connectionManagerFactory, log, schema, variablesEnabled, scriptPreprocessors, journalFactory)
         {
         }
-        protected void ExecuteCommandsWithinExceptionHandler(int index, SqlScript script, Action executeCommand)
+        protected override void ExecuteCommandsWithinExceptionHandler(int index, DbUp.Engine.SqlScript script, Action executeCommand)
         {
+            SqlScript s = (SqlScript)script;
             var stopWatch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
-                base.ExecuteCommandsWithinExceptionHandler(index, script, executeCommand);
+                base.ExecuteCommandsWithinExceptionHandler(index, s, executeCommand);
             }
             catch
             {
@@ -37,7 +38,7 @@ namespace DBOps.Extensions
             finally
             {
                 stopWatch.Stop();
-                script.ExecutionTime = stopWatch.ElapsedMilliseconds;
+                s.ExecutionTime = stopWatch.ElapsedMilliseconds;
             }
         }
     }

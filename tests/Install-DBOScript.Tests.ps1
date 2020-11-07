@@ -47,7 +47,7 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
         It "should deploy version 1.0 to a new database using -CreateDatabase switch" {
             # drop the database before installing the package
             $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database master -Query $dropDatabaseScript
-            $testResults = Install-DBOScript -Absolute -ScriptPath $v1scripts -CreateDatabase -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $testResults = Install-DBOScript -Absolute -ScriptPath $v1scripts -CreateDatabase -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -Schema dbo
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -147,7 +147,7 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
             'd' | Should Not BeIn $testResults.name
 
             #Validating schema version table
-            $svResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -Query 'SELECT * FROM $logTable'
+            $svResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -Query "SELECT * FROM $logTable"
             $svResults.ExecutionTime | Should -BeGreaterThan 0
         }
         It "should deploy version 2.0" {
