@@ -10,14 +10,14 @@ using System.Text;
 namespace DBOps.Extensions
 {
     /// <summary>
-    /// An child class of <see cref="DbUp.SqlServer.SqlTableJournal"/> that adds custom fields to the 
+    /// An child class of <see cref="DbUp.Postgresql.PostgresqlTableJournal"/> that adds custom fields to the 
     /// SchemaVersions table.
     /// </summary>
-    public class SqlTableJournal: DbUp.SqlServer.SqlTableJournal
+    public class PostgresqlTableJournal: DbUp.Postgresql.PostgresqlTableJournal
     {
         bool journalExists;
         Version tableVersion = new Version("2.0");
-        public SqlTableJournal(Func<IConnectionManager> connectionManager, Func<IUpgradeLog> logger, string schema, string table)
+        public PostgresqlTableJournal(Func<IConnectionManager> connectionManager, Func<IUpgradeLog> logger, string schema, string table)
             : base(connectionManager, logger, schema, table)
         {
         }
@@ -59,19 +59,21 @@ namespace DBOps.Extensions
         }
         protected string GetInsertJournalEntrySql(string @scriptName, string @applied, string @checksum, string @executionTime)
         {
-            return $"insert into {FqSchemaTableName} (ScriptName, Applied, CheckSum, AppliedBy, ExecutionTime) values ({@scriptName}, {@applied}, {@checksum}, SUSER_NAME(), {@executionTime})";
+            return $"insert into {FqSchemaTableName} (ScriptName, Applied, CheckSum, AppliedBy, ExecutionTime) values ({@scriptName}, {@applied}, {@checksum}, current_user, {@executionTime})";
         }
 
         protected override string CreateSchemaTableSql(string quotedPrimaryKeyName)
         {
             return
-$@"create table {FqSchemaTableName} (
-    [Id] int identity(1,1) not null constraint {quotedPrimaryKeyName} primary key,
-    [ScriptName] nvarchar(512) not null,
-    [Applied] datetime not null,
-    [Checksum] nvarchar(255),
-    [AppliedBy] nvarchar(255),
-    [ExecutionTime] bigint
+$@"CREATE TABLE {FqSchemaTableName}
+(
+    schemaversionsid serial NOT NULL,
+    scriptname character varying(255) NOT NULL,
+    applied timestamp without time zone NOT NULL,
+    checksum character varying(255),
+    appliedby character varying(255),
+    executiontime bigint,
+    CONSTRAINT {quotedPrimaryKeyName} PRIMARY KEY (schemaversionsid)
 )";
         }
 
@@ -112,9 +114,9 @@ $@"create table {FqSchemaTableName} (
             if (currentTableVersion.Major == 1)
             {
                 sqlList.Add($@"alter table {FqSchemaTableName} add 
-    [Checksum] nvarchar(255),
-    [AppliedBy] nvarchar(255),
-    [ExecutionTime] int");
+    checksum character varying(255),
+    appliedby character varying(255),
+    executiontime bigint");
             }
             return sqlList;
 
@@ -149,6 +151,8 @@ $@"create table {FqSchemaTableName} (
             return string.Format("select COLUMN_NAME from INFORMATION_SCHEMA.COLUMNS where TABLE_NAME = '{0}'", UnquotedSchemaTableName) +
                 (string.IsNullOrEmpty(SchemaTableSchema) ? "" : string.Format(" and TABLE_SCHEMA = '{0}'", SchemaTableSchema));
         }
+
+
 
         /// <summary>
         /// Records a database upgrade for a database specified in a given connection string.

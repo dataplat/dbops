@@ -40,7 +40,7 @@ function Get-DbUpJournal {
             $dbUpJournalType = [DBOpsMySqlTableJournal]
         }
         elseif ($Type -eq [DBOps.ConnectionType]::PostgreSQL) {
-            $dbUpJournalType = [DbUp.Postgresql.PostgresqlTableJournal]
+            $dbUpJournalType = [DBOps.Extensions.PostgresqlTableJournal]
         }
         else {
             Stop-PSFFunction -Message "Unknown type $Type" -EnableException $true

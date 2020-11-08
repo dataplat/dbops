@@ -3,7 +3,7 @@ function Get-DbUpBuilder {
     Param (
         [Parameter(Mandatory)]
         [object]$Connection,
-        $Schema,
+        [string]$Schema,
         [object[]]$Script,
         [object]$Config,
         [DBOps.ConnectionType]$Type
@@ -43,10 +43,10 @@ function Get-DbUpBuilder {
     }
     elseif ($Type -eq [DBOps.ConnectionType]::PostgreSQL) {
         if ($Schema) {
-            $dbUp = [PostgresqlExtensions]::PostgresqlDatabase($dbUp, $dbUpConnection, $Schema)
+            $dbUp = [DBOps.Extensions.PostgresqlExtensions]::PostgresqlDatabase($dbUp, $dbUpConnection, $Schema)
         }
         else {
-            $dbUp = [PostgresqlExtensions]::PostgresqlDatabase($dbUp, $dbUpConnection)
+            $dbUp = [DBOps.Extensions.PostgresqlExtensions]::PostgresqlDatabase($dbUp, $dbUpConnection)
         }
     }
     else {

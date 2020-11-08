@@ -148,7 +148,14 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
 
             #Validating schema version table
             $svResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -Query "SELECT * FROM $logTable"
+            $svResults.Checksum | Should -Not -BeNullOrEmpty
             $svResults.ExecutionTime | Should -BeGreaterThan 0
+            if ($script:mssqlCredential) {
+                $svResults.AppliedBy | Should -Be $script:mssqlCredential.UserName
+            }
+            else {
+                $svResults.AppliedBy | Should -Not -BeNullOrEmpty
+            }
         }
         It "should deploy version 2.0" {
             $testResults = Install-DBOScript -ScriptPath $v2scripts -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent

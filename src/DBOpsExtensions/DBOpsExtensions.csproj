@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="E:\Git\DbUp\src\dbup-core\dbup-core.csproj" />
+    <ProjectReference Include="E:\Git\DbUp\src\dbup-postgresql\dbup-postgresql.csproj" />
     <ProjectReference Include="E:\Git\DbUp\src\dbup-sqlserver\dbup-sqlserver.csproj" />
   </ItemGroup>
 

@@ -151,6 +151,17 @@ Describe "Install-DBOScript PostgreSQL integration tests" -Tag $commandName, Int
             'b' | Should BeIn $testResults.name
             'c' | Should Not BeIn $testResults.name
             'd' | Should Not BeIn $testResults.name
+
+            #Validating schema version table
+            $svResults = Invoke-DBOQuery -Type PostgreSQL -SqlInstance $script:postgresqlInstance -Silent -Credential $script:postgresqlCredential -Database $newDbName -Query "SELECT * FROM $logTable"
+            $svResults.Checksum | Should -Not -BeNullOrEmpty
+            $svResults.ExecutionTime | Should -BeGreaterThan 0
+            if ($script:postgresqlCredential) {
+                $svResults.AppliedBy | Should -Be $script:postgresqlCredential.UserName
+            }
+            else {
+                $svResults.AppliedBy | Should -Not -BeNullOrEmpty
+            }
         }
         It "should deploy version 2.0" {
             $testResults = Install-DBOScript -Absolute -Type PostgreSQL -ScriptPath $v2scripts -SqlInstance $script:postgresqlInstance -Credential $script:postgresqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
