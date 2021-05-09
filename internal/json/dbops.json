@@ -8,7 +8,8 @@
             "bin\\lib\\net45\\dbup-oracle.dll",
             "bin\\lib\\net45\\dbops-core.dll",
             "bin\\lib\\net45\\dbops-sqlserver.dll",
-            "bin\\lib\\net45\\dbops-postgresql.dll"
+            "bin\\lib\\net45\\dbops-postgresql.dll",
+            "bin\\lib\\net45\\dbops-mysql.dll"
         ],
         "Core": [
             "bin\\lib\\netstandard2.0\\dbup-core.dll",
@@ -18,7 +19,8 @@
             "bin\\lib\\netstandard2.0\\dbup-oracle.dll",
             "bin\\lib\\netstandard2.0\\dbops-core.dll",
             "bin\\lib\\netstandard2.0\\dbops-sqlserver.dll",
-            "bin\\lib\\netstandard2.0\\dbops-postgresql.dll"
+            "bin\\lib\\netstandard2.0\\dbops-postgresql.dll",
+            "bin\\lib\\netstandard2.0\\dbops-mysql.dll"
         ]
     },
     "Misc": [
@@ -77,8 +79,7 @@
         "internal\\classes\\DBOps.class.ps1",
         "internal\\classes\\DBOpsDeploymentStatus.class.ps1",
         "internal\\classes\\DBOpsLog.class.ps1",
-        "internal\\classes\\DBOpsScriptComparer.class.ps1",
-        "internal\\classes\\DBOpsMySqlTableJournal.class.ps1"
+        "internal\\classes\\DBOpsScriptComparer.class.ps1"
     ],
     "Core": [
         "internal\\json\\dbops.json",

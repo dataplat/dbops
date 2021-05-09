@@ -27,18 +27,10 @@ function Get-DbUpBuilder {
     }
     elseif ($Type -eq [DBOps.ConnectionType]::MySQL) {
         if ($Schema) {
-            $dbUp = [MySqlExtensions]::MySqlDatabase($dbUp, $dbUpConnection, $Schema)
+            $dbUp = [DBOps.MySql.MySqlExtensions]::MySqlDatabase($dbUp, $dbUpConnection, $Schema)
         }
         else {
-            $dbUp = [MySqlExtensions]::MySqlDatabase($dbUp, $dbUpConnection)
-        }
-    }
-    elseif ($Type -eq [DBOps.ConnectionType]::MySQL) {
-        if ($Schema) {
-            $dbUp = [MySqlExtensions]::MySqlDatabase($dbUp, $dbUpConnection, $Schema)
-        }
-        else {
-            $dbUp = [MySqlExtensions]::MySqlDatabase($dbUp, $dbUpConnection)
+            $dbUp = [DBOps.MySql.MySqlExtensions]::MySqlDatabase($dbUp, $dbUpConnection)
         }
     }
     elseif ($Type -eq [DBOps.ConnectionType]::PostgreSQL) {

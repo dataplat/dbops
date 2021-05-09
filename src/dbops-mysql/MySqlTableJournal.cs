@@ -176,5 +176,11 @@ $@"CREATE TABLE {FqSchemaTableName}
                 }
             }
         }
+        protected override string DoesTableExistSql()
+        {
+            return string.IsNullOrEmpty(SchemaTableSchema)
+                ? string.Format("select 1 from INFORMATION_SCHEMA.TABLES where TABLE_NAME = '{0}' and TABLE_SCHEMA = DATABASE()", UnquotedSchemaTableName)
+                : string.Format("select 1 from INFORMATION_SCHEMA.TABLES where TABLE_NAME = '{0}' and TABLE_SCHEMA = '{1}'", UnquotedSchemaTableName, SchemaTableSchema);
+        }
     }
 }

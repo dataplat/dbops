@@ -152,6 +152,17 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
             'b' | Should BeIn $testResults.name
             'c' | Should Not BeIn $testResults.name
             'd' | Should Not BeIn $testResults.name
+
+            #Validating schema version table
+            $svResults = Invoke-DBOQuery @connParams -Database $newDbName -Query "SELECT * FROM $logTable"
+            $svResults.Checksum | Should -Not -BeNullOrEmpty
+            $svResults.ExecutionTime | Should -BeGreaterThan 0
+            if ($script:mysqlCredential) {
+                $svResults.AppliedBy | Should -Be $script:mysqlCredential.UserName
+            }
+            else {
+                $svResults.AppliedBy | Should -Not -BeNullOrEmpty
+            }
         }
         It "should deploy version 2.0" {
             $testResults = Install-DBOScript -Absolute @connParams -ScriptPath $v2scripts -Database $newDbName -SchemaVersionTable $logTable

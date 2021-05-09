@@ -37,7 +37,7 @@ function Get-DbUpJournal {
             $dbUpJournalType = [DbUp.Oracle.OracleTableJournal]
         }
         elseif ($Type -eq [DBOps.ConnectionType]::MySQL) {
-            $dbUpJournalType = [DBOpsMySqlTableJournal]
+            $dbUpJournalType = [DBOps.MySql.MySqlTableJournal]
         }
         elseif ($Type -eq [DBOps.ConnectionType]::PostgreSQL) {
             $dbUpJournalType = [DBOps.Postgresql.PostgresqlTableJournal]
