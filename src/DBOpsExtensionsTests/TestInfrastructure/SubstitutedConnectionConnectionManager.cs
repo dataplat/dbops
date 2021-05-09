@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using DbUp.Engine.Transactions;
 
-namespace DbUp.Tests
+namespace DBOps.Tests.TestInfrastructure
 {
     class SubstitutedConnectionConnectionManager : DatabaseConnectionManager
     {

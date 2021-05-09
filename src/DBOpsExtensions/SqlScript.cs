@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using DbUp.Engine;
+﻿using DbUp.Engine;
 
-namespace DBOps.Extensions
+namespace DBOps
 {
     public class SqlScript: DbUp.Engine.SqlScript
     {
@@ -29,6 +26,19 @@ namespace DBOps.Extensions
         /// Execution time of the script in milliseconds.
         /// </summary>
         /// <value></value>
-        public long? ExecutionTime = null;
+        public long? _ExecutionTime = null;
+        /// <summary>
+        /// Execution time of the script in milliseconds.
+        /// </summary>
+        /// <value></value>
+        public long? ExecutionTime => _ExecutionTime;
+        /// <summary>
+        /// Sets execution duration.
+        /// </summary>
+        /// <value></value>
+        public void SetExecutionTime(long milliseconds)
+        {
+            _ExecutionTime = milliseconds;
+        }
     }
 }

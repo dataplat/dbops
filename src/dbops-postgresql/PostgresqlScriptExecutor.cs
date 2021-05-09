@@ -5,7 +5,7 @@ using DbUp.Engine.Output;
 using DbUp.Engine.Transactions;
 
 
-namespace DBOps.Extensions
+namespace DBOps.Postgresql
 {
     public class PostgresqlScriptExecutor: DbUp.Postgresql.PostgresqlScriptExecutor
     {
@@ -38,7 +38,7 @@ namespace DBOps.Extensions
             finally
             {
                 stopWatch.Stop();
-                s.ExecutionTime = stopWatch.ElapsedMilliseconds;
+                s.SetExecutionTime(stopWatch.ElapsedMilliseconds);
             }
         }
     }

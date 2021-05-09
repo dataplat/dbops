@@ -1,6 +1,6 @@
 using System;
 
-namespace DbUp.Tests.TestInfrastructure
+namespace DBOps.Tests.TestInfrastructure
 {
     public abstract class SpecificationFor<T>
     {

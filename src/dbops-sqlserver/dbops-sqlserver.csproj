@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net45;netstandard2.0</TargetFrameworks>
+    <RootNamespace>DBOps.SqlServer</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DBOpsExtensions\dbops-core.csproj" />
+    <ProjectReference Include="E:\Git\DbUp\src\dbup-sqlserver\dbup-sqlserver.csproj" />
+  </ItemGroup>
+
+</Project>

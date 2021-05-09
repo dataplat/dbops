@@ -3,17 +3,16 @@ using System.Collections.Generic;
 using System.Linq;
 using DbUp.Builder;
 //using DbUp.Engine;
-using DBOps.Extensions;
+using DBOps;
 using DbUp.Engine.Transactions;
 using DbUp.Support;
-using DbUp.Tests.TestInfrastructure;
+using DBOps.Tests.TestInfrastructure;
 using Shouldly;
 using TestStack.BDDfy;
 using Xunit;
-using DbUp.Tests;
 using DbUp;
 
-namespace DBOps.Tests.Extensions
+namespace DBOps.Tests
 {
     [Story(
          AsA = "As a DbUp User",

@@ -44,7 +44,7 @@ Describe "DBOpsDeploymentStatus class tests" -Tag $commandName, UnitTests, DBOps
             $testResults.ToString() | Should Be "Deployment status`: Successful. Duration`: 00:00:01. Script count`: 0"
             $numScripts = 10
             for ($i = 0; $i -lt $numScripts; $i++ ) {
-                $testResults.Scripts += [DBOps.Extensions.SqlScript]::new("script$i.sql", "SELECT 1")
+                $testResults.Scripts += [DBOps.SqlScript]::new("script$i.sql", "SELECT 1")
             }
             $testResults.ToString() | Should Be "Deployment status`: Successful. Duration`: 00:00:01. Script count`: $numScripts"
             $testResults.Successful = $false

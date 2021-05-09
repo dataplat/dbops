@@ -2,7 +2,7 @@ using System;
 using System.Data;
 using DbUp.Engine;
 
-namespace DbUp.Tests.TestInfrastructure
+namespace DBOps.Tests.TestInfrastructure
 {
     internal class ScriptReader : IDataReader
     {

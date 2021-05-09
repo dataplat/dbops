@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29306.81
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DBOpsExtensions", "DBOpsExtensions.csproj", "{9C2BB45E-58FB-42C4-A0C1-E23388C174BE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbops-core", "dbops-core.csproj", "{9C2BB45E-58FB-42C4-A0C1-E23388C174BE}"
 	ProjectSection(ProjectDependencies) = postProject
 		{76BBBC4B-7504-4DBE-8B5D-67410457F584} = {76BBBC4B-7504-4DBE-8B5D-67410457F584}
 		{95BCDAC1-E8CC-4EC4-A8B1-48B02179D9BD} = {95BCDAC1-E8CC-4EC4-A8B1-48B02179D9BD}
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DBOpsExtensionsTests", "..\DBOpsExtensionsTests\DBOpsExtensionsTests.csproj", "{64FDC104-4755-4EBA-80FB-DD4F68B4E9E2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbops-tests", "..\DBOpsExtensionsTests\dbops-tests.csproj", "{64FDC104-4755-4EBA-80FB-DD4F68B4E9E2}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbup-core", "E:\Git\DbUp\src\dbup-core\dbup-core.csproj", "{76BBBC4B-7504-4DBE-8B5D-67410457F584}"
 EndProject
@@ -17,14 +17,18 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbup-sqlserver", "E:\Git\Db
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbup-postgresql", "E:\Git\DbUp\src\dbup-postgresql\dbup-postgresql.csproj", "{55FD5374-1668-4EFD-A582-49FFEC5D1C0C}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbops-sqlserver", "..\dbops-sqlserver\dbops-sqlserver.csproj", "{DA4B51B3-6919-47C2-8BAA-460E8264288B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbops-postgresql", "..\dbops-postgresql\dbops-postgresql.csproj", "{21B2057E-CE33-4B89-A930-8147634768FA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{9C2BB45E-58FB-42C4-A0C1-E23388C174BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9C2BB45E-58FB-42C4-A0C1-E23388C174BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C2BB45E-58FB-42C4-A0C1-E23388C174BE}.Debug|Any CPU.ActiveCfg = Release|Any CPU
+		{9C2BB45E-58FB-42C4-A0C1-E23388C174BE}.Debug|Any CPU.Build.0 = Release|Any CPU
 		{9C2BB45E-58FB-42C4-A0C1-E23388C174BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9C2BB45E-58FB-42C4-A0C1-E23388C174BE}.Release|Any CPU.Build.0 = Release|Any CPU
 		{64FDC104-4755-4EBA-80FB-DD4F68B4E9E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -43,6 +47,14 @@ Global
 		{55FD5374-1668-4EFD-A582-49FFEC5D1C0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{55FD5374-1668-4EFD-A582-49FFEC5D1C0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{55FD5374-1668-4EFD-A582-49FFEC5D1C0C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA4B51B3-6919-47C2-8BAA-460E8264288B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA4B51B3-6919-47C2-8BAA-460E8264288B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA4B51B3-6919-47C2-8BAA-460E8264288B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA4B51B3-6919-47C2-8BAA-460E8264288B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21B2057E-CE33-4B89-A930-8147634768FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21B2057E-CE33-4B89-A930-8147634768FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21B2057E-CE33-4B89-A930-8147634768FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21B2057E-CE33-4B89-A930-8147634768FA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

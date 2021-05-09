@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace DBOps.Extensions
+namespace DBOps
 {
     public static class Helpers
     {

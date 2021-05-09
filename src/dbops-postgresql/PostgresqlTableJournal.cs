@@ -7,82 +7,71 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace DBOps.Extensions
+namespace DBOps.Postgresql
 {
     /// <summary>
-    /// An child class of <see cref="DbUp.SqlServer.SqlTableJournal"/> that adds custom fields to the 
+    /// An child class of <see cref="DbUp.Postgresql.PostgresqlTableJournal"/> that adds custom fields to the 
     /// SchemaVersions table.
     /// </summary>
-    public class SqlTableJournal: DbUp.SqlServer.SqlTableJournal
+    public class PostgresqlTableJournal: DbUp.Postgresql.PostgresqlTableJournal
     {
-        bool journalExists;
-        Version tableVersion = new Version("2.0");
-        public SqlTableJournal(Func<IConnectionManager> connectionManager, Func<IUpgradeLog> logger, string schema, string table)
+        private readonly int maxTableVersion = 2;
+        public PostgresqlTableJournal(Func<IConnectionManager> connectionManager, Func<IUpgradeLog> logger, string schema, string table)
             : base(connectionManager, logger, schema, table)
         {
         }
-        public override void EnsureTableExistsAndIsLatestVersion(Func<IDbCommand> dbCommandFactory)
+        public void UpgradeJournalTable(Func<IDbCommand> dbCommandFactory)
         {
             var tableExists = DoesTableExist(dbCommandFactory);
-            if (!journalExists && !tableExists)
+            if (tableExists)
             {
-                if (tableExists)
+                var currentTableVersion = GetTableVersion(dbCommandFactory);
+                if (currentTableVersion < maxTableVersion)
                 {
-                    var currentTableVersion = GetTableVersion(dbCommandFactory);
-                    if (currentTableVersion < tableVersion)
+                    Log().WriteInformation("Upgrading schema version table...");
+                    foreach (var sql in AlterSchemaTableSqlV2(currentTableVersion))
                     {
-                        Log().WriteInformation("Upgrading schema version table...");
-                        foreach (var sql in AlterSchemaTableSql(currentTableVersion))
-                        {
-                            var command = dbCommandFactory();
-                            command.CommandText = sql;
-                            command.CommandType = CommandType.Text;
-                            command.ExecuteNonQuery();
-                        }
-                    }
-                }
-                else
-                {
-                    Log().WriteInformation(string.Format("Creating the {0} table", FqSchemaTableName));
-                    using (var command = GetCreateTableCommand(dbCommandFactory))
-                    {
+                        var command = dbCommandFactory();
+                        command.CommandText = sql;
+                        command.CommandType = CommandType.Text;
                         command.ExecuteNonQuery();
                     }
-
-                    Log().WriteInformation(string.Format("The {0} table has been created", FqSchemaTableName));
-
-                    OnTableCreated(dbCommandFactory);
                 }
             }
-
-            journalExists = true;
+            else
+            {
+                var message = string.Format("Table {0} does not exist", FqSchemaTableName);
+                Log().WriteError(message);
+                throw new Exception(message);
+            }
         }
         protected string GetInsertJournalEntrySql(string @scriptName, string @applied, string @checksum, string @executionTime)
         {
-            return $"insert into {FqSchemaTableName} (ScriptName, Applied, CheckSum, AppliedBy, ExecutionTime) values ({@scriptName}, {@applied}, {@checksum}, SUSER_NAME(), {@executionTime})";
+            return $"insert into {FqSchemaTableName} (ScriptName, Applied, CheckSum, AppliedBy, ExecutionTime) values ({@scriptName}, {@applied}, {@checksum}, current_user, {@executionTime})";
         }
 
         protected override string CreateSchemaTableSql(string quotedPrimaryKeyName)
         {
             return
-$@"create table {FqSchemaTableName} (
-    [Id] int identity(1,1) not null constraint {quotedPrimaryKeyName} primary key,
-    [ScriptName] nvarchar(512) not null,
-    [Applied] datetime not null,
-    [Checksum] nvarchar(255),
-    [AppliedBy] nvarchar(255),
-    [ExecutionTime] bigint
+$@"CREATE TABLE {FqSchemaTableName}
+(
+    schemaversionsid serial NOT NULL,
+    scriptname character varying(255) NOT NULL,
+    applied timestamp without time zone NOT NULL,
+    checksum character varying(255),
+    appliedby character varying(255),
+    executiontime bigint,
+    CONSTRAINT {quotedPrimaryKeyName} PRIMARY KEY (schemaversionsid)
 )";
         }
 
-        protected new IDbCommand GetInsertScriptCommand(Func<IDbCommand> dbCommandFactory, DbUp.Engine.SqlScript script)
+        protected IDbCommand GetInsertScriptCommandV2(Func<IDbCommand> dbCommandFactory, SqlScript script)
         {
-            SqlScript s = (SqlScript)script;
             var command = dbCommandFactory();
 
             var scriptNameParam = command.CreateParameter();
             scriptNameParam.ParameterName = "scriptName";
-            scriptNameParam.Value = s.Name;
+            scriptNameParam.Value = script.Name;
             command.Parameters.Add(scriptNameParam);
 
             var appliedParam = command.CreateParameter();
@@ -92,12 +81,12 @@ $@"create table {FqSchemaTableName} (
 
             var checksumParam = command.CreateParameter();
             checksumParam.ParameterName = "checksum";
-            checksumParam.Value = Helpers.CreateMD5(s.Contents);
+            checksumParam.Value = Helpers.CreateMD5(script.Contents);
             command.Parameters.Add(checksumParam);
 
             var etParam = command.CreateParameter();
             etParam.ParameterName = "executionTime";
-            etParam.Value = s.ExecutionTime;
+            etParam.Value = script.ExecutionTime;
             command.Parameters.Add(etParam);
 
 
@@ -106,21 +95,21 @@ $@"create table {FqSchemaTableName} (
             return command;
         }
 
-        protected List<String> AlterSchemaTableSql(Version currentTableVersion)
+        protected List<String> AlterSchemaTableSqlV2(int currentTableVersion)
         {
             var sqlList = new List<String>();
-            if (currentTableVersion.Major == 1)
+            if (currentTableVersion == 1)
             {
                 sqlList.Add($@"alter table {FqSchemaTableName} add 
-    [Checksum] nvarchar(255),
-    [AppliedBy] nvarchar(255),
-    [ExecutionTime] int");
+    checksum character varying(255),
+    appliedby character varying(255),
+    executiontime bigint");
             }
             return sqlList;
 
         }
 
-        protected Version GetTableVersion(Func<IDbCommand> dbCommandFactory)
+        protected int GetTableVersion(Func<IDbCommand> dbCommandFactory)
         {
             var columns = new List<string>();
             using (var command = dbCommandFactory())
@@ -136,11 +125,11 @@ $@"create table {FqSchemaTableName} (
             }
             if (columns.Contains("Checksum", StringComparer.OrdinalIgnoreCase))
             {
-                return new Version("2.0");
+                return 2;
             }
             else
             {
-                return new Version("1.0");
+                return 1;
             }
         }
 
@@ -150,6 +139,8 @@ $@"create table {FqSchemaTableName} (
                 (string.IsNullOrEmpty(SchemaTableSchema) ? "" : string.Format(" and TABLE_SCHEMA = '{0}'", SchemaTableSchema));
         }
 
+
+
         /// <summary>
         /// Records a database upgrade for a database specified in a given connection string.
         /// </summary>
@@ -157,11 +148,21 @@ $@"create table {FqSchemaTableName} (
         /// <param name="dbCommandFactory"></param>
         public override void StoreExecutedScript(DbUp.Engine.SqlScript script, Func<IDbCommand> dbCommandFactory)
         {
-            SqlScript s = (SqlScript)script;
             EnsureTableExistsAndIsLatestVersion(dbCommandFactory);
-            using (var command = GetInsertScriptCommand(dbCommandFactory, s))
+            var tableVersion = GetTableVersion(dbCommandFactory);
+            if (tableVersion == 2)
             {
-                command.ExecuteNonQuery();
+                using (var command = GetInsertScriptCommandV2(dbCommandFactory, (SqlScript)script))
+                {
+                    command.ExecuteNonQuery();
+                }
+            }
+            else if (tableVersion == 1)
+            {
+                using (var command = GetInsertScriptCommand(dbCommandFactory, script))
+                {
+                    command.ExecuteNonQuery();
+                }
             }
         }
     }

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DbUp.Tests
+namespace DBOps.Tests
 {
     class TestSqlException : Exception
     {

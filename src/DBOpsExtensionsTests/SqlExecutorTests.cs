@@ -2,17 +2,17 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
-using DBOps.Extensions;
+using DBOps.SqlServer;
 //using DbUp.Engine;
 using DbUp.Engine.Output;
 using DbUp.Engine.Transactions;
 // using DbUp.SqlServer;
-using DbUp.Tests.TestInfrastructure;
+using DBOps.Tests.TestInfrastructure;
 using NSubstitute;
 using Shouldly;
 using Xunit;
 
-namespace DBOps.Tests.Extensions
+namespace DBOps.Tests.SqlServer
 {
     public class SqlScriptExecutorTests
     {

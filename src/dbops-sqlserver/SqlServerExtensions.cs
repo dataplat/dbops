@@ -1,7 +1,7 @@
 ﻿using DbUp.Builder;
 using DbUp.Engine.Transactions;
 
-namespace DBOps.Extensions
+namespace DBOps.SqlServer
 {
     public static class SqlServerExtensions
     {

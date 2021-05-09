@@ -1,7 +1,7 @@
 using System;
 using System.Text.RegularExpressions;
 
-namespace DbUp.Tests.TestInfrastructure
+namespace DBOps.Tests.TestInfrastructure
 {
     public static class Scrubbers
     {

@@ -3,7 +3,7 @@ using System.Data;
 using DbUp.Builder;
 using DbUp.Engine.Transactions;
 
-namespace DbUp.Tests.TestInfrastructure
+namespace DBOps.Tests.TestInfrastructure
 {
     /// <summary>
     /// Configures DbUp to use SqlServer with a fake connection

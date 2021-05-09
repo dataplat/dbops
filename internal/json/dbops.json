@@ -6,7 +6,9 @@
             "bin\\lib\\net45\\dbup-mysql.dll",
             "bin\\lib\\net45\\dbup-postgresql.dll",
             "bin\\lib\\net45\\dbup-oracle.dll",
-            "bin\\lib\\net45\\DBOpsExtensions.dll"
+            "bin\\lib\\net45\\dbops-core.dll",
+            "bin\\lib\\net45\\dbops-sqlserver.dll",
+            "bin\\lib\\net45\\dbops-postgresql.dll"
         ],
         "Core": [
             "bin\\lib\\netstandard2.0\\dbup-core.dll",
@@ -14,7 +16,9 @@
             "bin\\lib\\netstandard2.0\\dbup-mysql.dll",
             "bin\\lib\\netstandard2.0\\dbup-postgresql.dll",
             "bin\\lib\\netstandard2.0\\dbup-oracle.dll",
-            "bin\\lib\\netstandard2.0\\DBOpsExtensions.dll"
+            "bin\\lib\\netstandard2.0\\dbops-core.dll",
+            "bin\\lib\\netstandard2.0\\dbops-sqlserver.dll",
+            "bin\\lib\\netstandard2.0\\dbops-postgresql.dll"
         ]
     },
     "Misc": [
@@ -50,7 +54,6 @@
         "functions\\Update-DBOPackage.ps1"
     ],
     "Internal": [
-        "internal\\classes\\DBOps.enums.ps1",
         "internal\\functions\\Get-DbopsFile.ps1",
         "internal\\functions\\Get-VariableToken.ps1",
         "internal\\functions\\Resolve-VariableToken.ps1",

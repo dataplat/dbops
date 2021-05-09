@@ -11,10 +11,10 @@ function Get-DbUpBuilder {
     $dbUp = [DbUp.DeployChanges]::To
     if ($Type -eq [DBOps.ConnectionType]::SqlServer) {
         if ($Schema) {
-            $dbUp = [DBOps.Extensions.SqlServerExtensions]::SqlDatabase($dbUp, $dbUpConnection, $Schema)
+            $dbUp = [DBOps.SqlServer.SqlServerExtensions]::SqlDatabase($dbUp, $dbUpConnection, $Schema)
         }
         else {
-            $dbUp = [DBOps.Extensions.SqlServerExtensions]::SqlDatabase($dbUp, $dbUpConnection)
+            $dbUp = [DBOps.SqlServer.SqlServerExtensions]::SqlDatabase($dbUp, $dbUpConnection)
         }
     }
     elseif ($Type -eq [DBOps.ConnectionType]::Oracle) {
@@ -43,10 +43,10 @@ function Get-DbUpBuilder {
     }
     elseif ($Type -eq [DBOps.ConnectionType]::PostgreSQL) {
         if ($Schema) {
-            $dbUp = [DBOps.Extensions.PostgresqlExtensions]::PostgresqlDatabase($dbUp, $dbUpConnection, $Schema)
+            $dbUp = [DBOps.Postgresql.PostgresqlExtensions]::PostgresqlDatabase($dbUp, $dbUpConnection, $Schema)
         }
         else {
-            $dbUp = [DBOps.Extensions.PostgresqlExtensions]::PostgresqlDatabase($dbUp, $dbUpConnection)
+            $dbUp = [DBOps.Postgresql.PostgresqlExtensions]::PostgresqlDatabase($dbUp, $dbUpConnection)
         }
     }
     else {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using DbUp.Engine.Output;
 
-namespace DbUp.Tests
+namespace DBOps.Tests
 {
     public class CaptureLogsLogger : IUpgradeLog
     {

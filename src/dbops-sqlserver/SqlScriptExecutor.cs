@@ -4,8 +4,7 @@ using System.Collections.Generic;
 using DbUp.Engine.Output;
 using DbUp.Engine.Transactions;
 
-
-namespace DBOps.Extensions
+namespace DBOps.SqlServer
 {
     public class SqlScriptExecutor: DbUp.SqlServer.SqlScriptExecutor
     {
@@ -38,7 +37,7 @@ namespace DBOps.Extensions
             finally
             {
                 stopWatch.Stop();
-                s.ExecutionTime = stopWatch.ElapsedMilliseconds;
+                s.SetExecutionTime(stopWatch.ElapsedMilliseconds);
             }
         }
     }

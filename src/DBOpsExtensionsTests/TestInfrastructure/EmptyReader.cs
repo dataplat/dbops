@@ -1,7 +1,7 @@
 using System;
 using System.Data;
 
-namespace DbUp.Tests.TestInfrastructure
+namespace DBOps.Tests.TestInfrastructure
 {
     internal class EmptyReader : IDataReader
     {

@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>net45;netstandard2.0</TargetFrameworks>
-    <RootNamespace>DBOps.Extensions</RootNamespace>
+    <RootNamespace>DBOps</RootNamespace>
   </PropertyGroup>
 
   <!--<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
@@ -25,8 +25,6 @@
 
   <ItemGroup>
     <ProjectReference Include="E:\Git\DbUp\src\dbup-core\dbup-core.csproj" />
-    <ProjectReference Include="E:\Git\DbUp\src\dbup-postgresql\dbup-postgresql.csproj" />
-    <ProjectReference Include="E:\Git\DbUp\src\dbup-sqlserver\dbup-sqlserver.csproj" />
   </ItemGroup>
 
 </Project>

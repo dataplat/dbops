@@ -2,14 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using DbUp.Engine;
+// using DbUp.Tests.TestInfrastructure;
 
-namespace DbUp.Tests.TestInfrastructure
+namespace DBOps.Tests.TestInfrastructure
 {
     internal class RecordingDbConnection : IDbConnection
     {
         readonly Dictionary<string, Func<object>> scalarResults = new Dictionary<string, Func<object>>();
         readonly Dictionary<string, Func<int>> nonQueryResults = new Dictionary<string, Func<int>>();
-        readonly CaptureLogsLogger logger;
+        readonly DBOps.Tests.CaptureLogsLogger logger;
         readonly string schemaTableName;
         SqlScript[] runScripts;
 

@@ -2,7 +2,7 @@ using System;
 using System.Data;
 using DbUp.Engine.Output;
 
-namespace DbUp.Tests.TestInfrastructure
+namespace DBOps.Tests.TestInfrastructure
 {
     internal class RecordingDbTransaction : IDbTransaction
     {

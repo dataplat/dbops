@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Data;
 using DbUp.Engine.Output;
 
-namespace DbUp.Tests.TestInfrastructure
+namespace DBOps.Tests.TestInfrastructure
 {
     internal class RecordingDataParameterCollection : IDataParameterCollection
     {

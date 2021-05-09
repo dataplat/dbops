@@ -14,7 +14,6 @@
     <DefineConstants>$(DefineConstants);NETCORE</DefineConstants>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\DBOpsExtensions\DBOpsExtensions.csproj" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="15.5.0" />
     <PackageReference Include="xunit" Version="2.3.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.3.1" />
@@ -68,5 +67,10 @@
     <Reference Include="dbup-sqlserver">
       <HintPath>..\..\bin\lib\netstandard1.3\dbup-sqlserver.dll</HintPath>
     </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\dbops-sqlserver\dbops-sqlserver.csproj" />
+    <ProjectReference Include="..\DBOpsExtensions\dbops-core.csproj" />
   </ItemGroup>
 </Project>

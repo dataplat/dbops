@@ -1,7 +1,8 @@
 ﻿using DbUp.Builder;
 using DbUp.Engine.Transactions;
 
-namespace DBOps.Extensions
+namespace DBOps.Postgresql
+
 {
     public static class PostgresqlExtensions
     {
