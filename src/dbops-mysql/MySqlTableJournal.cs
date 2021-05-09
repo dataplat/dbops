@@ -7,16 +7,23 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace DBOps.Postgresql
+namespace DBOps.MySql
 {
     /// <summary>
     /// An child class of <see cref="DbUp.Postgresql.PostgresqlTableJournal"/> that adds custom fields to the 
     /// SchemaVersions table.
     /// </summary>
-    public class PostgresqlTableJournal: DbUp.Postgresql.PostgresqlTableJournal
+    public class MySqlTableJournal: DbUp.MySql.MySqlTableJournal
     {
         private readonly int maxTableVersion = 2;
-        public PostgresqlTableJournal(Func<IConnectionManager> connectionManager, Func<IUpgradeLog> logger, string schema, string table)
+        /// <summary>
+        /// Creates a new MySql table journal.
+        /// </summary>
+        /// <param name="connectionManager">The MySql connection manager.</param>
+        /// <param name="logger">The upgrade logger.</param>
+        /// <param name="schema">The name of the schema the journal is stored in.</param>
+        /// <param name="table">The name of the journal table.</param>
+        public MySqlTableJournal(Func<IConnectionManager> connectionManager, Func<IUpgradeLog> logger, string schema, string table)
             : base(connectionManager, logger, schema, table)
         {
         }
@@ -51,22 +58,22 @@ namespace DBOps.Postgresql
         }
         protected string GetInsertJournalEntrySql(string @scriptName, string @applied, string @checksum, string @executionTime)
         {
-            return $"insert into {FqSchemaTableName} (ScriptName, Applied, CheckSum, AppliedBy, ExecutionTime) values ({@scriptName}, {@applied}, {@checksum}, current_user, {@executionTime})";
+            return $"insert into {FqSchemaTableName} (ScriptName, Applied, CheckSum, AppliedBy, ExecutionTime) values ({@scriptName}, {@applied}, {@checksum}, SUBSTRING_INDEX(CURRENT_USER(), '@', 1), {@executionTime})";
         }
 
         protected override string CreateSchemaTableSql(string quotedPrimaryKeyName)
         {
             return
-$@"CREATE TABLE {FqSchemaTableName}
+$@"CREATE TABLE {FqSchemaTableName} 
 (
-    schemaversionsid serial NOT NULL,
-    scriptname character varying(255) NOT NULL,
-    applied timestamp without time zone NOT NULL,
-    checksum character varying(255),
-    appliedby character varying(255),
-    executiontime bigint,
-    CONSTRAINT {quotedPrimaryKeyName} PRIMARY KEY (schemaversionsid)
-)";
+    `schemaversionid` INT NOT NULL AUTO_INCREMENT,
+    `scriptname` VARCHAR(255) NOT NULL,
+    `applied` TIMESTAMP NOT NULL,
+    `checksum` VARCHAR(255),
+    `appliedby` VARCHAR(255),
+    `executiontime` BIGINT,
+    PRIMARY KEY (`schemaversionid`)
+);";
         }
 
         protected IDbCommand GetInsertScriptCommandV2(Func<IDbCommand> dbCommandFactory, SqlScript script)
@@ -105,9 +112,9 @@ $@"CREATE TABLE {FqSchemaTableName}
             if (currentTableVersion == 1)
             {
                 sqlList.Add($@"alter table {FqSchemaTableName} add 
-    checksum character varying(255),
-    appliedby character varying(255),
-    executiontime bigint");
+    `checksum` VARCHAR(255),
+    `appliedby` VARCHAR(255),
+    `executiontime` BIGINT");
             }
             return sqlList;
 

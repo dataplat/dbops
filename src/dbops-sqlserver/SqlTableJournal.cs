@@ -18,6 +18,10 @@ namespace DBOps.SqlServer
             : base(connectionManager, logger, schema, table)
         {
         }
+        /// <summary>
+        /// Upgrades Schema Table to the current version if necessary
+        /// </summary>
+        /// <param name="dbCommandFactory"></param>
         public void UpgradeJournalTable(Func<IDbCommand> dbCommandFactory)
         {
             var tableExists = DoesTableExist(dbCommandFactory);

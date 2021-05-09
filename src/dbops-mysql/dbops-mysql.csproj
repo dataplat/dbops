@@ -1,13 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+
   <PropertyGroup>
     <TargetFrameworks>net45;netstandard2.0</TargetFrameworks>
-    <RootNamespace>DBOps.SqlServer</RootNamespace>
+    <RootNamespace>DBOps.MySql</RootNamespace>
   </PropertyGroup>
+
 
   <ItemGroup>
     <ProjectReference Include="..\dbops-core\dbops-core.csproj" />
-    <ProjectReference Include="E:\Git\DbUp\src\dbup-sqlserver\dbup-sqlserver.csproj" />
+    <ProjectReference Include="E:\Git\DbUp\src\dbup-core\dbup-core.csproj" />
+    <ProjectReference Include="E:\Git\DbUp\src\dbup-mysql\dbup-mysql.csproj" />
   </ItemGroup>
 
 </Project>

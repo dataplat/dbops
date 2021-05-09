@@ -71,6 +71,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\dbops-sqlserver\dbops-sqlserver.csproj" />
-    <ProjectReference Include="..\DBOpsExtensions\dbops-core.csproj" />
+    <ProjectReference Include="..\dbops-core\dbops-core.csproj" />
   </ItemGroup>
 </Project>
