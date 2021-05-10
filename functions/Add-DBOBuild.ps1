@@ -72,6 +72,7 @@ function Add-DBOBuild {
         See 'Get-Help New-DBOPackage' for additional info about packages.
 #>
     [CmdletBinding(SupportsShouldProcess)]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSReviewUnusedParameter", "")]
     param
     (
         [Parameter(Mandatory = $true,

@@ -14,7 +14,7 @@ function Get-ConnectionManager {
         return [DbUp.SqlServer.SqlConnectionManager]::new($ConnectionString)
     }
     elseif ($Type -eq [DBOps.ConnectionType]::Oracle) {
-        return [DbUp.Oracle.OracleConnectionManager]::new($ConnectionString)
+        return [DbUp.Oracle.OracleConnectionManager]::new($ConnectionString, [DbUp.Oracle.OracleCommandSplitter]::new('/'))
     }
     elseif ($Type -eq [DBOps.ConnectionType]::MySQL) {
         return [DbUp.MySql.MySqlConnectionManager]::new($ConnectionString)

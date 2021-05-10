@@ -1,4 +1,5 @@
-﻿using DbUp.Builder;
+﻿using System.Linq;
+using DbUp.Builder;
 using DbUp.Engine.Transactions;
 
 namespace DBOps.Oracle
@@ -55,6 +56,39 @@ namespace DBOps.Oracle
             builder.Configure(c => c.Journal = new OracleTableJournal(() => c.ConnectionManager, () => c.Log, schema, "schemaversions"));
             builder.WithPreprocessor(new DbUp.Oracle.OraclePreprocessor());
             return builder;
+        }
+        /// <summary>
+        /// Creates an upgrader for Oracle databases.
+        /// </summary>
+        /// <param name="supported">Fluent helper type.</param>
+        /// <param name="connectionString">Oracle database connection string.</param>
+        /// <param name="delimiter">Delimiter character</param>
+        /// <returns>
+        /// A builder for a database upgrader designed for Oracle databases.
+        /// </returns>
+        public static UpgradeEngineBuilder OracleDatabase(this SupportedDatabases supported, string connectionString, char delimiter)
+        {
+            foreach (var pair in connectionString.Split(';').Select(s => s.Split('=')).Where(pair => pair.Length == 2).Where(pair => pair[0].ToLower() == "database"))
+            {
+                return OracleDatabase(new DbUp.Oracle.OracleConnectionManager(connectionString, new DbUp.Oracle.OracleCommandSplitter(delimiter)), pair[1]);
+            }
+
+            return OracleDatabase(new DbUp.Oracle.OracleConnectionManager(connectionString, new DbUp.Oracle.OracleCommandSplitter(delimiter)));
+        }
+
+        /// <summary>
+        /// Creates an upgrader for Oracle databases.
+        /// </summary>
+        /// <param name="supported">Fluent helper type.</param>
+        /// <param name="connectionString">Oracle database connection string.</param>
+        /// <param name="schema">Which Oracle schema to check for changes</param>
+        /// <param name="delimiter">Delimiter character</param>
+        /// <returns>
+        /// A builder for a database upgrader designed for Oracle databases.
+        /// </returns>
+        public static UpgradeEngineBuilder OracleDatabase(this SupportedDatabases supported, string connectionString, string schema, char delimiter)
+        {
+            return OracleDatabase(new DbUp.Oracle.OracleConnectionManager(connectionString, new DbUp.Oracle.OracleCommandSplitter(delimiter)), schema);
         }
 
     }

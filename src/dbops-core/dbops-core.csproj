@@ -3,6 +3,9 @@
   <PropertyGroup>
     <TargetFrameworks>net45;netstandard2.0</TargetFrameworks>
     <RootNamespace>DBOps</RootNamespace>
+    <Authors>Kirill Kravtsov</Authors>
+    <Company>DBOps</Company>
+    <Version>0.7.0</Version>
   </PropertyGroup>
 
   <!--<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">

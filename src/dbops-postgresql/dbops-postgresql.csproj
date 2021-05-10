@@ -3,6 +3,9 @@
   <PropertyGroup>
     <TargetFrameworks>net45;netstandard2.0</TargetFrameworks>
     <RootNamespace>DBOps.Postgresql</RootNamespace>
+    <Version>0.7.0</Version>
+    <Authors>Kirill Kravtsov</Authors>
+    <Company>DBOps</Company>
   </PropertyGroup>
   
   <ItemGroup>

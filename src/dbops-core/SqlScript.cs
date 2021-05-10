@@ -26,12 +26,12 @@ namespace DBOps
         /// Execution time of the script in milliseconds.
         /// </summary>
         /// <value></value>
-        public long? _ExecutionTime = null;
+        public long _ExecutionTime = -1;
         /// <summary>
         /// Execution time of the script in milliseconds.
         /// </summary>
         /// <value></value>
-        public long? ExecutionTime => _ExecutionTime;
+        public long ExecutionTime => _ExecutionTime;
         /// <summary>
         /// Sets execution duration.
         /// </summary>
