@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net45;netstandard2.0</TargetFrameworks>
+    <RootNamespace>DBOps.Oracle</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\dbops-core\dbops-core.csproj" />
+    <ProjectReference Include="E:\Git\DbUp\src\dbup-oracle\dbup-oracle.csproj" />
+  </ItemGroup>
+
+</Project>

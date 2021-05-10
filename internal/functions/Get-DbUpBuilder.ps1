@@ -19,10 +19,10 @@ function Get-DbUpBuilder {
     }
     elseif ($Type -eq [DBOps.ConnectionType]::Oracle) {
         if ($Schema) {
-            $dbUp = [DbUp.Oracle.OracleExtensions]::OracleDatabase($dbUp, $dbUpConnection, $Schema)
+            $dbUp = [DBOps.Oracle.OracleExtensions]::OracleDatabase($dbUp, $dbUpConnection, $Schema)
         }
         else {
-            $dbUp = [DbUp.Oracle.OracleExtensions]::OracleDatabase($dbUp, $dbUpConnection)
+            $dbUp = [DBOps.Oracle.OracleExtensions]::OracleDatabase($dbUp, $dbUpConnection)
         }
     }
     elseif ($Type -eq [DBOps.ConnectionType]::MySQL) {

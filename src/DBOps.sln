@@ -21,9 +21,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbops-sqlserver", "dbops-sq
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbops-postgresql", "dbops-postgresql\dbops-postgresql.csproj", "{21B2057E-CE33-4B89-A930-8147634768FA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dbops-mysql", "dbops-mysql\dbops-mysql.csproj", "{309F2AB1-CD6E-4465-92C3-9F94B08242F8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbops-mysql", "dbops-mysql\dbops-mysql.csproj", "{309F2AB1-CD6E-4465-92C3-9F94B08242F8}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbup-mysql", "E:\Git\DbUp\src\dbup-mysql\dbup-mysql.csproj", "{E0ECA9C5-07AE-4938-A90F-253F10DE4E3E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbup-oracle", "E:\Git\DbUp\src\dbup-oracle\dbup-oracle.csproj", "{B235A101-6FE9-43DD-A6A9-254EA878C110}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dbops-oracle", "dbops-oracle\dbops-oracle.csproj", "{BA12338E-7A20-4947-A378-38E35B502D39}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -67,6 +71,14 @@ Global
 		{E0ECA9C5-07AE-4938-A90F-253F10DE4E3E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E0ECA9C5-07AE-4938-A90F-253F10DE4E3E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E0ECA9C5-07AE-4938-A90F-253F10DE4E3E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B235A101-6FE9-43DD-A6A9-254EA878C110}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B235A101-6FE9-43DD-A6A9-254EA878C110}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B235A101-6FE9-43DD-A6A9-254EA878C110}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B235A101-6FE9-43DD-A6A9-254EA878C110}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BA12338E-7A20-4947-A378-38E35B502D39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA12338E-7A20-4947-A378-38E35B502D39}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA12338E-7A20-4947-A378-38E35B502D39}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA12338E-7A20-4947-A378-38E35B502D39}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
