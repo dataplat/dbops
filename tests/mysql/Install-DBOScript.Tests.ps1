@@ -225,7 +225,7 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
         BeforeAll {
             $file = "$workFolder\delay.sql"
             "DO SLEEP(5); SELECT 'Successful!'" | Out-File $file
-            $timeoutError = if ($PSVersionTable.PSVersion.Major -eq 6) { 'Fatal error encountered during command execution' } else { 'Timeout expired.' }
+            $timeoutError = if ($PSVersionTable.PSVersion.Major -ge 6) { 'Fatal error encountered during command execution' } else { 'Timeout expired.' }
         }
         BeforeEach {
             $null = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $cleanupScript

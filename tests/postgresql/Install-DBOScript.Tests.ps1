@@ -461,7 +461,9 @@ Describe "Install-DBOScript PostgreSQL integration tests" -Tag $commandName, Int
     }
     Context "testing deployments to the native DbUp SchemaVersion table" {
         BeforeEach {
-            $null = Invoke-DBOQuery @connParams -InputFile $cleanupScript
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $dropDatabaseScript
+            [Npgsql.NpgsqlConnection]::ClearAllPools()
+            $null = Invoke-DBOQuery @connParams -Database postgres -Query $createDatabaseScript
         }
         It "Should deploy version 1 to an older schemaversion table" {
             # create old SchemaVersion table
