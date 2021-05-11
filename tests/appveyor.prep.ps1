@@ -10,8 +10,8 @@
 
 # "Get Pester manually"
 Write-Host -Object "appveyor.prep: Install Pester" -ForegroundColor DarkGreen
+Uninstall-Module -Name Pester -Force -AllVersions -ErrorAction SilentlyContinue | Out-Null
 Install-Module -Name Pester -Repository PSGallery -Force -Scope CurrentUser -MaximumVersion 4.99| Out-Null
-Uninstall-Module -Name Pester -Force -MinimumVersion 5.0 | Out-Null
 Write-Host -Object "appveyor.prep: Install Assert" -ForegroundColor DarkGreen
 Install-Module -Name Assert -Repository PSGallery -Force -Scope CurrentUser| Out-Null
 Write-Host -Object "appveyor.prep: Install PSFramework" -ForegroundColor DarkGreen
