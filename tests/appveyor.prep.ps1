@@ -15,7 +15,7 @@ Install-Module -Name Pester -Repository PSGallery -Force -Scope CurrentUser -Max
 Write-Host -Object "appveyor.prep: Install Assert" -ForegroundColor DarkGreen
 Install-Module -Name Assert -Repository PSGallery -Force -Scope CurrentUser| Out-Null
 Write-Host -Object "appveyor.prep: Install PSFramework" -ForegroundColor DarkGreen
-Install-Module -Name PSFramework -Repository PSGallery -Force -Scope CurrentUser| Out-Null
+Install-Module -Name PSFramework -Repository PSGallery -RequiredVersion 1.1.59 -Force -Scope CurrentUser| Out-Null
 Write-Host -Object "appveyor.prep: Install ziphelper" -ForegroundColor DarkGreen
 Install-Module -Name ziphelper -Repository PSGallery -Force -Scope CurrentUser| Out-Null
 Write-Host -Object "appveyor.prep: Install PSScriptAnalyzer" -ForegroundColor DarkGreen
