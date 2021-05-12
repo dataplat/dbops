@@ -75,10 +75,6 @@ Describe "Send-DBOMailMessage tests" -Tag $commandName, UnitTests {
             Set-DBODefaultSetting -Temporary -Name mail.SmtpServer -Value ''
             { $status | Send-DBOMailMessage } | Should throw
         }
-        It "Should fail when Subject is empty" {
-            Set-DBODefaultSetting -Temporary -Name mail.Subject -Value ''
-            { $status | Send-DBOMailMessage } | Should throw
-        }
         It "Should fail when To is empty" {
             Set-DBODefaultSetting -Temporary -Name mail.To -Value ''
             { $status | Send-DBOMailMessage } | Should throw
