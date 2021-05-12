@@ -476,18 +476,18 @@ Describe "Install-DBOScript PostgreSQL integration tests" -Tag $commandName, Int
                 CONSTRAINT $($logtable)_pk PRIMARY KEY (schemaversionsid)
             )
 "@
-            $null = Invoke-DBOQuery @connParams -Query $query
-            $testResults = Install-DBOScript -ScriptPath $v1scripts @connParams -SchemaVersionTable $logTable
+            $null = Invoke-DBOQuery @connParams -Database $newDbName -Query $query
+            $testResults = Install-DBOScript -ScriptPath $v1scripts @connParams -Database $newDbName -SchemaVersionTable $logTable
             $testResults.Successful | Should -Be $true
             $testResults.Scripts.Name | Should -Be (Get-Item $v1scripts).Name
             #Verifying objects
-            $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             $logTable | Should -BeIn $testResults.name
             'a' | Should -BeIn $testResults.name
             'b' | Should -BeIn $testResults.name
             'c' | Should -Not -BeIn $testResults.name
             'd' | Should -Not -BeIn $testResults.name
-            $schemaTableContents = Invoke-DBOQuery @connParams -Query "SELECT * FROM $logTable" -As DataTable
+            $schemaTableContents = Invoke-DBOQuery @connParams -Database $newDbName -Query "SELECT * FROM $logTable" -As DataTable
             $schemaTableContents.Columns.ColumnName | Should -Be @("schemaversionsid", "scriptname", "applied")
             $schemaTableContents.Rows[0].ScriptName | Should -Be (Get-Item $v1scripts).Name
         }
