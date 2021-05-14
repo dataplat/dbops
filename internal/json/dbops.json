@@ -55,6 +55,7 @@
         "functions\\ConvertTo-EncryptedString.ps1",
         "functions\\ConvertFrom-EncryptedString.ps1",
         "functions\\Invoke-DBOQuery.ps1",
+        "functions\\Update-DBOSchemaTable.ps1",
         "functions\\Update-DBOPackage.ps1"
     ],
     "Internal": [

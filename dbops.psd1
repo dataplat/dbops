@@ -89,7 +89,8 @@
         'ConvertTo-EncryptedString',
         'ConvertFrom-EncryptedString',
         'Invoke-DBOQuery',
-        'Update-DBOPackage'
+        'Update-DBOPackage',
+        'Update-DBOSchemaTable'
     )
 
     # Cmdlets to export from this module
