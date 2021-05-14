@@ -70,6 +70,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\dbops-mysql\dbops-mysql.csproj" />
+    <ProjectReference Include="..\dbops-oracle\dbops-oracle.csproj" />
+    <ProjectReference Include="..\dbops-postgresql\dbops-postgresql.csproj" />
     <ProjectReference Include="..\dbops-sqlserver\dbops-sqlserver.csproj" />
     <ProjectReference Include="..\dbops-core\dbops-core.csproj" />
   </ItemGroup>

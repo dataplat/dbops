@@ -10,6 +10,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbops-core", "dbops-core\db
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbops-tests", "dbops-tests\dbops-tests.csproj", "{64FDC104-4755-4EBA-80FB-DD4F68B4E9E2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{BA12338E-7A20-4947-A378-38E35B502D39} = {BA12338E-7A20-4947-A378-38E35B502D39}
+	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbup-core", "E:\Git\DbUp\src\dbup-core\dbup-core.csproj", "{76BBBC4B-7504-4DBE-8B5D-67410457F584}"
 EndProject
@@ -27,7 +30,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbup-mysql", "E:\Git\DbUp\s
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbup-oracle", "E:\Git\DbUp\src\dbup-oracle\dbup-oracle.csproj", "{B235A101-6FE9-43DD-A6A9-254EA878C110}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dbops-oracle", "dbops-oracle\dbops-oracle.csproj", "{BA12338E-7A20-4947-A378-38E35B502D39}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbops-oracle", "dbops-oracle\dbops-oracle.csproj", "{BA12338E-7A20-4947-A378-38E35B502D39}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
