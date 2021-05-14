@@ -111,10 +111,10 @@ $@"CREATE TABLE {FqSchemaTableName}
             var sqlList = new List<String>();
             if (currentTableVersion == 1)
             {
-                sqlList.Add($@"alter table {FqSchemaTableName} add 
-    `checksum` VARCHAR(255),
-    `appliedby` VARCHAR(255),
-    `executiontime` BIGINT");
+                sqlList.Add($@"alter table {FqSchemaTableName}
+    add `checksum` VARCHAR(255),
+    add `appliedby` VARCHAR(255),
+    add `executiontime` BIGINT");
             }
             return sqlList;
 
