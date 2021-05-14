@@ -199,7 +199,7 @@ function Register-DBOPackage {
             }
         }
         Write-PSFMessage -Level Verbose -Message "Preparing to register the package $($package.FileName)"
-        Invoke-DBODeployment @params
+        Invoke-Deployment @params
     }
     end {
 

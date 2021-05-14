@@ -1,4 +1,4 @@
-﻿function Invoke-DBODeployment {
+﻿function Invoke-Deployment {
     <#
     .SYNOPSIS
         Deploys extracted dbops package from the specified location
@@ -52,19 +52,19 @@
 
     .EXAMPLE
         # Start the deployment of the extracted package from the current folder
-        Invoke-DBODeployment
+        Invoke-Deployment
 
     .EXAMPLE
         # Start the deployment of the extracted package from the current folder using specific connection parameters
-        Invoke-DBODeployment -SqlInstance 'myserver\instance1' -Database 'MyDb' -ExecutionTimeout 3600
+        Invoke-Deployment -SqlInstance 'myserver\instance1' -Database 'MyDb' -ExecutionTimeout 3600
 
     .EXAMPLE
         # Start the deployment of the extracted package using custom logging parameters and schema tracking table
-        Invoke-DBODeployment .\Extracted\dbops.package.json -SchemaVersionTable dbo.SchemaHistory -OutputFile .\out.log -Append
+        Invoke-Deployment .\Extracted\dbops.package.json -SchemaVersionTable dbo.SchemaHistory -OutputFile .\out.log -Append
 
     .EXAMPLE
         # Start the deployment of the extracted package in the current folder using variables instead of specifying values directly
-        Invoke-DBODeployment -SqlInstance '#{server}' -Database '#{db}' -Configuration @{ Variables = @{server = 'myserver\instance1'; db = 'MyDb'} }
+        Invoke-Deployment -SqlInstance '#{server}' -Database '#{db}' -Configuration @{ Variables = @{server = 'myserver\instance1'; db = 'MyDb'} }
 #>
 
     [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'PackageFile')]

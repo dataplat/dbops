@@ -60,7 +60,7 @@ Install-Module dbops
 
 Perform plain-text script deployments using a single command:
 
-[![Invoke-DBODeployment](https://img.youtube.com/vi/PdMCk0Wa-FA/0.jpg)](http://www.youtube.com/watch?v=PdMCk0Wa-FA)<br/>
+[![Install-DBOScript](https://img.youtube.com/vi/PdMCk0Wa-FA/0.jpg)](http://www.youtube.com/watch?v=PdMCk0Wa-FA)<br/>
 <small>(click to open the video)</small>
 
 Example code:

@@ -74,7 +74,7 @@
         "internal\\functions\\Get-DbUpJournal.ps1",
         "internal\\functions\\Invoke-EnsureDatabase.ps1",
         "internal\\functions\\Get-DatabaseConnection.ps1",
-        "internal\\functions\\Invoke-DBODeployment.ps1",
+        "internal\\functions\\Invoke-Deployment.ps1",
         "internal\\functions\\Install-NugetPackage.ps1",
         "internal\\functions\\Test-AliasDeprecation.ps1",
         "internal\\classes\\DBOpsHelper.class.ps1",

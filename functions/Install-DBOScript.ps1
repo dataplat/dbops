@@ -230,7 +230,7 @@
             }
         }
         Write-PSFMessage -Level Verbose -Message "Preparing to start the deployment of $($Path.Count) file(s)"
-        Invoke-DBODeployment @params
+        Invoke-Deployment @params
 
         # Test name deprecation
         Test-AliasDeprecation -DeprecatedOn "1.0.0" -EnableException:$false -Alias Install-DBOSqlScript

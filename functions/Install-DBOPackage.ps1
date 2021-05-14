@@ -212,7 +212,7 @@
             }
         }
         Write-PSFMessage -Level Verbose -Message "Preparing to start the deployment of package $($package.FileName)"
-        Invoke-DBODeployment @params
+        Invoke-Deployment @params
     }
     end {
 
