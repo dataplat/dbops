@@ -104,10 +104,10 @@ $@"CREATE TABLE {FqSchemaTableName}
             var sqlList = new List<String>();
             if (currentTableVersion == 1)
             {
-                sqlList.Add($@"alter table {FqSchemaTableName} add 
-    checksum character varying(255),
-    appliedby character varying(255),
-    executiontime bigint");
+                sqlList.Add($@"alter table {FqSchemaTableName} 
+    add checksum character varying(255),
+    add appliedby character varying(255),
+    add executiontime bigint");
             }
             return sqlList;
 
