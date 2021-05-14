@@ -26,7 +26,7 @@
 
     .PARAMETER Variables
     Hashtable with variables that can be used inside the scripts and deployment parameters.
-    Proper format of the variable tokens is #{MyVariableName}
+    Proper format of the variable tokens is #{MyVariableName}. Format can be changed using "Set-DBODefaultSetting -Name config.variabletoken"
     Can also be provided as a part of Configuration Object: -Configuration @{ Variables = @{ Var1 = ...; Var2 = ...}}
 
     .PARAMETER Confirm

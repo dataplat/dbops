@@ -33,7 +33,7 @@
 
     .PARAMETER Type
         Defines the driver to use when connecting to the database server.
-        Available options: SqlServer (default), Oracle
+        Available options: SqlServer (default), Oracle, PostgreSQL, MySQL
 
     .PARAMETER Append
         Append output to the -OutputFile instead of overwriting it.
@@ -143,7 +143,6 @@
         }
     }
     process {
-        $config = New-DBOConfig
         if ($PsCmdlet.ParameterSetName -eq 'PackageFile') {
             # Get package object from the json file
             $package = Get-DBOPackage $PackageFile -Unpacked
@@ -152,23 +151,11 @@
             $package = Get-DBOPackage -InputObject $InputObject
         }
         # Merge package config into the current config
-        if ($package) {
-            $config = $config | Get-DBOConfig -Configuration $package.Configuration
-        }
-        # Merge custom config into the current config
-        if (Test-PSFParameterBinding -ParameterName Configuration) {
-            $config = $config | Get-DBOConfig -Configuration $Configuration
-        }
+        $config = Merge-Config -BoundParameters @{Configuration = $Configuration} -Package $package -ProcessVariables
 
         # Initialize external libraries if needed
         Write-PSFMessage -Level Debug -Message "Initializing libraries for $Type"
         Initialize-ExternalLibrary -Type $Type
-
-        # Replace tokens if any
-        Write-PSFMessage -Level Debug -Message "Replacing variable tokens"
-        foreach ($property in [DBOpsConfig]::EnumProperties() | Where-Object { $_ -ne 'Variables' }) {
-            $config.SetValue($property, (Resolve-VariableToken $config.$property $config.Variables))
-        }
 
         $scriptCollection = @()
         $preScriptCollection = @()
