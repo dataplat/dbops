@@ -115,7 +115,7 @@ Describe "Install-DBOScript Oracle integration tests" -Tag $commandName, Integra
             #Validating schema version table
             $svResults = Invoke-DBOQuery @connParams -Query "SELECT * FROM $logTable"
             $svResults.CHECKSUM | Should -Not -BeNullOrEmpty
-            $svResults.EXECUTIONTIME | Should -BeGreaterThan 0
+            $svResults.ExecutionTime | Should -BeGreaterOrEqual 0
             $svResults.APPLIEDBY | Should -Be $oraUserName
         }
     }

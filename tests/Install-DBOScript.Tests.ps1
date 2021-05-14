@@ -33,9 +33,9 @@ $dropDatabaseScript = 'IF EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}
 $createDatabaseScript = 'IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN CREATE DATABASE [{0}]; END' -f $newDbName
 $connParams = @{
     SqlInstance = $script:mssqlInstance
-    Silent = $true
-    Credential = $script:mssqlCredential
-    Database = $newDbName
+    Silent      = $true
+    Credential  = $script:mssqlCredential
+    Database    = $newDbName
 }
 
 Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTests {
@@ -155,7 +155,7 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
             #Validating schema version table
             $svResults = Invoke-DBOQuery @connParams -Query "SELECT * FROM $logTable"
             $svResults.Checksum | Should -Not -BeNullOrEmpty
-            $svResults.ExecutionTime | Should -BeGreaterThan 0
+            $svResults.ExecutionTime | Should -BeGreaterOrEqual 0
             if ($script:mssqlCredential) {
                 $svResults.AppliedBy | Should -Be $script:mssqlCredential.UserName
             }

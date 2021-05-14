@@ -155,7 +155,7 @@ Describe "Install-DBOScript PostgreSQL integration tests" -Tag $commandName, Int
             #Validating schema version table
             $svResults = Invoke-DBOQuery @connParams -Database $newDbName -Query "SELECT * FROM $logTable"
             $svResults.Checksum | Should -Not -BeNullOrEmpty
-            $svResults.ExecutionTime | Should -BeGreaterThan 0
+            $svResults.ExecutionTime | Should -BeGreaterOrEqual 0
             if ($script:postgresqlCredential) {
                 $svResults.AppliedBy | Should -Be $script:postgresqlCredential.UserName
             }

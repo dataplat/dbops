@@ -62,10 +62,10 @@ foreach ($command in $commands) {
         }
 
         $testhelpall += 1
-        if ([String]::IsNullOrEmpty(($Help.Examples.Example.Remarks | Select-Object -First 1).Text)) {
+        if ([String]::IsNullOrEmpty(($Help.Examples.Example.code | Select-Object -First 1))) {
             # Should be at least one example description
             It "gets example help from $commandName" {
-                ($Help.Examples.Example.Remarks | Select-Object -First 1).Text | Should Not BeNullOrEmpty
+                $Help.Examples.Example.code | Select-Object -First 1 | Should Not BeNullOrEmpty
             }
             $testhelperrors += 1
         }

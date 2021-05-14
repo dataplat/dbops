@@ -156,7 +156,7 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
             #Validating schema version table
             $svResults = Invoke-DBOQuery @connParams -Database $newDbName -Query "SELECT * FROM $logTable"
             $svResults.Checksum | Should -Not -BeNullOrEmpty
-            $svResults.ExecutionTime | Should -BeGreaterThan 0
+            $svResults.ExecutionTime | Should -BeGreaterOrEqual 0
             if ($script:mysqlCredential) {
                 $svResults.AppliedBy | Should -Be $script:mysqlCredential.UserName
             }
