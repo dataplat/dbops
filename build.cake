@@ -7,7 +7,10 @@ Task("Clean")
     .Does(() => {
         if (DirectoryExists(outputDir))
         {
-            DeleteDirectory(outputDir, recursive:true);
+            DeleteDirectory(outputDir, new DeleteDirectorySettings {
+                Recursive = true,
+                Force = true
+            }));
         }
     });
 
