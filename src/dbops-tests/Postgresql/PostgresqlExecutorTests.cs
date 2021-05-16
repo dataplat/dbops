@@ -12,7 +12,7 @@ using Xunit;
 
 namespace DBOps.Tests.Postgresql
 {
-    public class PostgrePostgresqlScriptExecutorTests
+    public class PostgresqlScriptExecutorTests
     {
         [Fact]
         public void records_execution_time()

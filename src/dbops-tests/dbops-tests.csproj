@@ -9,6 +9,7 @@
     <GenerateAssemblyCopyrightAttribute>false</GenerateAssemblyCopyrightAttribute>
     <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>DBOps.Tests</RootNamespace>
   </PropertyGroup>
   <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0' ">
     <DefineConstants>$(DefineConstants);NETCORE</DefineConstants>
@@ -31,42 +32,6 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="TestScripts\**\*.sql" Exclude="bin\**;obj\**;**\*.xproj;packages\**;@(EmbeddedResource)" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net46'">
-    <Reference Include="dbup-core">
-      <HintPath>..\..\bin\lib\net45\dbup-core.dll</HintPath>
-    </Reference>
-    <!--<Reference Include="dbup-mysql">
-      <HintPath>..\..\bin\lib\net45\dbup-mysql.dll</HintPath>
-    </Reference>
-    <Reference Include="dbup-oracle">
-      <HintPath>..\..\bin\lib\net45\dbup-oracle.dll</HintPath>
-    </Reference>
-    <Reference Include="dbup-postgresql">
-      <HintPath>..\..\bin\lib\net45\dbup-postgresql.dll</HintPath>
-    </Reference>-->
-    <Reference Include="dbup-sqlserver">
-      <HintPath>..\..\bin\lib\net35\dbup-sqlserver.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-    <Reference Include="dbup-core">
-      <HintPath>..\..\bin\lib\netstandard2.0\dbup-core.dll</HintPath>
-    </Reference>
-    <!--<Reference Include="dbup-mysql">
-      <HintPath>..\..\bin\lib\netstandard2.0\dbup-mysql.dll</HintPath>
-    </Reference>
-    <Reference Include="dbup-oracle">
-      <HintPath>..\..\bin\lib\netstandard2.0\dbup-oracle.dll</HintPath>
-    </Reference>
-    <Reference Include="dbup-postgresql">
-      <HintPath>..\..\bin\lib\netstandard2.0\dbup-postgresql.dll</HintPath>
-    </Reference>-->
-    <Reference Include="dbup-sqlserver">
-      <HintPath>..\..\bin\lib\netstandard1.3\dbup-sqlserver.dll</HintPath>
-    </Reference>
   </ItemGroup>
 
   <ItemGroup>
