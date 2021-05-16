@@ -60,7 +60,17 @@ Task("Test")
         });
     });
 
+Task("Package")
+    .IsDependentOn("Test")
+    .Does(() => {
+        if (AppVeyor.IsRunningOnAppVeyor)
+        {
+            foreach (var file in GetFiles(outputDir + "**/*"))
+                AppVeyor.UploadArtifact(file.FullPath);
+        }
+    });
+
 Task("Default")
-    .IsDependentOn("Test");
+    .IsDependentOn("Package");
 
 RunTarget(target);
