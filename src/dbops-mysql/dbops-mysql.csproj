@@ -11,9 +11,12 @@
 
 
   <ItemGroup>
+    <PackageReference Include="dbup-mysql" Version="4.5.0" />
+  </ItemGroup>
+
+
+  <ItemGroup>
     <ProjectReference Include="..\dbops-core\dbops-core.csproj" />
-    <ProjectReference Include="E:\Git\DbUp\src\dbup-core\dbup-core.csproj" />
-    <ProjectReference Include="E:\Git\DbUp\src\dbup-mysql\dbup-mysql.csproj" />
   </ItemGroup>
 
 </Project>

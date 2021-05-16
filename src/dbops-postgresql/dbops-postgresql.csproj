@@ -7,10 +7,13 @@
     <Authors>Kirill Kravtsov</Authors>
     <Company>DBOps</Company>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="dbup-postgresql" Version="4.5.0" />
+  </ItemGroup>
   
   <ItemGroup>
     <ProjectReference Include="..\dbops-core\dbops-core.csproj" />
-    <ProjectReference Include="E:\Git\DbUp\src\dbup-postgresql\dbup-postgresql.csproj" />
   </ItemGroup>
 
 </Project>

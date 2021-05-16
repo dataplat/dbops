@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="E:\Git\DbUp\src\dbup-core\dbup-core.csproj" />
+    <PackageReference Include="dbup-core" Version="4.5.0" />
   </ItemGroup>
 
 </Project>

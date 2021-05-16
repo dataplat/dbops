@@ -9,8 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="dbup-oracle" Version="4.5.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\dbops-core\dbops-core.csproj" />
-    <ProjectReference Include="E:\Git\DbUp\src\dbup-oracle\dbup-oracle.csproj" />
   </ItemGroup>
 
 </Project>
