@@ -10,7 +10,7 @@ Task("Clean")
             DeleteDirectory(outputDir, new DeleteDirectorySettings {
                 Recursive = true,
                 Force = true
-            }));
+            });
         }
     });
 
