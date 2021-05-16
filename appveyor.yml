@@ -7,8 +7,7 @@ version: 0.1.{build}
 
 image:
   - Visual Studio 2019
-  - Visual Studio 2017
-  - Ubuntu1804
+  - Ubuntu
 
 # Set build info
 environment:
@@ -16,11 +15,12 @@ environment:
   version: 0.1.$(appveyor_build_number)
   PGUSER: postgres
   PGPASSWORD: Password12!
+  AssentNonInteractive: true
 
 for:
   - matrix:
       only:
-        - image: Visual Studio 2017
+        - image: Visual Studio 2019
     environment:
         mssql_instance: localhost\SQL2017
         scenario: windows
@@ -37,7 +37,7 @@ for:
 
   - matrix:
       only:
-        - image: Ubuntu1804
+        - image: Ubuntu
     environment:
         mssql_instance: localhost
         scenario: all
@@ -53,17 +53,12 @@ for:
     after_test:
       - ps: .\tests\appveyor.post.ps1
 
-  - matrix:
-      only:
-        - image: Visual Studio 2019
-    environment:
-      AssentNonInteractive: true
-    before_test:
-      - ps: dotnet new tool-manifest
-      - ps: dotnet tool install Cake.Tool --version 1.1.0
-      - ps: Invoke-WebRequest https://cakebuild.net/download/bootstrapper/dotnet-tool/windows -OutFile build.ps1
-    test_script:
-      - ps: .\build.ps1
+before_build:
+  - ps: dotnet new tool-manifest
+  - ps: dotnet tool install Cake.Tool --version 1.1.0
+  - ps: Invoke-WebRequest https://cakebuild.net/download/bootstrapper/dotnet-tool/windows -OutFile build.ps1
+build_script:
+  - ps: .\build.ps1
 
 
 test_script:
