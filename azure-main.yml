@@ -17,7 +17,7 @@ trigger:
 #     type: git
 #     ref: main
 jobs:
-- job: Build artifacts
+- job: cut_new_release_branch
   displayName: Agent phase
   cancelTimeoutInMinutes: 1
   pool:
