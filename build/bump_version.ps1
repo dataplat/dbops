@@ -6,7 +6,7 @@ $version = [Version]$moduleFile.ModuleVersion
 $regEx = "^([\s]*ModuleVersion[\s]*\=[\s]*)\'(" + [regex]::Escape($version) + ")\'[\s]*`$"
 Write-Host "Current build $version"
 
-Install-PackageProvider nuget -force
+# Install-PackageProvider nuget -force
 [version]$publishedVersion = Find-Module dbops -ErrorAction Stop | Select-Object -ExpandProperty Version
 if ($version -le $publishedVersion) {
     # increase version and push back to git
