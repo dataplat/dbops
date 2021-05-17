@@ -11,42 +11,34 @@ function Get-DbUpBuilder {
     $dbUp = [DbUp.DeployChanges]::To
     if ($Type -eq [DBOps.ConnectionType]::SqlServer) {
         if ($Schema) {
-            $dbUp = [SqlServerExtensions]::SqlDatabase($dbUp, $dbUpConnection, $Schema)
+            $dbUp = [DBOps.SqlServer.SqlServerExtensions]::SqlDatabase($dbUp, $Connection, $Schema)
         }
         else {
-            $dbUp = [SqlServerExtensions]::SqlDatabase($dbUp, $dbUpConnection)
+            $dbUp = [DBOps.SqlServer.SqlServerExtensions]::SqlDatabase($dbUp, $Connection)
         }
     }
     elseif ($Type -eq [DBOps.ConnectionType]::Oracle) {
         if ($Schema) {
-            $dbUp = [DbUp.Oracle.OracleExtensions]::OracleDatabase($dbUp, $dbUpConnection, $Schema)
+            $dbUp = [DBOps.Oracle.OracleExtensions]::OracleDatabase($dbUp, $Connection, $Schema)
         }
         else {
-            $dbUp = [DbUp.Oracle.OracleExtensions]::OracleDatabase($dbUp, $dbUpConnection)
+            $dbUp = [DBOps.Oracle.OracleExtensions]::OracleDatabase($dbUp, $Connection)
         }
     }
     elseif ($Type -eq [DBOps.ConnectionType]::MySQL) {
         if ($Schema) {
-            $dbUp = [MySqlExtensions]::MySqlDatabase($dbUp, $dbUpConnection, $Schema)
+            $dbUp = [DBOps.MySql.MySqlExtensions]::MySqlDatabase($dbUp, $Connection, $Schema)
         }
         else {
-            $dbUp = [MySqlExtensions]::MySqlDatabase($dbUp, $dbUpConnection)
-        }
-    }
-    elseif ($Type -eq [DBOps.ConnectionType]::MySQL) {
-        if ($Schema) {
-            $dbUp = [MySqlExtensions]::MySqlDatabase($dbUp, $dbUpConnection, $Schema)
-        }
-        else {
-            $dbUp = [MySqlExtensions]::MySqlDatabase($dbUp, $dbUpConnection)
+            $dbUp = [DBOps.MySql.MySqlExtensions]::MySqlDatabase($dbUp, $Connection)
         }
     }
     elseif ($Type -eq [DBOps.ConnectionType]::PostgreSQL) {
         if ($Schema) {
-            $dbUp = [PostgresqlExtensions]::PostgresqlDatabase($dbUp, $dbUpConnection, $Schema)
+            $dbUp = [DBOps.Postgresql.PostgresqlExtensions]::PostgresqlDatabase($dbUp, $Connection, $Schema)
         }
         else {
-            $dbUp = [PostgresqlExtensions]::PostgresqlDatabase($dbUp, $dbUpConnection)
+            $dbUp = [DBOps.Postgresql.PostgresqlExtensions]::PostgresqlDatabase($dbUp, $Connection)
         }
     }
     else {

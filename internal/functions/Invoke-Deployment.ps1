@@ -1,4 +1,4 @@
-﻿function Invoke-DBODeployment {
+﻿function Invoke-Deployment {
     <#
     .SYNOPSIS
         Deploys extracted dbops package from the specified location
@@ -33,7 +33,7 @@
 
     .PARAMETER Type
         Defines the driver to use when connecting to the database server.
-        Available options: SqlServer (default), Oracle
+        Available options: SqlServer (default), Oracle, PostgreSQL, MySQL
 
     .PARAMETER Append
         Append output to the -OutputFile instead of overwriting it.
@@ -52,19 +52,19 @@
 
     .EXAMPLE
         # Start the deployment of the extracted package from the current folder
-        Invoke-DBODeployment
+        Invoke-Deployment
 
     .EXAMPLE
         # Start the deployment of the extracted package from the current folder using specific connection parameters
-        Invoke-DBODeployment -SqlInstance 'myserver\instance1' -Database 'MyDb' -ExecutionTimeout 3600
+        Invoke-Deployment -SqlInstance 'myserver\instance1' -Database 'MyDb' -ExecutionTimeout 3600
 
     .EXAMPLE
         # Start the deployment of the extracted package using custom logging parameters and schema tracking table
-        Invoke-DBODeployment .\Extracted\dbops.package.json -SchemaVersionTable dbo.SchemaHistory -OutputFile .\out.log -Append
+        Invoke-Deployment .\Extracted\dbops.package.json -SchemaVersionTable dbo.SchemaHistory -OutputFile .\out.log -Append
 
     .EXAMPLE
         # Start the deployment of the extracted package in the current folder using variables instead of specifying values directly
-        Invoke-DBODeployment -SqlInstance '#{server}' -Database '#{db}' -Configuration @{ Variables = @{server = 'myserver\instance1'; db = 'MyDb'} }
+        Invoke-Deployment -SqlInstance '#{server}' -Database '#{db}' -Configuration @{ Variables = @{server = 'myserver\instance1'; db = 'MyDb'} }
 #>
 
     [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName = 'PackageFile')]
@@ -97,7 +97,7 @@
             Write-PSFMessage -Level Debug -Message "Adding script $scriptDeploymentPath"
             # Replace tokens in the scripts
             $scriptContent = Resolve-VariableToken -InputObject $Script.GetContent() -Runtime $Variables
-            return [DbUp.Engine.SqlScript]::new($scriptDeploymentPath, $scriptContent)
+            return [DBOps.SqlScript]::new($scriptDeploymentPath, $scriptContent)
         }
         Function Initialize-DbUpBuilder {
             Param (
@@ -143,7 +143,6 @@
         }
     }
     process {
-        $config = New-DBOConfig
         if ($PsCmdlet.ParameterSetName -eq 'PackageFile') {
             # Get package object from the json file
             $package = Get-DBOPackage $PackageFile -Unpacked
@@ -152,23 +151,11 @@
             $package = Get-DBOPackage -InputObject $InputObject
         }
         # Merge package config into the current config
-        if ($package) {
-            $config = $config | Get-DBOConfig -Configuration $package.Configuration
-        }
-        # Merge custom config into the current config
-        if (Test-PSFParameterBinding -ParameterName Configuration) {
-            $config = $config | Get-DBOConfig -Configuration $Configuration
-        }
+        $config = Merge-Config -BoundParameters @{Configuration = $Configuration} -Package $package -ProcessVariables
 
         # Initialize external libraries if needed
         Write-PSFMessage -Level Debug -Message "Initializing libraries for $Type"
         Initialize-ExternalLibrary -Type $Type
-
-        # Replace tokens if any
-        Write-PSFMessage -Level Debug -Message "Replacing variable tokens"
-        foreach ($property in [DBOpsConfig]::EnumProperties() | Where-Object { $_ -ne 'Variables' }) {
-            $config.SetValue($property, (Resolve-VariableToken $config.$property $config.Variables))
-        }
 
         $scriptCollection = @()
         $preScriptCollection = @()
@@ -211,7 +198,7 @@
                 else {
                     $scriptContent = ""
                 }
-                $scriptCollection += [DbUp.Engine.SqlScript]::new($scriptItem.PackagePath, $scriptContent)
+                $scriptCollection += [DBOps.SqlScript]::new($scriptItem.PackagePath, $scriptContent)
             }
         }
 

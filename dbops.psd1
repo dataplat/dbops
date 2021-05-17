@@ -4,7 +4,7 @@
     RootModule             = 'dbops.psm1'
 
     # Version number of this module.
-    ModuleVersion          = '0.6.4'
+    ModuleVersion          = '0.7.0'
 
     # ID used to uniquely identify this module
     GUID                   = '16dff216-533a-4fa3-9b2e-4408dbe15e63'
@@ -89,7 +89,8 @@
         'ConvertTo-EncryptedString',
         'ConvertFrom-EncryptedString',
         'Invoke-DBOQuery',
-        'Update-DBOPackage'
+        'Update-DBOPackage',
+        'Update-DBOSchemaTable'
     )
 
     # Cmdlets to export from this module

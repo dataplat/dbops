@@ -25,8 +25,8 @@ Describe "Send-DBOMailMessage tests" -Tag $commandName, UnitTests {
         $status.Database = 'TestDatabase'
         $status.EndTime = [datetime]::Now.AddMinutes(10)
         $status.DeploymentLog = @('1','2','3')
-        $status.Scripts += [DbUp.Engine.SqlScript]::new('1', '')
-        $status.Scripts += [DbUp.Engine.SqlScript]::new('2', '')
+        $status.Scripts += [DBOps.SqlScript]::new('1', '')
+        $status.Scripts += [DBOps.SqlScript]::new('2', '')
 
         $mailParams = @{
             SmtpServer                 = 'test.smtp'
@@ -73,10 +73,6 @@ Describe "Send-DBOMailMessage tests" -Tag $commandName, UnitTests {
         }
         It "Should fail when smtpserver is empty" {
             Set-DBODefaultSetting -Temporary -Name mail.SmtpServer -Value ''
-            { $status | Send-DBOMailMessage } | Should throw
-        }
-        It "Should fail when Subject is empty" {
-            Set-DBODefaultSetting -Temporary -Name mail.Subject -Value ''
             { $status | Send-DBOMailMessage } | Should throw
         }
         It "Should fail when To is empty" {

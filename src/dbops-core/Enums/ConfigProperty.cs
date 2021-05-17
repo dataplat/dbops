@@ -1,12 +1,7 @@
-$enums = @'
-namespace DBOps {
-    public enum ConnectionType {
-        SqlServer,
-        Oracle,
-        MySQL,
-        PostgreSQL
-    }
-    public enum ConfigProperty {
+﻿namespace DBOps
+{
+    public enum ConfigProperty
+    {
         ApplicationName,
         SqlInstance,
         Database,
@@ -26,5 +21,3 @@ namespace DBOps {
         ConnectionAttribute
     }
 }
-'@
-Add-Type -TypeDefinition $enums -ErrorAction Stop

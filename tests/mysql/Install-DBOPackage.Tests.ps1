@@ -201,7 +201,7 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
-            $output | Should BeIn $standardOutput2
+            $output | Where-Object { $_ -notlike 'RecordsAffected:*' } | Should BeIn $standardOutput2
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
@@ -266,7 +266,7 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
             $file = Join-PSFPath -Normalize "$workFolder\delay.sql"
             "DO SLEEP(5); SELECT 'Successful!'" | Out-File $file
             $null = New-DBOPackage -ScriptPath $file -Name "$workFolder\delay" -Build 1.0 -Force -Configuration @{ ExecutionTimeout = 2 }
-            $timeoutError = if ($PSVersionTable.PSVersion.Major -eq 6) { 'Fatal error encountered during command execution' } else { 'Timeout expired.'}
+            $timeoutError = if ($PSVersionTable.PSVersion.Major -ge 6) { 'Fatal error encountered during command execution' } else { 'Timeout expired.'}
         }
         BeforeEach {
             $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
@@ -456,7 +456,7 @@ Describe "Install-DBOPackage MySQL tests" -Tag $commandName, IntegrationTests {
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
-            $output | Should BeIn $standardOutput2
+            $output | Where-Object { $_ -notlike 'RecordsAffected:*' } | Should BeIn $standardOutput2
             #Verifying objects
             $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name

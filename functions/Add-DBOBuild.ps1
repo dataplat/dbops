@@ -62,16 +62,17 @@ function Add-DBOBuild {
 
     .EXAMPLE
         # Add new build 2.1 to the existing package using modified files from .\Scripts\2.0
-        Get-ChildItem .\Scripts\2.0 | Add-DBOBuild -Path MyPackage.zip -Build 2.1 -UniqueOnly
+        Get-ChildItem .\Scripts\2.0 | Add-DBOBuild -Path MyPackage.zip -Build 2.1 -Type Unique
 
     .EXAMPLE
         # Add new build 3.0 to the existing package checking if there were any new files in the Scripts folder
-        Add-DBOBuild -Path MyPackage.zip -ScriptPath .\Scripts\* -Build 3.0 -NewOnly
+        Add-DBOBuild -Path MyPackage.zip -ScriptPath .\Scripts\* -Build 3.0 -Type New
 
     .NOTES
         See 'Get-Help New-DBOPackage' for additional info about packages.
 #>
     [CmdletBinding(SupportsShouldProcess)]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSReviewUnusedParameter", "")]
     param
     (
         [Parameter(Mandatory = $true,

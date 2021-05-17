@@ -27,17 +27,22 @@ $v2Journal = Get-Item $v2scripts | ForEach-Object { '2.0\' + $_.Name }
 $verificationScript = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\verification\select.sql"
 
 $newDbName = "_test_$commandName"
+$connParams = @{
+    SqlInstance = $script:mssqlInstance
+    Silent = $true
+    Credential = $script:mssqlCredential
+}
 
 Describe "Register-DBOPackage integration tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = New-Item $workFolder -ItemType Directory -Force
         $dropDatabaseScript = 'IF EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{0}]; END' -f $newDbName
-        $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database master -Query $dropDatabaseScript
+        $null = Invoke-DBOQuery @connParams -Database master -Query $dropDatabaseScript
     }
     AfterAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
-        $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database master -Query $dropDatabaseScript
+        $null = Invoke-DBOQuery @connParams -Database master -Query $dropDatabaseScript
     }
     Context "testing registration with CreateDatabase specified" {
         BeforeAll {
@@ -45,7 +50,7 @@ Describe "Register-DBOPackage integration tests" -Tag $commandName, IntegrationT
             $p1 = Add-DBOBuild -ScriptPath $v2scripts -Package $p1 -Build 2.0
         }
         It "should register version 1.0 in a new database using -CreateDatabase switch" {
-            $testResults = Register-DBOPackage $p1 -CreateDatabase -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+            $testResults = Register-DBOPackage $p1 -CreateDatabase @connParams -Database $newDbName -SchemaVersionTable $logTable
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (@($v1Journal) + @($v2Journal))
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -64,7 +69,7 @@ Describe "Register-DBOPackage integration tests" -Tag $commandName, IntegrationT
             "Created database $newDbName" | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
             'a' | Should Not BeIn $testResults.name
             'b' | Should Not BeIn $testResults.name
@@ -72,7 +77,7 @@ Describe "Register-DBOPackage integration tests" -Tag $commandName, IntegrationT
             'd' | Should Not BeIn $testResults.name
 
             #Verifying SchemaVersions table
-            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -Query "SELECT * FROM $logTable"
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -Query "SELECT * FROM $logTable"
             $testResults.ScriptName | Should Be (@($v1Journal) + @($v2Journal))
         }
     }
@@ -81,12 +86,12 @@ Describe "Register-DBOPackage integration tests" -Tag $commandName, IntegrationT
             $p2 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv2" -Build 1.0 -Force
             $p2 = Add-DBOBuild -ScriptPath $v2scripts -Package $p2 -Build 2.0
             $outputFile = "$workFolder\log.txt"
-            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $cleanupScript
         }
         It "should register version 1.0 without creating any objects" {
-            $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $before = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Register-DBOPackage -Package $p2 -Build 1.0 -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+            $testResults = Register-DBOPackage -Package $p2 -Build 1.0 @connParams -Database $newDbName -SchemaVersionTable $logTable
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v1Journal
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -102,7 +107,7 @@ Describe "Register-DBOPackage integration tests" -Tag $commandName, IntegrationT
             $v1Journal | ForEach-Object { "$_ was registered in table $logtable" } | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
             'a' | Should Not BeIn $testResults.name
             'b' | Should Not BeIn $testResults.name
@@ -111,13 +116,13 @@ Describe "Register-DBOPackage integration tests" -Tag $commandName, IntegrationT
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 1)
 
             #Verifying SchemaVersions table
-            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -Query "SELECT * FROM $logTable"
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -Query "SELECT * FROM $logTable"
             $testResults.ScriptName | Should Be $v1Journal
         }
         It "should register version 1.0 + 2.0 without creating any objects" {
-            $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $before = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Register-DBOPackage -Package $p2 -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+            $testResults = Register-DBOPackage -Package $p2 @connParams -Database $newDbName -SchemaVersionTable $logTable
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v2Journal
             $testResults.SqlInstance | Should Be $script:mssqlInstance
@@ -133,7 +138,7 @@ Describe "Register-DBOPackage integration tests" -Tag $commandName, IntegrationT
             $v2Journal | ForEach-Object { "$_ was registered in table $logtable" } | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
             'a' | Should Not BeIn $testResults.name
             'b' | Should Not BeIn $testResults.name
@@ -142,20 +147,20 @@ Describe "Register-DBOPackage integration tests" -Tag $commandName, IntegrationT
             ($testResults | Measure-Object).Count | Should Be $rowsBefore
 
             #Verifying SchemaVersions table
-            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -Query "SELECT * FROM $logTable"
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -Query "SELECT * FROM $logTable"
             $testResults.ScriptName | Should Be (@($v1Journal) + @($v2Journal))
         }
     }
     Context  "$commandName whatif tests" {
         BeforeAll {
             $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force
-            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $cleanupScript
         }
         AfterAll {
-            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy nothing" {
-            $testResults = Register-DBOPackage $p1 -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent -WhatIf
+            $testResults = Register-DBOPackage $p1 @connParams -Database $newDbName -SchemaVersionTable $logTable -WhatIf
             $testResults.SqlInstance | Should Be $script:mssqlInstance
             $testResults.Database | Should Be $newDbName
             $testResults.SourcePath | Should Be $p1.FullName
@@ -169,7 +174,7 @@ Describe "Register-DBOPackage integration tests" -Tag $commandName, IntegrationT
             "Running in WhatIf mode - no registration performed." | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             $logTable | Should Not BeIn $testResults.name
             'a' | Should Not BeIn $testResults.name
             'b' | Should Not BeIn $testResults.name

@@ -17,7 +17,7 @@ function Invoke-DBOQuery {
         Pipeline implementation of InputFile. Accepts output from Get-Item and Get-ChildItem, as well as simple strings and arrays.
 
     .PARAMETER SqlInstance
-        Database server to connect to. SQL Server only for now.
+        Database server to use.
         Aliases: Server, SQLServer, DBServer, Instance
 
     .PARAMETER Database
@@ -46,7 +46,7 @@ function Invoke-DBOQuery {
 
     .PARAMETER Variables
         Hashtable with variables that can be used inside the scripts and deployment parameters.
-        Proper format of the variable tokens is #{MyVariableName}
+        Proper format of the variable tokens is #{MyVariableName}. Format can be changed using "Set-DBODefaultSetting -Name config.variabletoken"
         Can also be provided as a part of Configuration hashtable: -Configuration @{ Variables = @{ Var1 = ...; Var2 = ...}}
         Will augment and/or overwrite Variables defined inside the package.
 
@@ -69,7 +69,7 @@ function Invoke-DBOQuery {
 
     .PARAMETER Type
         Defines the driver to use when connecting to the database server.
-        Available options: SqlServer (default), Oracle
+        Available options: SqlServer (default), Oracle, PostgreSQL, MySQL
 
     .PARAMETER As
         Specifies output type. Valid options for this parameter are 'DataSet', 'DataTable', 'DataRow', 'PSObject', and 'SingleValue'
@@ -216,23 +216,11 @@ function Invoke-DBOQuery {
         }
     }
     process {
-        $config = New-DBOConfig -Configuration $Configuration
-        #Merge custom parameters into a configuration
-        $newConfig = @{ }
-        foreach ($key in ($PSBoundParameters.Keys)) {
-            if ($key -in [DBOpsConfig]::EnumProperties()) {
-                $newConfig.$key = $PSBoundParameters[$key]
-            }
-        }
-        $config.Merge($newConfig)
+        # Merge parameters in a new config
+        $config = Merge-Config -BoundParameters $PSBoundParameters -Package $package -ProcessVariables
 
         # Initialize external libraries if needed
         Initialize-ExternalLibrary -Type $Type
-
-        #Replace tokens if any
-        foreach ($property in [DBOpsConfig]::EnumProperties() | Where-Object { $_ -ne 'Variables' }) {
-            $config.SetValue($property, (Resolve-VariableToken $config.$property $config.Variables))
-        }
 
         #Build connection string
         Write-PSFMessage -Level Debug -Message "Getting the connection object"

@@ -1,3 +1,5 @@
+# Release notes for v0.7.0:
+- ### Improving schema history table - new columns (#124) by @nvarscar
 # Release notes for v0.6.4:
 - ### Forcing the string datatype onto columns when -ReturnAsText is used (#115) by @nvarscar
 # Release notes for v0.6.3:

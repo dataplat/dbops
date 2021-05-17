@@ -234,7 +234,7 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
-            $output | Should BeIn $standardOutput2
+            $output | Where-Object { $_ -notlike 'RecordsAffected:*' } | Should BeIn $standardOutput2
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
             $logTable | Should BeIn $testResults.NAME
@@ -463,7 +463,7 @@ Describe "Install-DBOPackage Oracle tests" -Tag $commandName, IntegrationTests {
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" | Select-Object -Skip 1
-            $output | Should BeIn $standardOutput2
+            $output | Where-Object { $_ -notlike 'RecordsAffected:*' } | Should BeIn $standardOutput2
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
             $logTable | Should BeIn $testResults.NAME

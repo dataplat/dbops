@@ -2,7 +2,7 @@
     "Oracle": [
         {
             "Name": "Oracle.ManagedDataAccess",
-            "MinimumVersion": "12.2.1100",
+            "RequiredVersion": "12.2.1100",
             "Path": [
                 "lib\\net40\\Oracle.ManagedDataAccess.dll"
             ],
@@ -12,7 +12,7 @@
         },
         {
             "Name": "Oracle.ManagedDataAccess.Core",
-            "MinimumVersion": "2.18.3",
+            "RequiredVersion": "2.12.0-beta2",
             "Path": [
                 "lib\\netstandard2.0\\Oracle.ManagedDataAccess.dll"
             ],

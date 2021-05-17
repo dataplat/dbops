@@ -32,22 +32,28 @@ $outFile = Join-PSFPath -Normalize "$testRoot\etc\outLog.txt"
 $newDbName = "test_dbops_InstallDBOSqlScript"
 $dropDatabaseScript = 'DROP DATABASE IF EXISTS `{0}`' -f $newDbName
 $createDatabaseScript = 'CREATE DATABASE IF NOT EXISTS `{0}`' -f $newDbName
+$connParams = @{
+    Type = "MySQL"
+    SqlInstance = $script:mysqlInstance
+    Credential = $script:mysqlCredential
+    Silent = $true
+}
 
 Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, IntegrationTests {
     BeforeAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
         $null = New-Item $workFolder -ItemType Directory -Force
-        $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
+        $null = Invoke-DBOQuery @connParams -Database mysql -Query $dropDatabaseScript, $createDatabaseScript
     }
     AfterAll {
         if ((Test-Path $workFolder) -and $workFolder -like '*.Tests.dbops') { Remove-Item $workFolder -Recurse }
-        $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript
+        $null = Invoke-DBOQuery @connParams -Database mysql -Query $dropDatabaseScript
     }
     Context "testing regular deployment with CreateDatabase specified" {
         It "should deploy version 1.0 to a new database using -CreateDatabase switch" {
             # drop the database before installing the package
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database mysql -Query $dropDatabaseScript
-            $testResults = Install-DBOScript -Absolute -Type MySQL -ScriptPath $v1scripts -CreateDatabase -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent
+            $null = Invoke-DBOQuery @connParams -Database mysql -Query $dropDatabaseScript
+            $testResults = Install-DBOScript -Absolute @connParams -ScriptPath $v1scripts -CreateDatabase  -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt"
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:mysqlInstance
@@ -65,7 +71,7 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
             "Created database $newDbName" | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
@@ -76,19 +82,19 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
     }
     Context "testing transactional deployment of scripts" {
         BeforeEach {
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $cleanupScript
         }
         It "Should throw an error and not create any objects" {
             #Running package
             try {
-                $null = Install-DBOScript -Absolute -Type MySQL -Path $tranFailScripts -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod SingleTransaction -Silent
+                $null = Install-DBOScript -Absolute @connParams -Path $tranFailScripts -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod SingleTransaction
             }
             catch {
                 $testResults = $_
             }
             $testResults.Exception.Message | Should Be "Table 'a' already exists"
             #Verifying objects
-            $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             # Create table cannot be rolled back in MySQL
             $logTable | Should -BeIn $testResults.name
             'a' | Should -BeIn $testResults.name
@@ -99,19 +105,19 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
     }
     Context "testing non transactional deployment of scripts" {
         BeforeAll {
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $cleanupScript
         }
         It "Should throw an error and create one object" {
             #Running package
             try {
-                $null = Install-DBOScript -Absolute -Type MySQL -Path $tranFailScripts -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent
+                $null = Install-DBOScript -Absolute @connParams -Path $tranFailScripts -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction
             }
             catch {
                 $testResults = $_
             }
             $testResults.Exception.Message | Should Be "Table 'a' already exists"
             #Verifying objects
-            $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should Not BeIn $testResults.name
@@ -121,10 +127,10 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
     }
     Context "testing script deployment" {
         BeforeAll {
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy version 1.0" {
-            $testResults = Install-DBOScript -Absolute -Type MySQL -ScriptPath $v1scripts -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+            $testResults = Install-DBOScript -Absolute @connParams -ScriptPath $v1scripts -Database $newDbName -SchemaVersionTable $logTable
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:mysqlInstance
@@ -140,15 +146,26 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
             'c' | Should Not BeIn $testResults.name
             'd' | Should Not BeIn $testResults.name
+
+            #Validating schema version table
+            $svResults = Invoke-DBOQuery @connParams -Database $newDbName -Query "SELECT * FROM $logTable"
+            $svResults.Checksum | Should -Not -BeNullOrEmpty
+            $svResults.ExecutionTime | Should -BeGreaterOrEqual 0
+            if ($script:mysqlCredential) {
+                $svResults.AppliedBy | Should -Be $script:mysqlCredential.UserName
+            }
+            else {
+                $svResults.AppliedBy | Should -Not -BeNullOrEmpty
+            }
         }
         It "should deploy version 2.0" {
-            $testResults = Install-DBOScript -Absolute -Type MySQL -ScriptPath $v2scripts -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+            $testResults = Install-DBOScript -Absolute @connParams -ScriptPath $v2scripts -Database $newDbName -SchemaVersionTable $logTable
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v2scripts).Path
             $testResults.SqlInstance | Should Be $script:mysqlInstance
@@ -164,7 +181,7 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
@@ -174,10 +191,10 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
     }
     Context "testing deployment order" {
         BeforeAll {
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $cleanupScript
         }
         It "should deploy 2.sql before 1.sql" {
-            $testResults = Install-DBOScript -Absolute -Type MySQL -ScriptPath $v2scripts, $v1scripts -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+            $testResults = Install-DBOScript -Absolute @connParams -ScriptPath $v2scripts, $v1scripts -Database $newDbName -SchemaVersionTable $logTable
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v2scripts, $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:mysqlInstance
@@ -193,14 +210,14 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             $logTable | Should BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
             'c' | Should BeIn $testResults.name
             'd' | Should BeIn $testResults.name
             #Verifying order
-            $r1 = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "SELECT scriptname FROM $logtable ORDER BY schemaversionid"
+            $r1 = Invoke-DBOQuery @connParams -Database $newDbName -Query "SELECT scriptname FROM $logtable ORDER BY schemaversionid"
             $r1.scriptname | Should Be (Get-Item $v2scripts, $v1scripts).FullName
         }
     }
@@ -208,14 +225,14 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
         BeforeAll {
             $file = "$workFolder\delay.sql"
             "DO SLEEP(5); SELECT 'Successful!'" | Out-File $file
-            $timeoutError = if ($PSVersionTable.PSVersion.Major -eq 6) { 'Fatal error encountered during command execution' } else { 'Timeout expired.' }
+            $timeoutError = if ($PSVersionTable.PSVersion.Major -ge 6) { 'Fatal error encountered during command execution' } else { 'Timeout expired.' }
         }
         BeforeEach {
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $cleanupScript
         }
         It "should throw timeout error" {
             try {
-                $null = Install-DBOScript -Absolute -Type MySQL -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 2
+                $null = Install-DBOScript -Absolute @connParams -ScriptPath "$workFolder\delay.sql" -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 2
             }
             catch {
                 $testResults = $_
@@ -227,7 +244,7 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
             $output | Should Not BeLike '*Successful!*'
         }
         It "should successfully run within specified timeout" {
-            $testResults = Install-DBOScript -Absolute -Type MySQL -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 6
+            $testResults = Install-DBOScript -Absolute @connParams -ScriptPath "$workFolder\delay.sql" -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 6
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
             $testResults.SqlInstance | Should Be $script:mysqlInstance
@@ -246,7 +263,7 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
             $output | Should BeLike '*Successful!*'
         }
         It "should successfully run with infinite timeout" {
-            $testResults = Install-DBOScript -Absolute -Type MySQL -ScriptPath "$workFolder\delay.sql" -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Silent -ExecutionTimeout 0
+            $testResults = Install-DBOScript -Absolute @connParams -ScriptPath "$workFolder\delay.sql" -Database $newDbName -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 0
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
             $testResults.SqlInstance | Should Be $script:mysqlInstance
@@ -268,12 +285,12 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
     }
     Context  "$commandName whatif tests" {
         BeforeAll {
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $cleanupScript
         }
         AfterAll {
         }
         It "should deploy nothing" {
-            $testResults = Install-DBOScript -Absolute -Type MySQL -ScriptPath $v1scripts -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent -WhatIf
+            $testResults = Install-DBOScript -Absolute @connParams -ScriptPath $v1scripts -Database $newDbName -SchemaVersionTable $logTable -WhatIf
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be $v1scripts
             $testResults.SqlInstance | Should Be $script:mysqlInstance
@@ -290,7 +307,7 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
             "$v1scripts would have been executed - WhatIf mode." | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             $logTable | Should Not BeIn $testResults.name
             'a' | Should Not BeIn $testResults.name
             'b' | Should Not BeIn $testResults.name
@@ -300,15 +317,15 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
     }
     Context "testing deployment without specifying SchemaVersion table" {
         BeforeAll {
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $cleanupScript
         }
         AfterAll {
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "DROP TABLE IF EXISTS SchemaVersions"
+            $null = Invoke-DBOQuery @connParams -Database $newDbName -Query "DROP TABLE IF EXISTS SchemaVersions"
         }
         It "should deploy version 1.0" {
-            $before = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
+            $before = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Install-DBOScript -Absolute -Type MySQL -ScriptPath $v1scripts -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -Silent
+            $testResults = Install-DBOScript -Absolute @connParams -ScriptPath $v1scripts -Database $newDbName
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:mysqlInstance
@@ -324,7 +341,7 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             'SchemaVersions' | Should BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
@@ -333,9 +350,9 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 3)
         }
         It "should deploy version 2.0" {
-            $before = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
+            $before = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Install-DBOScript -Absolute -Type MySQL -ScriptPath $v2scripts -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -Silent
+            $testResults = Install-DBOScript -Absolute @connParams -ScriptPath $v2scripts -Database $newDbName
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v2scripts).Path
             $testResults.SqlInstance | Should Be $script:mysqlInstance
@@ -351,7 +368,7 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
             'Upgrade successful' | Should BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             'SchemaVersions' | Should BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
@@ -362,15 +379,15 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
     }
     Context "testing deployment with no history`: SchemaVersion is null" {
         BeforeEach {
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
+            $null = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $cleanupScript
         }
         AfterEach {
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -Query "DROP TABLE IF EXISTS SchemaVersions"
+            $null = Invoke-DBOQuery @connParams -Database $newDbName -Query "DROP TABLE IF EXISTS SchemaVersions"
         }
         It "should deploy version 1.0 without creating SchemaVersions" {
-            $before = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
+            $before = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
-            $testResults = Install-DBOScript -Absolute -Type MySQL -ScriptPath $v1scripts  -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -Silent -SchemaVersionTable $null
+            $testResults = Install-DBOScript -Absolute @connParams -ScriptPath $v1scripts -Database $newDbName -SchemaVersionTable $null
             $testResults.Successful | Should Be $true
             $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
             $testResults.SqlInstance | Should Be $script:mysqlInstance
@@ -387,7 +404,7 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
             'Checking whether journal table exists..' | Should Not BeIn $testResults.DeploymentLog
 
             #Verifying objects
-            $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             'SchemaVersions' | Should Not BeIn $testResults.name
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
@@ -396,16 +413,47 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 2)
         }
     }
+    Context "testing deployments to the native DbUp SchemaVersion table" {
+        BeforeEach {
+            $null = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $cleanupScript
+        }
+        It "Should deploy version 1 to an older schemaversion table" {
+            # create old SchemaVersion table
+            $query = @'
+            CREATE TABLE {0}
+            (
+                `schemaversionid` INT NOT NULL AUTO_INCREMENT,
+                `scriptname` VARCHAR(255) NOT NULL,
+                `applied` TIMESTAMP NOT NULL,
+                PRIMARY KEY (`schemaversionid`)
+            )
+'@ -f $logtable
+            $null = Invoke-DBOQuery @connParams -Query $query -Database $newDbName
+            $testResults = Install-DBOScript -ScriptPath $v1scripts @connParams -SchemaVersionTable $logTable -Database $newDbName
+            $testResults.Successful | Should -Be $true
+            $testResults.Scripts.Name | Should -Be (Get-Item $v1scripts).Name
+            #Verifying objects
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
+            $logTable | Should -BeIn $testResults.name
+            'a' | Should -BeIn $testResults.name
+            'b' | Should -BeIn $testResults.name
+            'c' | Should -Not -BeIn $testResults.name
+            'd' | Should -Not -BeIn $testResults.name
+            $schemaTableContents = Invoke-DBOQuery @connParams -Database $newDbName -Query "SELECT * FROM $logTable" -As DataTable
+            $schemaTableContents.Columns.ColumnName | Should -Be @("schemaversionid", "scriptname", "applied")
+            $schemaTableContents.Rows[0].ScriptName | Should -Be (Get-Item $v1scripts).Name
+        }
+    }
     Context "deployments with errors should throw terminating errors" {
         BeforeAll {
-            $null = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $cleanupScript
-            $null = Install-DBOScript -Absolute -Type MySQL -ScriptPath $v1scripts  -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -Silent -SchemaVersionTable $null
+            $null = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $cleanupScript
+            $null = Install-DBOScript -Absolute @connParams -ScriptPath $v1scripts -Database $newDbName -SchemaVersionTable $null
         }
         It "Should return terminating error when object exists" {
             #Running package
             try {
                 $testResults = $null
-                $testResults = Install-DBOScript -Absolute -Type MySQL -Path $tranFailScripts -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent
+                $testResults = Install-DBOScript -Absolute @connParams -Path $tranFailScripts -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction
             }
             catch {
                 $errorObject = $_
@@ -418,8 +466,8 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
             #Running package
             try {
                 $testResults = $null
-                $null = Install-DBOScript -Absolute -Type MySQL -Path $tranFailScripts -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction -Silent
-                $testResults = Install-DBOScript -Absolute -Type MySQL -ScriptPath $v2scripts -SqlInstance $script:mysqlInstance -Credential $script:mysqlCredential -Database $newDbName -SchemaVersionTable $logTable -Silent
+                $null = Install-DBOScript -Absolute @connParams -Path $tranFailScripts -Database $newDbName -SchemaVersionTable $logTable -DeploymentMethod NoTransaction
+                $testResults = Install-DBOScript -Absolute @connParams -ScriptPath $v2scripts -Database $newDbName -SchemaVersionTable $logTable
             }
             catch {
                 $errorObject = $_
@@ -428,7 +476,7 @@ Describe "Install-DBOScript MySQL integration tests" -Tag $commandName, Integrat
             $errorObject | Should Not BeNullOrEmpty
             $errorObject.Exception.Message | Should Be "Table 'a' already exists"
             #Verifying objects
-            $testResults = Invoke-DBOQuery -Type MySQL -SqlInstance $script:mysqlInstance -Silent -Credential $script:mysqlCredential -Database $newDbName -InputFile $verificationScript
+            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             'a' | Should BeIn $testResults.name
             'b' | Should BeIn $testResults.name
             'c' | Should Not BeIn $testResults.name

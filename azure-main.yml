@@ -1,0 +1,28 @@
+trigger:
+  branches:
+    include:
+    - main
+  paths:
+    exclude:
+      - docs
+      - README.md
+pr: none
+jobs:
+- job: cut_new_release_branch
+  displayName: Agent phase
+  cancelTimeoutInMinutes: 1
+  pool:
+    vmImage: windows-2019
+  steps:
+  - checkout: self
+    clean: true
+    persistCredentials: True
+  - task: PowerShell@2
+    displayName: Bump up version and cut a release branch
+    inputs:
+      filePath: .\build\bump_version.ps1
+      arguments: .\dbops.psd1
+    env:
+      git_user_email: $(gitUserEmail)
+      git_username: $(gitUsername)
+      MY_ACCESS_TOKEN: $(System.AccessToken)

@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net45;netstandard2.0</TargetFrameworks>
+    <RootNamespace>DBOps.Postgresql</RootNamespace>
+    <Version>0.7.0</Version>
+    <Authors>Kirill Kravtsov</Authors>
+    <Company>DBOps</Company>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="dbup-postgresql" Version="4.5.0" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\dbops-core\dbops-core.csproj" />
+  </ItemGroup>
+
+</Project>

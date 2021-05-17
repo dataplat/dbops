@@ -60,7 +60,7 @@ $dropObjectsScript = Join-PSFPath -Normalize "$testRoot\etc\oracle-tests\verific
 
 $workFolder = Join-PSFPath -Normalize "$testRoot\etc" "$commandName.Tests.dbops"
 $unpackedFolder = Join-PSFPath -Normalize $workFolder 'unpacked'
-$logTable = "testdeploy"
+$logTable = "TESTDEPLOY"
 $cleanupScript = Join-PSFPath -Normalize "$testRoot\etc\oracle-tests\Cleanup.sql"
 $tranFailScripts = Join-PSFPath -Normalize "$testRoot\etc\oracle-tests\transactional-failure"
 $v1scripts = Join-PSFPath -Normalize "$testRoot\etc\oracle-tests\success\1.sql"
@@ -111,6 +111,12 @@ Describe "Install-DBOScript Oracle integration tests" -Tag $commandName, Integra
             'b' | Should BeIn $testResults.NAME
             'c' | Should Not BeIn $testResults.NAME
             'd' | Should Not BeIn $testResults.NAME
+
+            #Validating schema version table
+            $svResults = Invoke-DBOQuery @connParams -Query "SELECT * FROM $logTable"
+            $svResults.CHECKSUM | Should -Not -BeNullOrEmpty
+            $svResults.ExecutionTime | Should -BeGreaterOrEqual 0
+            $svResults.APPLIEDBY | Should -Be $oraUserName
         }
     }
     Context "testing transactional deployment of scripts" {
@@ -421,6 +427,51 @@ Describe "Install-DBOScript Oracle integration tests" -Tag $commandName, Integra
             'c' | Should Not BeIn $testResults.NAME
             'd' | Should Not BeIn $testResults.NAME
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 2)
+        }
+    }
+    Context "testing deployments to the native DbUp SchemaVersion table" {
+        BeforeAll {
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
+        }
+        AfterAll {
+            $null = Invoke-DBOQuery @connParams -InputFile $dropObjectsScript
+        }
+        It "Should deploy version 1 to an older schemaversion table" {
+            # create old SchemaVersion table
+            $query = @"
+            CREATE TABLE $logTable (
+                schemaversionid NUMBER(10),
+                scriptname VARCHAR2(255) NOT NULL,
+                applied TIMESTAMP NOT NULL,
+                CONSTRAINT PK_$logTable PRIMARY KEY (schemaversionid)
+            )
+            /
+            CREATE SEQUENCE $($logTable)_sequence
+            /
+            CREATE OR REPLACE TRIGGER $($logTable)_on_insert
+            BEFORE INSERT ON $logTable
+            FOR EACH ROW
+            BEGIN
+                SELECT $($logTable)_sequence.nextval
+                INTO :new.schemaversionid
+                FROM dual;
+            END;
+"@
+            $null = Invoke-DBOQuery @connParams -Query $query
+            $testResults = Install-DBOScript -ScriptPath $v1scripts @connParams -SchemaVersionTable $logTable
+            $testResults.Successful | Should -Be $true
+            $testResults.Scripts.Name | Should -Be (Get-Item $v1scripts).Name
+            #Verifying objects
+            $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
+            $logTable | Should -BeIn $testResults.name
+            'a' | Should -BeIn $testResults.name
+            'b' | Should -BeIn $testResults.name
+            'c' | Should -Not -BeIn $testResults.name
+            'd' | Should -Not -BeIn $testResults.name
+            $schemaTableColumns = Invoke-DBOQuery @connParams -Query "select c.COLUMN_NAME from USER_TAB_COLUMNS c JOIN USER_TABLES t ON c.TABLE_NAME = t.TABLE_NAME where c.TABLE_NAME = '$logTable'"
+            $schemaTableColumns.COLUMN_NAME | Should -Be @("schemaversionid", "scriptname", "applied")
+            $schemaTableContents = Invoke-DBOQuery @connParams -Query "select scriptname from $logTable"
+            $schemaTableContents.SCRIPTNAME | Should -Be (Get-Item $v1scripts).Name
         }
     }
     Context "deployments with errors should throw terminating errors" {

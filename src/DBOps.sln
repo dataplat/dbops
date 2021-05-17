@@ -1,0 +1,58 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29306.81
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbops-core", "dbops-core\dbops-core.csproj", "{9C2BB45E-58FB-42C4-A0C1-E23388C174BE}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbops-tests", "dbops-tests\dbops-tests.csproj", "{64FDC104-4755-4EBA-80FB-DD4F68B4E9E2}"
+	ProjectSection(ProjectDependencies) = postProject
+		{BA12338E-7A20-4947-A378-38E35B502D39} = {BA12338E-7A20-4947-A378-38E35B502D39}
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbops-sqlserver", "dbops-sqlserver\dbops-sqlserver.csproj", "{DA4B51B3-6919-47C2-8BAA-460E8264288B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbops-postgresql", "dbops-postgresql\dbops-postgresql.csproj", "{21B2057E-CE33-4B89-A930-8147634768FA}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbops-mysql", "dbops-mysql\dbops-mysql.csproj", "{309F2AB1-CD6E-4465-92C3-9F94B08242F8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dbops-oracle", "dbops-oracle\dbops-oracle.csproj", "{BA12338E-7A20-4947-A378-38E35B502D39}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9C2BB45E-58FB-42C4-A0C1-E23388C174BE}.Debug|Any CPU.ActiveCfg = Release|Any CPU
+		{9C2BB45E-58FB-42C4-A0C1-E23388C174BE}.Debug|Any CPU.Build.0 = Release|Any CPU
+		{9C2BB45E-58FB-42C4-A0C1-E23388C174BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C2BB45E-58FB-42C4-A0C1-E23388C174BE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{64FDC104-4755-4EBA-80FB-DD4F68B4E9E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64FDC104-4755-4EBA-80FB-DD4F68B4E9E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64FDC104-4755-4EBA-80FB-DD4F68B4E9E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64FDC104-4755-4EBA-80FB-DD4F68B4E9E2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA4B51B3-6919-47C2-8BAA-460E8264288B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA4B51B3-6919-47C2-8BAA-460E8264288B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA4B51B3-6919-47C2-8BAA-460E8264288B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA4B51B3-6919-47C2-8BAA-460E8264288B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21B2057E-CE33-4B89-A930-8147634768FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21B2057E-CE33-4B89-A930-8147634768FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21B2057E-CE33-4B89-A930-8147634768FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21B2057E-CE33-4B89-A930-8147634768FA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{309F2AB1-CD6E-4465-92C3-9F94B08242F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{309F2AB1-CD6E-4465-92C3-9F94B08242F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{309F2AB1-CD6E-4465-92C3-9F94B08242F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{309F2AB1-CD6E-4465-92C3-9F94B08242F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BA12338E-7A20-4947-A378-38E35B502D39}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA12338E-7A20-4947-A378-38E35B502D39}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA12338E-7A20-4947-A378-38E35B502D39}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA12338E-7A20-4947-A378-38E35B502D39}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {70BB40C3-945A-4D3E-A419-5BEB5FF496E8}
+	EndGlobalSection
+EndGlobal

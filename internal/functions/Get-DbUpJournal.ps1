@@ -31,16 +31,16 @@ function Get-DbUpJournal {
             if (!$schemaName) {
                 $schemaName = 'dbo'
             }
-            $dbUpJournalType = [DbUp.SqlServer.SqlTableJournal]
+            $dbUpJournalType = [DBOps.SqlServer.SqlTableJournal]
         }
         elseif ($Type -eq [DBOps.ConnectionType]::Oracle) {
-            $dbUpJournalType = [DbUp.Oracle.OracleTableJournal]
+            $dbUpJournalType = [DBOps.Oracle.OracleTableJournal]
         }
         elseif ($Type -eq [DBOps.ConnectionType]::MySQL) {
-            $dbUpJournalType = [DBOpsMySqlTableJournal]
+            $dbUpJournalType = [DBOps.MySql.MySqlTableJournal]
         }
         elseif ($Type -eq [DBOps.ConnectionType]::PostgreSQL) {
-            $dbUpJournalType = [DbUp.Postgresql.PostgresqlTableJournal]
+            $dbUpJournalType = [DBOps.Postgresql.PostgresqlTableJournal]
         }
         else {
             Stop-PSFFunction -Message "Unknown type $Type" -EnableException $true

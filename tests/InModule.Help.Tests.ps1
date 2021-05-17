@@ -16,7 +16,7 @@ else {
 }
 if ($SkipHelpTest) { return }
 $includedNames = (Get-ChildItem "$here\..\functions" | Where-Object Name -like "*.ps1" ).BaseName
-$commands = Get-Command -Module (Get-Module dbops) -CommandType Cmdlet, Function, Workflow | Where-Object Name -in $includedNames
+$commands = Get-Command -Module (Get-Module dbops) -CommandType Cmdlet, Function | Where-Object Name -in $includedNames
 
 ## When testing help, remember that help is cached at the beginning of each session.
 ## To test, restart session.
@@ -62,10 +62,10 @@ foreach ($command in $commands) {
         }
 
         $testhelpall += 1
-        if ([String]::IsNullOrEmpty(($Help.Examples.Example.Remarks | Select-Object -First 1).Text)) {
+        if ([String]::IsNullOrEmpty(($Help.Examples.Example.code | Select-Object -First 1))) {
             # Should be at least one example description
             It "gets example help from $commandName" {
-                ($Help.Examples.Example.Remarks | Select-Object -First 1).Text | Should Not BeNullOrEmpty
+                $Help.Examples.Example.code | Select-Object -First 1 | Should Not BeNullOrEmpty
             }
             $testhelperrors += 1
         }

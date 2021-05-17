@@ -14,7 +14,7 @@ function Register-DBOPackage {
         Pipeline implementation of Path. Can also contain a DBOpsPackage object.
 
     .PARAMETER SqlInstance
-        Database server to connect to. SQL Server only for now.
+        Database server to use.
         Aliases: Server, SQLServer, DBServer, Instance
 
     .PARAMETER Database
@@ -57,7 +57,7 @@ function Register-DBOPackage {
 
     .PARAMETER Variables
         Hashtable with variables that can be used inside the scripts and deployment parameters.
-        Proper format of the variable tokens is #{MyVariableName}
+        Proper format of the variable tokens is #{MyVariableName}. Format can be changed using "Set-DBODefaultSetting -Name config.variabletoken"
         Can also be provided as a part of Configuration hashtable: -Configuration @{ Variables = @{ Var1 = ...; Var2 = ...}}
         Will augment and/or overwrite Variables defined inside the package.
 
@@ -83,7 +83,7 @@ function Register-DBOPackage {
 
     .PARAMETER Type
         Defines the driver to use when connecting to the database server.
-        Available options: SqlServer (default), Oracle
+        Available options: SqlServer (default), Oracle, PostgreSQL, MySQL
 
     .PARAMETER Build
         Only register certain builds from the package.
@@ -171,20 +171,9 @@ function Register-DBOPackage {
         elseif ($PsCmdlet.ParameterSetName -eq 'Pipeline') {
             $package = Get-DBOPackage -InputObject $InputObject
         }
-        #Getting new config with package defaults
-        $config = New-DBOConfig -Configuration $package.Configuration
 
-        #Merging the custom configuration provided
-        $config = $config | Get-DBOConfig -Configuration $Configuration
-
-        #Merge custom parameters into a configuration
-        $newConfig = @{}
-        foreach ($key in ($PSBoundParameters.Keys)) {
-            if ($key -in [DBOpsConfig]::EnumProperties()) {
-                $newConfig.$key = $PSBoundParameters[$key]
-            }
-        }
-        $config.Merge($newConfig)
+        # Merge parameters in a new config
+        $config = Merge-Config -BoundParameters $PSBoundParameters -Package $package
 
         #Prepare deployment function call parameters
         $params = @{
@@ -199,7 +188,7 @@ function Register-DBOPackage {
             }
         }
         Write-PSFMessage -Level Verbose -Message "Preparing to register the package $($package.FileName)"
-        Invoke-DBODeployment @params
+        Invoke-Deployment @params
     }
     end {
 

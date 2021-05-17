@@ -34,7 +34,12 @@ Get-DBOModuleFileList -Type Functions
         $obj.Path = $Path
         $obj.Directory = Split-Path $Path -Parent
         $obj.Type = $Type
-        $file = Get-Item -Path (Join-Path (Get-Item $PSScriptRoot).Parent.FullName $Path)
+        if ($Path -like '*:*') {
+            $file = Get-Item -Path $Path
+        }
+        else {
+            $file = Get-Item -Path (Join-Path (Get-Item $PSScriptRoot).Parent.FullName $Path)
+        }
         $obj.FullName = $file.FullName
         $obj.Name = $file.Name
         $obj

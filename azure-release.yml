@@ -1,0 +1,43 @@
+
+trigger:
+  branches:
+    include:
+    - release/*
+pr: none
+jobs:
+- job: build_artifacts
+  displayName: Agent phase
+  cancelTimeoutInMinutes: 1
+  pool:
+    vmImage: windows-2019
+  steps:
+  - checkout: self
+    clean: true
+    persistCredentials: True
+  - task: PowerShell@2
+    displayName: Prepare build
+    inputs:
+      filePath: .\build\build_prep.ps1
+  - task: PowerShell@2
+    displayName: Build libraries
+    inputs:
+      filePath: .\build.ps1
+  - task: PowerShell@2
+    displayName: Copy libraries
+    inputs:
+      filePath: .\build\copy_build_files.ps1
+  - task: PowerShell@2
+    displayName: Create folder and move files to it
+    inputs:
+      targetType: inline
+      script: |
+        New-Item dbops -Type Directory
+        Get-Item bin, functions, internal, *.ps*1, license.txt | Foreach-Object { Move-Item $_ .\dbops }
+        Write-Host "##vso[build.addbuildtag]Release"
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Artifact: dbops'
+    env:
+      MY_ACCESS_TOKEN: $(System.AccessToken)
+    inputs:
+      PathtoPublish: .\dbops
+      ArtifactName: dbops
