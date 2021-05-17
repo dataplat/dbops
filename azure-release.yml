@@ -21,7 +21,8 @@ jobs:
   - task: PowerShell@2
     displayName: Build libraries
     inputs:
-      filePath: .\build.ps1
+      filePath: .\build\build.ps1
+      arguments: -Script .\build.cake
   - task: PowerShell@2
     displayName: Copy libraries
     inputs:
