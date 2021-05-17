@@ -13,7 +13,7 @@ if (!$Batch) {
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
-    Write-Host "Running $commandName tests" -ForegroundColor Cyan
+    Write-Host "Running PostgreSQL $commandName tests" -ForegroundColor Cyan
 }
 
 . "$testRoot\constants.ps1"
