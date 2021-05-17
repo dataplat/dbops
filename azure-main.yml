@@ -6,11 +6,6 @@ trigger:
     exclude:
       - docs
       - README.md
-# resources:
-#   repositories:
-#   - repository: self
-#     type: git
-#     ref: main
 jobs:
 - job: cut_new_release_branch
   displayName: Agent phase
@@ -22,14 +17,10 @@ jobs:
     clean: true
     persistCredentials: True
   - task: PowerShell@2
-    displayName: Bump up version
+    displayName: Bump up version and cut a release branch
     inputs:
       filePath: .\build\bump_version.ps1
       arguments: .\dbops.psd1
-  - task: PowerShell@2
-    displayName: Cut a release branch
-    inputs:
-      filePath: .\build\git_release.ps1
     env:
       git_user_email: $(gitUserEmail)
       git_username: $(gitUsername)
