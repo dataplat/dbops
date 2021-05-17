@@ -1,0 +1,52 @@
+# 'Allow scripts to access the OAuth token' was selected in pipeline.  Add the following YAML to any steps requiring access:
+#       env:
+#           MY_ACCESS_TOKEN: $(System.AccessToken)
+# Variable 'gitcommitmessage' was defined in the Variables tab
+# Variable 'system.prefergit' was defined in the Variables tab
+trigger:
+  branches:
+    include:
+    - main
+  paths:
+    exclude:
+      - docs
+      - README.md
+# resources:
+#   repositories:
+#   - repository: self
+#     type: git
+#     ref: main
+jobs:
+- job: Build artifacts
+  displayName: Agent phase
+  cancelTimeoutInMinutes: 1
+  pool:
+    vmImage: windows-2019
+  steps:
+  - checkout: self
+    clean: true
+    persistCredentials: True
+  - task: PowerShell@2
+    displayName: Bump up version
+    inputs:
+      scriptName: .\build\bump_version.ps1
+      arguments: .\dbops.psd1
+  - task: PowerShell@2
+    displayName: Cut a release branch
+    inputs:
+      scriptType: inlineScript
+      scriptName: .\build\git_release.ps1
+  - task: PowerShell@2
+    displayName: Create folder and move files to it
+    inputs:
+      scriptType: inlineScript
+      inlineScript: |
+        New-Item dbops -Type Directory
+        Get-Item bin, functions, internal, *.ps*1, license.txt | Foreach-Object { Move-Item $_ .\dbops }
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Artifact: dbops'
+    env:
+      MY_ACCESS_TOKEN: $(System.AccessToken)
+    inputs:
+      PathtoPublish: .\dbops
+      ArtifactName: dbops
