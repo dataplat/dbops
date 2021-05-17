@@ -24,7 +24,7 @@ jobs:
   - task: PowerShell@2
     displayName: Copy libraries
     inputs:
-      filePath: .\copy_build_files.ps1
+      filePath: .\build\copy_build_files.ps1
       arguments: .\dbops
   - task: PowerShell@2
     displayName: Create folder and move files to it
