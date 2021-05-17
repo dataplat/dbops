@@ -16,6 +16,7 @@ environment:
   PGUSER: postgres
   PGPASSWORD: Password12!
   AssentNonInteractive: true
+  IGNORE_NORMALISATION_GIT_HEAD_MOVE: 1
 
 for:
   - matrix:
