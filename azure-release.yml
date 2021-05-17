@@ -3,6 +3,7 @@ trigger:
   branches:
     include:
     - release/*
+pr: none
 jobs:
 - job: build_artifacts
   displayName: Agent phase
