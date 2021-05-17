@@ -6,6 +6,7 @@ trigger:
     exclude:
       - docs
       - README.md
+pr: none
 jobs:
 - job: cut_new_release_branch
   displayName: Agent phase
