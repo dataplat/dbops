@@ -24,27 +24,12 @@ jobs:
   - task: PowerShell@2
     displayName: Bump up version
     inputs:
-      scriptName: .\build\bump_version.ps1
+      filePath: .\build\bump_version.ps1
       arguments: .\dbops.psd1
   - task: PowerShell@2
     displayName: Cut a release branch
     inputs:
-      scriptType: inlineScript
-      scriptName: .\build\git_release.ps1
+      filePath: .\build\git_release.ps1
     env:
       git_user_email: $(gitUserEmail)
       git_username: $(gitUsername)
-  - task: PowerShell@2
-    displayName: Create folder and move files to it
-    inputs:
-      scriptType: inlineScript
-      inlineScript: |
-        New-Item dbops -Type Directory
-        Get-Item bin, functions, internal, *.ps*1, license.txt | Foreach-Object { Move-Item $_ .\dbops }
-  - task: PublishBuildArtifacts@1
-    displayName: 'Publish Artifact: dbops'
-    env:
-      MY_ACCESS_TOKEN: $(System.AccessToken)
-    inputs:
-      PathtoPublish: .\dbops
-      ArtifactName: dbops

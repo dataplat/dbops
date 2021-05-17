@@ -29,8 +29,7 @@ jobs:
   - task: PowerShell@2
     displayName: Create folder and move files to it
     inputs:
-      scriptType: inlineScript
-      inlineScript: |
+      script: |
         New-Item dbops -Type Directory
         Get-Item bin, functions, internal, *.ps*1, license.txt | Foreach-Object { Move-Item $_ .\dbops }
         Write-Host "##vso[build.addbuildtag]Release"
