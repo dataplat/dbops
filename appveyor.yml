@@ -31,7 +31,7 @@ for:
     before_build:
       - ps: .\build\build_prep.ps1
     build_script:
-      - ps: .\build\build.ps1
+      - ps: .\build\build.ps1 -Script .\build.cake
     after_build:
       - ps: .\build\copy_build_files.ps1
 
@@ -55,7 +55,7 @@ for:
     before_build:
       - ps: .\build\build_prep.ps1
     build_script:
-      - ps: .\build\build.ps1
+      - ps: .\build\build.ps1 -Script .\build.cake
     after_build:
       - ps: .\build\copy_build_files.ps1
     before_test:
