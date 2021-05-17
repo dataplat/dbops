@@ -12,7 +12,7 @@ image:
 # Set build info
 environment:
   environment: development
-  version: 0.1.$(appveyor_build_number)
+  version: 0.1.$(APPVEYOR_BUILD_NUMBER)
   PGUSER: postgres
   PGPASSWORD: Password12!
   AssentNonInteractive: true
