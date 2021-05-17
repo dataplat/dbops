@@ -52,6 +52,12 @@ for:
       - mssql
       - mysql
       - postgresql
+    before_build:
+      - ps: .\build\build_prep.ps1
+    build_script:
+      - ps: .\build\build.ps1
+    after_build:
+      - ps: .\build\copy_build_files.ps1
     before_test:
       - sudo -u postgres psql -c "CREATE USER sa WITH SUPERUSER PASSWORD 'Password12!';"
       - ps: .\tests\appveyor.prep.ps1
