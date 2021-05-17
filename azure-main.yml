@@ -1,8 +1,3 @@
-# 'Allow scripts to access the OAuth token' was selected in pipeline.  Add the following YAML to any steps requiring access:
-#       env:
-#           MY_ACCESS_TOKEN: $(System.AccessToken)
-# Variable 'gitcommitmessage' was defined in the Variables tab
-# Variable 'system.prefergit' was defined in the Variables tab
 trigger:
   branches:
     include:
@@ -36,6 +31,9 @@ jobs:
     inputs:
       scriptType: inlineScript
       scriptName: .\build\git_release.ps1
+    env:
+      git_user_email: $(gitUserEmail)
+      git_username: $(gitUsername)
   - task: PowerShell@2
     displayName: Create folder and move files to it
     inputs:

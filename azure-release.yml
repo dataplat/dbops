@@ -1,8 +1,4 @@
-# 'Allow scripts to access the OAuth token' was selected in pipeline.  Add the following YAML to any steps requiring access:
-#       env:
-#           MY_ACCESS_TOKEN: $(System.AccessToken)
-# Variable 'gitcommitmessage' was defined in the Variables tab
-# Variable 'system.prefergit' was defined in the Variables tab
+
 trigger:
   branches:
     include:
