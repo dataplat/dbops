@@ -24,11 +24,11 @@ jobs:
   - task: PowerShell@2
     displayName: Copy libraries
     inputs:
-      filePath: .\copy_build_files.ps1
-      arguments: .\dbops
+      filePath: .\build\copy_build_files.ps1
   - task: PowerShell@2
     displayName: Create folder and move files to it
     inputs:
+      targetType: inline
       script: |
         New-Item dbops -Type Directory
         Get-Item bin, functions, internal, *.ps*1, license.txt | Foreach-Object { Move-Item $_ .\dbops }
