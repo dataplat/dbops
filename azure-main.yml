@@ -33,3 +33,4 @@ jobs:
     env:
       git_user_email: $(gitUserEmail)
       git_username: $(gitUsername)
+      MY_ACCESS_TOKEN: $(System.AccessToken)
