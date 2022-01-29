@@ -3,6 +3,13 @@ trigger:
     include:
     - main
   paths:
+    include:
+    - bin
+    - functions
+    - internal
+    - src
+    - dbops.ps*
+  paths:
     exclude:
       - docs
       - README.md
