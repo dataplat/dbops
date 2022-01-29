@@ -10,11 +10,13 @@ using System.Text;
 namespace DBOps.MySql
 {
     /// <summary>
-    /// An child class of <see cref="DbUp.Postgresql.PostgresqlTableJournal"/> that adds custom fields to the 
+    /// An child class of <see cref="DbUp.Postgresql.MySqlTableJournal"/> that adds custom fields to the 
     /// SchemaVersions table.
     /// </summary>
-    public class MySqlTableJournal: DbUp.MySql.MySqlTableJournal
+    public class MySqlTableJournal: DbUp.MySql.MySqlTableJournal, IJournal
     {
+        bool journalExists;
+        int? tableVersion = null;
         private readonly int maxTableVersion = 2;
         /// <summary>
         /// Creates a new MySql table journal.
@@ -92,7 +94,7 @@ $@"CREATE TABLE {FqSchemaTableName}
 
             var checksumParam = command.CreateParameter();
             checksumParam.ParameterName = "checksum";
-            checksumParam.Value = Helpers.CreateMD5(script.Contents);
+            checksumParam.Value = script.GetMD5();
             command.Parameters.Add(checksumParam);
 
             var etParam = command.CreateParameter();
@@ -160,7 +162,7 @@ $@"CREATE TABLE {FqSchemaTableName}
         public override void StoreExecutedScript(DbUp.Engine.SqlScript script, Func<IDbCommand> dbCommandFactory)
         {
             EnsureTableExistsAndIsLatestVersion(dbCommandFactory);
-            var tableVersion = GetTableVersion(dbCommandFactory);
+            tableVersion = GetTableVersion(dbCommandFactory);
             if (tableVersion == 2)
             {
                 using (var command = GetInsertScriptCommandV2(dbCommandFactory, (SqlScript)script))
@@ -181,6 +183,68 @@ $@"CREATE TABLE {FqSchemaTableName}
             return string.IsNullOrEmpty(SchemaTableSchema)
                 ? string.Format("select 1 from INFORMATION_SCHEMA.TABLES where TABLE_NAME = '{0}' and TABLE_SCHEMA = DATABASE()", UnquotedSchemaTableName)
                 : string.Format("select 1 from INFORMATION_SCHEMA.TABLES where TABLE_NAME = '{0}' and TABLE_SCHEMA = '{1}'", UnquotedSchemaTableName, SchemaTableSchema);
+        }
+        protected override string GetJournalEntriesSql()
+        {
+            return $"select scriptname from {FqSchemaTableName} order by scriptname";
+        }
+        protected string GetJournalEntriesSqlV2()
+        {
+            return $"select scriptname, checksum from {FqSchemaTableName} order by scriptname, checksum";
+        }
+
+        public new ExecutedScript[] GetExecutedScripts()
+        {
+            return ConnectionManager().ExecuteCommandsWithManagedConnection(dbCommandFactory =>
+            {
+                if (journalExists || DoesTableExist(dbCommandFactory))
+                {
+                    Log().WriteInformation("Fetching list of already executed scripts.");
+
+                    tableVersion = GetTableVersion(dbCommandFactory);
+
+                    var scripts = new List<ExecutedScript>();
+
+                    using (var command = GetJournalEntriesCommand(dbCommandFactory))
+                    {
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                if (tableVersion == 2)
+                                {
+                                    scripts.Add(new ExecutedScript((string)reader[0], (string)reader[1]));
+                                }
+                                else if (tableVersion == 1)
+                                {
+                                    scripts.Add(new ExecutedScript((string)reader[0], ""));
+                                }
+                            }
+                        }
+                    }
+
+                    return scripts.ToArray();
+                }
+                else
+                {
+                    Log().WriteInformation("Journal table does not exist");
+                    return new List<ExecutedScript>().ToArray();
+                }
+            });
+        }
+        protected new IDbCommand GetJournalEntriesCommand(Func<IDbCommand> dbCommandFactory)
+        {
+            var command = dbCommandFactory();
+            if (tableVersion == 2)
+            {
+                command.CommandText = GetJournalEntriesSqlV2();
+            }
+            else if (tableVersion == 1)
+            {
+                command.CommandText = GetJournalEntriesSql();
+            }
+            command.CommandType = CommandType.Text;
+            return command;
         }
     }
 }

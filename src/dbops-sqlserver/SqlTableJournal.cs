@@ -81,7 +81,7 @@ $@"create table {FqSchemaTableName} (
 
             var checksumParam = command.CreateParameter();
             checksumParam.ParameterName = "checksum";
-            checksumParam.Value = Helpers.CreateMD5(script.Contents);
+            checksumParam.Value = script.GetMD5();
             command.Parameters.Add(checksumParam);
 
             var etParam = command.CreateParameter();
