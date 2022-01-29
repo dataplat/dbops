@@ -2,6 +2,16 @@
 
 build: false
 version: 0.1.{build}
+only_commits:
+  files:
+    - bin/
+    - functions/
+    - internal/
+    - src/
+    - tests/
+    - appveyor.yml
+    - dbops.ps*
+    - build.cake
 
 #images
 
