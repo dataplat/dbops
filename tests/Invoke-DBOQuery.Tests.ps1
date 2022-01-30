@@ -140,8 +140,8 @@ Describe "Invoke-DBOQuery tests" -Tag $commandName, IntegrationTests {
         }
         It "should run the query with custom variables and custom token template" {
             Set-PSFConfig -FullName dbops.config.variabletoken -Value '\$(token)\$'
-            $query = "SELECT '`$Test`$' AS A, '`$Test2`$' AS B UNION ALL SELECT '3' AS A, '4' AS B"
-            $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -As DataTable -Variables @{ Test = '1'; Test2 = '2' }
+            $query = "SELECT '`$Test`$' AS A, '`$Test_2.1-3`$' AS B UNION ALL SELECT '3' AS A, '4' AS B"
+            $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -As DataTable -Variables @{ Test = '1'; "Test_2.1-3" = '2' }
             $result.A | Should -Be '1', '3'
             $result.B | Should -Be '2', '4'
             (Get-PSFConfig -FullName dbops.config.variabletoken).ResetValue()
