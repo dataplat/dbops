@@ -65,7 +65,7 @@ Describe "Update-DBOSchemaTable Postgresql integration tests" -Tag $commandName,
 
             #Verifying SchemaVersions table
             $testResults = Invoke-DBOQuery @connParams -Database $newDbName -Query ($verificationQuery -f 'SchemaVersions')
-            $testResults.column_name | Should -Be @('schemaversionsid', 'scriptname', 'applied', 'checksum', 'appliedby', 'executiontime')
+            $testResults.column_name | Should -BeIn @('schemaversionsid', 'scriptname', 'applied', 'checksum', 'appliedby', 'executiontime')
         }
         It "upgrade custom schema table" {
             $null = Invoke-DBOQuery @connParams -Database $newDbName -Query ($schemaTableQuery -f $logTable)
@@ -74,7 +74,7 @@ Describe "Update-DBOSchemaTable Postgresql integration tests" -Tag $commandName,
             $result | Should -BeNullOrEmpty
 
             $testResults = Invoke-DBOQuery @connParams -Database $newDbName -Query ($verificationQuery -f $logTable)
-            $testResults.column_name | Should -Be @('schemaversionsid', 'scriptname', 'applied', 'checksum', 'appliedby', 'executiontime')
+            $testResults.column_name | Should -BeIn @('schemaversionsid', 'scriptname', 'applied', 'checksum', 'appliedby', 'executiontime')
         }
     }
     Context  "$commandName whatif tests" {
@@ -85,7 +85,7 @@ Describe "Update-DBOSchemaTable Postgresql integration tests" -Tag $commandName,
             $result | Should -BeNullOrEmpty
 
             $testResults = Invoke-DBOQuery @connParams -Database $newDbName -Query ($verificationQuery -f $logTable)
-            $testResults.column_name | Should -Be @('schemaversionsid', 'scriptname', 'applied')
+            $testResults.column_name | Should -BeIn @('schemaversionsid', 'scriptname', 'applied')
         }
     }
 }

@@ -4,7 +4,7 @@
 
 # DBOps
 
-![dbops](https://sqlcollaborative.github.io/dbops/img/dbops.jpg)
+![dbops](docs/img/dbops.jpg)
 
 DBOps is a Powershell module that provides Continuous Integration/Continuous Deployment capabilities for SQL database deployments. In addition to easy-to-use deployment functions, it provides tracking functionality, ensuring that each script is deployed only once and in due order. It will also grant you with ability to organize scripts into builds and deploy them in a repeatable manner on top of any previously deployed version.
 
@@ -17,6 +17,7 @@ Currently supported RDBMS:
 * MySQL
 
 ## Features
+
 The most notable features of the module:
 
 * Reliably deploy your scripts in a consistent and repeatable manner
@@ -33,16 +34,20 @@ The most notable features of the module:
 * Powershell 5.0 or higher
 
 ## Installation
+
 ### Using git
+
 ```powershell
-git clone https://github.com/sqlcollaborative/dbops.git dbops
+git clone https://github.com/dataplat/dbops.git dbops
 Import-Module .\dbops
 ```
+
 Make sure to have the following modules installed as well:
 - [PSFramework](https://github.com/PowershellFrameworkCollective/psframework)
 - [ZipHelper](https://www.powershellgallery.com/packages/ziphelper) - only if you intend to run module tests
 
 ### Using PSGallery (Powershell 5+)
+
 ```powershell
 Install-Module dbops
 ```
@@ -56,6 +61,7 @@ Install-Module dbops
 * Versioned package deployment (e.g. Octopus Deployment)
 
 ## Examples
+
 ### Simple deployments and ad-hoc queries
 
 Perform plain-text script deployments using a single command:
@@ -72,9 +78,10 @@ Install-DBOScript -ScriptPath C:\temp\myscripts -SqlInstance server1 -Database M
 # Execute a list of files as an Ad-hoc query
 Get-ChildItem C:\temp\myscripts | Invoke-DBOQuery -SqlInstance server1 -Database MyDB
 ```
+
 ### Package management
 
-<img src="https://sqlcollaborative.github.io/dbops/img/dbops-package.jpg" alt="dbops packages" width="800"/>
+<img src="docs/img/dbops-package.jpg" alt="dbops packages" width="800"/>
 
 Each package consists of multiple builds and can be easily deployed to the database, ensuring that each build is deployed in proper order and only once.
 
@@ -99,6 +106,7 @@ Get-ChildItem .\myscripts | Add-DBOBuild Deploy.zip -Type New,Modified -Build 3.
 Expand-Archive Deploy.zip '.\MyTempFolder'
 .\MyTempFolder\Deploy.ps1 -SqlInstance server1 -Database MyDB
 ```
+
 ### Configurations and defaults
 
 There are multiple configuration options available, including:
@@ -140,7 +148,7 @@ Reset-DBODefaultSetting -Name SchemaVersionTable
 
 dbops CI/CD flow assumes that each package version is built only once and deployed onto every single environment. The successfull builds should make their way as artifacts into the artifact storage, from which they would be pulled again to add new builds into the package during the next iteration.
 
-<img src="https://sqlcollaborative.github.io/dbops/img/ci-cd-flow.jpg" alt="CI-CD flow" width="800"/>
+<img src="docs/img/ci-cd-flow.jpg" alt="CI-CD flow" width="800"/>
 
 CI/CD capabilities of the module enable user to integrate SQL scripts into a package file using a single command and to store packages in a versioned package repository.
 
@@ -172,5 +180,7 @@ Get-DBOPackageArtifact -Path myPackage.zip -Repository \\data\repo | Install-DBO
 * Optional rollback scripts
 
 ## Contacts
-Submitting issues - [GitHub issues](https://github.com/sqlcollaborative/dbops/issues)
-SQLCommunity Slack: https://sqlcommunity.slack.com #devops or @nvarscar
+
+Submitting issues - [GitHub issues](https://github.com/dataplat/dbops/issues)
+
+SQLCommunity Slack: https://sqlcommunity.slack.com #dbops or @nvarscar

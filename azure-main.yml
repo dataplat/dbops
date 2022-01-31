@@ -3,9 +3,12 @@ trigger:
     include:
     - main
   paths:
-    exclude:
-      - docs
-      - README.md
+    include:
+    - bin
+    - functions
+    - internal
+    - src
+    - dbops.ps*
 pr: none
 jobs:
 - job: cut_new_release_branch

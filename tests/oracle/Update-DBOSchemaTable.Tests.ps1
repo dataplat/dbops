@@ -91,7 +91,7 @@ Describe "Update-DBOSchemaTable Oracle integration tests" -Tag $commandName, Int
 
             #Verifying SchemaVersions table
             $testResults = Invoke-DBOQuery @connParams -Query ($verificationQuery -f 'SCHEMAVERSIONS')
-            $testResults.COLUMN_NAME | Should -Be @('SCHEMAVERSIONID', 'SCRIPTNAME', 'APPLIED', 'CHECKSUM', 'APPLIEDBY', 'EXECUTIONTIME')
+            $testResults.COLUMN_NAME | Should -BeIn @('SCHEMAVERSIONID', 'SCRIPTNAME', 'APPLIED', 'CHECKSUM', 'APPLIEDBY', 'EXECUTIONTIME')
         }
         It "upgrade custom schema table" {
             $null = Invoke-DBOQuery @connParams -Query ($schemaTableQuery -f $logTable)
@@ -100,7 +100,7 @@ Describe "Update-DBOSchemaTable Oracle integration tests" -Tag $commandName, Int
             $result | Should -BeNullOrEmpty
 
             $testResults = Invoke-DBOQuery @connParams -Query ($verificationQuery -f $logTable)
-            $testResults.COLUMN_NAME | Should -Be @('SCHEMAVERSIONID', 'SCRIPTNAME', 'APPLIED', 'CHECKSUM', 'APPLIEDBY', 'EXECUTIONTIME')
+            $testResults.COLUMN_NAME | Should -BeIn @('SCHEMAVERSIONID', 'SCRIPTNAME', 'APPLIED', 'CHECKSUM', 'APPLIEDBY', 'EXECUTIONTIME')
         }
     }
     Context  "$commandName whatif tests" {
@@ -111,7 +111,7 @@ Describe "Update-DBOSchemaTable Oracle integration tests" -Tag $commandName, Int
             $result | Should -BeNullOrEmpty
 
             $testResults = Invoke-DBOQuery @connParams -Query ($verificationQuery -f $logTable)
-            $testResults.COLUMN_NAME | Should -Be @('SCHEMAVERSIONID', 'SCRIPTNAME', 'APPLIED')
+            $testResults.COLUMN_NAME | Should -BeIn @('SCHEMAVERSIONID', 'SCRIPTNAME', 'APPLIED')
         }
     }
 }
