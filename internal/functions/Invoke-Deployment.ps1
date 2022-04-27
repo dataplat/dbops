@@ -134,6 +134,9 @@
             if (!$Status.Successful) {
                 # Throw output error if unsuccessful
                 if ($Status.Error) {
+                    if ($Status.ErrorScript) {
+                        $Status.ErrorScript = $upgradeResult.errorScript.Name
+                    }
                     throw $Status.Error
                 }
                 else {
@@ -353,7 +356,12 @@
             }
             finally {
                 $status.EndTime = [datetime]::Now
-                $status
+            }
+            if ($status.Successful) {
+                return $status
+            }
+            else {
+                return $status | Select-PSFObject -ShowProperty SourcePath, SqlInstance, Database, Successful, Error, Duration, ErrorScript
             }
         }
     }

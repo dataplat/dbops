@@ -474,6 +474,23 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
             $errorObject | Should Not BeNullOrEmpty
             $errorObject.Exception.Message | Should Be "There is already an object named 'a' in the database."
         }
+        It "Should return failure results with SilentlyContinue" {
+            $testResults = Install-DBOScript -Absolute -Path $tranFailScripts -SchemaVersionTable $logTable -DeploymentMethod NoTransaction @connParams -ErrorAction SilentlyContinue
+            $testResults | Should -Not -Be $null
+            $testResults.Successful | Should -Be $false
+            $testResults.SqlInstance | Should Be $script:mssqlInstance
+            $testResults.Database | Should Be $newDbName
+            $testResults.SourcePath | Should Be $v1scripts
+            $testResults.ConnectionType | Should Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should BeNullOrEmpty
+            $testResults.Error.Message | Should Be "There is already an object named 'a' in the database."
+            $testResults.ErrorScript | Should -Be (Resolve-Path $v1scripts).Path
+            $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
+        }
         It "should not deploy anything after throwing an error" {
             #Running package
             try {
