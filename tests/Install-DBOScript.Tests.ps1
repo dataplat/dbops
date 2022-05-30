@@ -457,9 +457,8 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
         }
     }
     Context "deployments with errors should throw terminating errors" {
-        BeforeAll {
+        BeforeEach {
             $null = Invoke-DBOQuery @connParams -InputFile $cleanupScript
-            $null = Install-DBOScript -Absolute -ScriptPath $v1scripts @connParams -SchemaVersionTable $null
         }
         It "Should return terminating error when object exists" {
             #Running package
@@ -480,15 +479,15 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
             $testResults.Successful | Should -Be $false
             $testResults.SqlInstance | Should Be $script:mssqlInstance
             $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be $v1scripts
+            $testResults.SourcePath | Should Be (Get-ChildItem $tranFailScripts).FullName
             $testResults.ConnectionType | Should Be 'SQLServer'
-            $testResults.Configuration.SchemaVersionTable | Should BeNullOrEmpty
+            $testResults.Configuration.SchemaVersionTable | Should -Be $logTable
             $testResults.Error.Message | Should Be "There is already an object named 'a' in the database."
-            $testResults.ErrorScript | Should -Be (Resolve-Path $v1scripts).Path
-            $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
+            $testResults.ErrorScript | Should -Be (Get-ChildItem $tranFailScripts)[1].FullName
+            $testResults.Scripts.Name | Should Be (Get-ChildItem $tranFailScripts)[0].FullName
             $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.StartTime | Should -Not -BeNullOrEmpty
+            $testResults.EndTime | Should -Not -BeNullOrEmpty
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
         }
         It "should not deploy anything after throwing an error" {
@@ -507,7 +506,7 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
             'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
+            'b' | Should Not BeIn $testResults.name
             'c' | Should Not BeIn $testResults.name
             'd' | Should Not BeIn $testResults.name
         }
