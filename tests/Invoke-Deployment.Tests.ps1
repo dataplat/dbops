@@ -9,13 +9,13 @@ if (!$Batch) {
     # Is not a part of the global batch => import module
     #Explicitly import the module for testing
     Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
-    $ErrorActionPreference = 'Stop'
 }
 else {
     # Is a part of a batch, output some eye-catching happiness
     Write-Host "Running $commandName tests" -ForegroundColor Cyan
 }
 
+$ErrorActionPreference = 'Stop'  # Needed for non-public commands
 . "$here\constants.ps1"
 
 $workFolder = Join-PSFPath -Normalize "$here\etc" "$commandName.Tests.dbops"
