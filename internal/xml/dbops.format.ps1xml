@@ -108,6 +108,9 @@
                     <ListItem>
                         <PropertyName>Duration</PropertyName>
                     </ListItem>
+                    <ListItem>
+                        <PropertyName>ErrorScript</PropertyName>
+                    </ListItem>
                 </ListItems>
             </ListEntry>
         </ListEntries>

@@ -10,6 +10,7 @@ class DBOpsDeploymentStatus {
     [System.Nullable[datetime]] $StartTime
     [System.Nullable[datetime]] $EndTime
     [string[]] $DeploymentLog
+    [string] $ErrorScript
 
     DBOpsDeploymentStatus() {
         Add-Member -InputObject $this -MemberType ScriptProperty -Name Duration -Value {
