@@ -15,6 +15,7 @@ else {
     Write-Host "Running $commandName tests" -ForegroundColor Cyan
 }
 
+$ErrorActionPreference = 'Stop'  # Needed for non-public commands
 . "$here\constants.ps1"
 
 $workFolder = Join-PSFPath -Normalize "$here\etc" "$commandName.Tests.dbops"

@@ -1,8 +1,8 @@
 Param (
     $Path = '.\dbops.psd1'
 )
-git config --global user.email $env:git_user_email
-git config --global user.name $env:git_username
+git config --global user.email $env:GIT_USER_EMAIL
+git config --global user.name $env:GIT_USERNAME
 $moduleFile = Invoke-Command -ScriptBlock ([scriptblock]::Create((Get-Content $Path -Raw)))
 $version = [Version]$moduleFile.ModuleVersion
 $regEx = "^([\s]*ModuleVersion[\s]*\=[\s]*)\'(" + [regex]::Escape($version) + ")\'[\s]*`$"
