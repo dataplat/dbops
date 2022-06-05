@@ -38,6 +38,7 @@ namespace DBOps.SqlServer
             builder.Configure(c => c.ConnectionManager = connectionManager);
             builder.Configure(c => c.ScriptExecutor = new SqlScriptExecutor(() => c.ConnectionManager, () => c.Log, schema, () => c.VariablesEnabled, c.ScriptPreprocessors, () => c.Journal));
             builder.Configure(c => c.Journal = new SqlTableJournal(() => c.ConnectionManager, () => c.Log, schema, "SchemaVersions"));
+            builder.Configure(c => c.ScriptFilter = new ScriptFilter());
             return builder;
         }
 

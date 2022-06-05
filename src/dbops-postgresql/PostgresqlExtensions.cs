@@ -53,6 +53,7 @@ namespace DBOps.Postgresql
             builder.Configure(c => c.ConnectionManager = connectionManager);
             builder.Configure(c => c.ScriptExecutor = new PostgresqlScriptExecutor(() => c.ConnectionManager, () => c.Log, schema, () => c.VariablesEnabled, c.ScriptPreprocessors, () => c.Journal));
             builder.Configure(c => c.Journal = new PostgresqlTableJournal(() => c.ConnectionManager, () => c.Log, schema, "schemaversions"));
+            builder.Configure(c => c.ScriptFilter = new ScriptFilter());
             builder.WithPreprocessor(new DbUp.Postgresql.PostgresqlPreprocessor());
             return builder;
         }

@@ -112,6 +112,11 @@ $@"create table {FqSchemaTableName} (
         protected int GetTableVersion(Func<IDbCommand> dbCommandFactory)
         {
             var columns = new List<string>();
+            if (!DoesTableExist(dbCommandFactory))
+            {
+                return 0;
+            }
+
             using (var command = dbCommandFactory())
             {
                 command.CommandText = GetTableVersionSql();
@@ -163,5 +168,38 @@ $@"create table {FqSchemaTableName} (
                 }
             }
         }
+        protected string GetJournalEntriesSqlV2()
+        {
+            return $"select [ScriptName] + '|' + [Checksum] from {FqSchemaTableName} order by [ScriptName]";
+        }
+
+        public new string[] GetExecutedScripts()
+        {
+            var tableVersion = ConnectionManager().ExecuteCommandsWithManagedConnection(dbCommandFactory => GetTableVersion(dbCommandFactory));
+            var scripts = base.GetExecutedScripts();
+            if (tableVersion == 2)
+            {
+                return ConnectionManager().ExecuteCommandsWithManagedConnection(dbCommandFactory =>
+                {
+                    var v2scripts = new List<string>();
+                    using (var command = dbCommandFactory())
+                    {
+                        command.CommandText = GetJournalEntriesSqlV2();
+                        command.CommandType = CommandType.Text;
+                        using (var reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                                v2scripts.Add((string)reader[0]);
+                        }
+                    }
+                    return v2scripts.ToArray();
+                });
+            }
+            else
+            {
+                return scripts;
+            }
+        }
+
     }
 }
