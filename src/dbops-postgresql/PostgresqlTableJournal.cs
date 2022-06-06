@@ -170,4 +170,19 @@ $@"CREATE TABLE {FqSchemaTableName}
             }
         }
     }
+    /// <summary>
+    /// A child class of <see cref="PostgresqlTableJournal"/> that enables checksum validation.
+    /// Use together with <see cref="ChecksumValidatingScriptFilter"/>.
+    /// </summary>
+    public class PostgresqlChecksumValidatingJournal : PostgresqlTableJournal
+    {
+        public PostgresqlChecksumValidatingJournal(Func<IConnectionManager> connectionManager, Func<IUpgradeLog> logger, string schema, string table)
+            : base(connectionManager, logger, schema, table)
+        {
+        }
+        protected override string GetJournalEntriesSql()
+        {
+            return $"select ScriptName || '|' || Checksum from {FqSchemaTableName} order by ScriptName";
+        }
+    }
 }

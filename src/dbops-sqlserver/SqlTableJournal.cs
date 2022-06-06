@@ -8,10 +8,10 @@ using System.Linq;
 namespace DBOps.SqlServer
 {
     /// <summary>
-    /// An child class of <see cref="DbUp.SqlServer.SqlTableJournal"/> that adds custom fields to the 
+    /// A child class of <see cref="DbUp.SqlServer.SqlTableJournal"/> that adds custom fields to the 
     /// SchemaVersions table.
     /// </summary>
-    public class SqlTableJournal: DbUp.SqlServer.SqlTableJournal
+    public class SqlTableJournal : DbUp.SqlServer.SqlTableJournal
     {
         private readonly int maxTableVersion = 2;
         public SqlTableJournal(Func<IConnectionManager> connectionManager, Func<IUpgradeLog> logger, string schema, string table)
@@ -24,8 +24,7 @@ namespace DBOps.SqlServer
         /// <param name="dbCommandFactory"></param>
         public void UpgradeJournalTable(Func<IDbCommand> dbCommandFactory)
         {
-            var tableExists = DoesTableExist(dbCommandFactory);
-            if (tableExists)
+            if (DoesTableExist(dbCommandFactory))
             {
                 var currentTableVersion = GetTableVersion(dbCommandFactory);
                 if (currentTableVersion < maxTableVersion)
@@ -168,38 +167,20 @@ $@"create table {FqSchemaTableName} (
                 }
             }
         }
-        protected string GetJournalEntriesSqlV2()
+    }
+    /// <summary>
+    /// A child class of <see cref="SqlTableJournal"/> that enables checksum validation.
+    /// Use together with <see cref="ChecksumValidatingScriptFilter"/>.
+    /// </summary>
+    public class SqlChecksumValidatingJournal : SqlTableJournal
+    {
+        public SqlChecksumValidatingJournal(Func<IConnectionManager> connectionManager, Func<IUpgradeLog> logger, string schema, string table)
+            : base(connectionManager, logger, schema, table)
+        {
+        }
+        protected override string GetJournalEntriesSql()
         {
             return $"select [ScriptName] + '|' + [Checksum] from {FqSchemaTableName} order by [ScriptName]";
         }
-
-        public new string[] GetExecutedScripts()
-        {
-            var tableVersion = ConnectionManager().ExecuteCommandsWithManagedConnection(dbCommandFactory => GetTableVersion(dbCommandFactory));
-            var scripts = base.GetExecutedScripts();
-            if (tableVersion == 2)
-            {
-                return ConnectionManager().ExecuteCommandsWithManagedConnection(dbCommandFactory =>
-                {
-                    var v2scripts = new List<string>();
-                    using (var command = dbCommandFactory())
-                    {
-                        command.CommandText = GetJournalEntriesSqlV2();
-                        command.CommandType = CommandType.Text;
-                        using (var reader = command.ExecuteReader())
-                        {
-                            while (reader.Read())
-                                v2scripts.Add((string)reader[0]);
-                        }
-                    }
-                    return v2scripts.ToArray();
-                });
-            }
-            else
-            {
-                return scripts;
-            }
-        }
-
     }
 }

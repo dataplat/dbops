@@ -10,7 +10,7 @@ using System.Text;
 namespace DBOps.MySql
 {
     /// <summary>
-    /// An child class of <see cref="DbUp.Postgresql.PostgresqlTableJournal"/> that adds custom fields to the 
+    /// An child class of <see cref="DbUp.MySql.MySqlTableJournal"/> that adds custom fields to the 
     /// SchemaVersions table.
     /// </summary>
     public class MySqlTableJournal: DbUp.MySql.MySqlTableJournal
@@ -181,6 +181,21 @@ $@"CREATE TABLE {FqSchemaTableName}
             return string.IsNullOrEmpty(SchemaTableSchema)
                 ? string.Format("select 1 from INFORMATION_SCHEMA.TABLES where TABLE_NAME = '{0}' and TABLE_SCHEMA = DATABASE()", UnquotedSchemaTableName)
                 : string.Format("select 1 from INFORMATION_SCHEMA.TABLES where TABLE_NAME = '{0}' and TABLE_SCHEMA = '{1}'", UnquotedSchemaTableName, SchemaTableSchema);
+        }
+    }
+    /// <summary>
+    /// A child class of <see cref="MySqlTableJournal"/> that enables checksum validation.
+    /// Use together with <see cref="ChecksumValidatingScriptFilter"/>.
+    /// </summary>
+    public class MySqlChecksumValidatingJournal : MySqlTableJournal
+    {
+        public MySqlChecksumValidatingJournal(Func<IConnectionManager> connectionManager, Func<IUpgradeLog> logger, string schema, string table)
+            : base(connectionManager, logger, schema, table)
+        {
+        }
+        protected override string GetJournalEntriesSql()
+        {
+            return $"select CONCAT(scriptname, '|', checksum) from {FqSchemaTableName} order by scriptname";
         }
     }
 }

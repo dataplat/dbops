@@ -7,8 +7,23 @@ function Get-DbUpJournal {
         [string]$Schema,
         [string]$SchemaVersionTable,
         [Parameter(Mandatory)]
-        [DBOps.ConnectionType]$Type
+        [DBOps.ConnectionType]$Type,
+        [bool]$ChecksumValidation = $false
     )
+    $journalMap = @{
+        $false = @{
+            [DBOps.ConnectionType]::SQLServer = [DBOps.SqlServer.SqlTableJournal]
+            [DBOps.ConnectionType]::Oracle = [DBOps.Oracle.OracleTableJournal]
+            [DBOps.ConnectionType]::MySQL = [DBOps.MySql.MySqlTableJournal]
+            [DBOps.ConnectionType]::PostgreSQL = [DBOps.Postgresql.PostgresqlTableJournal]
+        }
+        $true = @{
+            [DBOps.ConnectionType]::SQLServer = [DBOps.SqlServer.SqlChecksumValidatingJournal]
+            [DBOps.ConnectionType]::Oracle = [DBOps.Oracle.OracleChecksumValidatingJournal]
+            [DBOps.ConnectionType]::MySQL = [DBOps.MySql.MySqlChecksumValidatingJournal]
+            [DBOps.ConnectionType]::PostgreSQL = [DBOps.Postgresql.PostgresqlChecksumValidatingJournal]
+        }
+    }
     if ($SchemaVersionTable) {
         # retrieve schema and table names
         $table = $SchemaVersionTable.Split('.')
@@ -26,28 +41,18 @@ function Get-DbUpJournal {
                 $schemaName = $Schema
             }
         }
-        # define journal type based on target connection type
         if ($Type -eq [DBOps.ConnectionType]::SQLServer) {
             if (!$schemaName) {
                 $schemaName = 'dbo'
             }
-            $dbUpJournalType = [DBOps.SqlServer.SqlTableJournal]
         }
-        elseif ($Type -eq [DBOps.ConnectionType]::Oracle) {
-            $dbUpJournalType = [DBOps.Oracle.OracleTableJournal]
-        }
-        elseif ($Type -eq [DBOps.ConnectionType]::MySQL) {
-            $dbUpJournalType = [DBOps.MySql.MySqlTableJournal]
-        }
-        elseif ($Type -eq [DBOps.ConnectionType]::PostgreSQL) {
-            $dbUpJournalType = [DBOps.Postgresql.PostgresqlTableJournal]
-        }
-        else {
+        $dbUpJournalType = $journalMap[$ChecksumValidation][$Type]
+        if (-not $dbUpJournalType) {
             Stop-PSFFunction -Message "Unknown type $Type" -EnableException $true
             return
         }
         # return a journal object
-        Write-PSFMessage -Level Verbose -Message "Creating journal object for $Type in $schemaName.$tableName"
+        Write-PSFMessage -Level Debug -Message "Using journal $($dbUpJournalType.GetType().Name) for $Type with name $schemaName.$tableName"
         return $dbUpJournalType::new($Connection, $Log, $schemaName, $tableName)
     }
     else {

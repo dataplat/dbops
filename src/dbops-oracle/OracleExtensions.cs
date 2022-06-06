@@ -54,7 +54,6 @@ namespace DBOps.Oracle
             builder.Configure(c => c.ConnectionManager = connectionManager);
             builder.Configure(c => c.ScriptExecutor = new OracleScriptExecutor(() => c.ConnectionManager, () => c.Log, schema, () => c.VariablesEnabled, c.ScriptPreprocessors, () => c.Journal));
             builder.Configure(c => c.Journal = new OracleTableJournal(() => c.ConnectionManager, () => c.Log, schema, "schemaversions"));
-            builder.Configure(c => c.ScriptFilter = new ScriptFilter());
             builder.WithPreprocessor(new DbUp.Oracle.OraclePreprocessor());
             return builder;
         }

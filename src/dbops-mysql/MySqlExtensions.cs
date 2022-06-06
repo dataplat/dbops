@@ -58,7 +58,6 @@ namespace DBOps.MySql
             builder.Configure(c => c.ConnectionManager = connectionManager);
             builder.Configure(c => c.ScriptExecutor = new MySqlScriptExecutor(() => c.ConnectionManager, () => c.Log, schema, () => c.VariablesEnabled, c.ScriptPreprocessors, () => c.Journal));
             builder.Configure(c => c.Journal = new MySqlTableJournal(() => c.ConnectionManager, () => c.Log, schema, "schemaversions"));
-            builder.Configure(c => c.ScriptFilter = new ScriptFilter());
             builder.WithPreprocessor(new DbUp.MySql.MySqlPreprocessor());
             return builder;
         }

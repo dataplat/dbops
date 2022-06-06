@@ -6,7 +6,8 @@ function Get-DbUpBuilder {
         [string]$Schema,
         [object[]]$Script,
         [object]$Config,
-        [DBOps.ConnectionType]$Type
+        [DBOps.ConnectionType]$Type,
+        [bool]$ChecksumValidation = $false
     )
     $dbUp = [DbUp.DeployChanges]::To
     if ($Type -eq [DBOps.ConnectionType]::SqlServer) {
@@ -64,5 +65,10 @@ function Get-DbUpBuilder {
     }
     # Adding execution timeout - defaults to unlimited execution
     $dbUp = [StandardExtensions]::WithExecutionTimeout($dbUp, [timespan]::FromSeconds($config.ExecutionTimeout))
+
+    if ($ChecksumValidation) {
+        # Enable checksum validation
+        $dbUp.Configure({Param($c) $c.ScriptFilter = [DBOps.ChecksumValidatingScriptFilter]::new()})
+    }
     return $dbUp
 }

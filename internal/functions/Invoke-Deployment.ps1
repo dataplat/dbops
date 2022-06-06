@@ -85,6 +85,7 @@
         [Alias('ConnectionType', 'ServerType')]
         [DBOps.ConnectionType]$Type = (Get-DBODefaultSetting -Name rdbms.type -Value),
         [object]$Configuration,
+        [bool]$ChecksumValidation = $false,
         [switch]$RegisterOnly
     )
     begin {
@@ -110,13 +111,13 @@
                 $Journal
             )
             # Create DbUpBuilder based on the connection
-            $dbUp = Get-DbUpBuilder -Connection $Connection -Type $Type -Script $Script -Config $Config
+            $dbUp = Get-DbUpBuilder -Connection $Connection -Type $Type -Script $Script -Config $Config -ChecksumValidation $ChecksumValidation
             # Assign logging
             $dbUp = [StandardExtensions]::LogTo($dbUp, $Log)
             $dbUp = [StandardExtensions]::LogScriptOutput($dbUp)
             # Assign a journal
             if (-Not $Journal) {
-                $Journal = Get-DbUpJournal -Connection { $Connection } -Log { $Log } -SchemaVersionTable $null -Type $Type
+                $Journal = Get-DbUpJournal -Connection { $Connection } -Log { $Log } -SchemaVersionTable $null -Type $Type -ChecksumValidation $ChecksumValidation
             }
             $dbUp = [StandardExtensions]::JournalTo($dbUp, $Journal)
             return $dbUp

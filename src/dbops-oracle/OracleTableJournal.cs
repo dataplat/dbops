@@ -178,4 +178,20 @@ namespace DBOps.Oracle
             }
         }
     }
+    /// <summary>
+    /// A child class of <see cref="OracleTableJournal"/> that enables checksum validation.
+    /// Use together with <see cref="ChecksumValidatingScriptFilter"/>.
+    /// </summary>
+    public class OracleChecksumValidatingJournal : OracleTableJournal
+    {
+        public OracleChecksumValidatingJournal(Func<IConnectionManager> connectionManager, Func<IUpgradeLog> logger, string schema, string table)
+            : base(connectionManager, logger, schema, table)
+        {
+        }
+        protected override string GetJournalEntriesSql()
+        {
+            var unquotedSchemaTableName = UnquotedSchemaTableName.ToUpper(English);
+            return $"select scriptname || '|' || checksum from {unquotedSchemaTableName} order by scriptname";
+        }
+    }
 }

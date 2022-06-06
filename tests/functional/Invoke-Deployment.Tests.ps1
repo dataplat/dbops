@@ -207,6 +207,57 @@ Describe "<type> Invoke-Deployment functional tests" -Tag FunctionalTests -ForEa
             Get-DeploymentTableCount | Should -Be ($before + 2)
         }
     }
+    Context "testing checksum validation deployment" {
+        BeforeAll {
+            New-Item -Force -ItemType Directory "$workFolder\1", "$workFolder\2"
+            $file1 = "$workFolder\1\script.sql"
+            $file2 = "$workFolder\2\script.sql"
+            "CREATE TABLE a (a int)" | Out-File $file1
+            "CREATE TABLE b (a int)" | Out-File $file2
+            $scriptObject1 = Get-DbopsFile -Path $file1
+            $scriptObject2 = Get-DbopsFile -Path $file2
+            Reset-TestDatabase
+        }
+        It "should deploy once" {
+            $testResults = Invoke-Deployment -ScriptFile $scriptObject1 -Configuration $deploymentConfig -ChecksumValidation $true
+            $testResults.Successful | Should -Be $true
+            $testResults.Scripts.Name | Should -Be "script.sql"
+            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
+            $testResults.Error | Should -BeNullOrEmpty
+            'Upgrade successful' | Should -BeIn $testResults.DeploymentLog
+
+            #Verifying objects
+            $testResults = Invoke-DBOQuery @dbConnectionParams -InputFile $verificationScript
+            $testResults.(Get-ColumnName name) | Should -Be $logTable
+            'a' | Should -BeIn $testResults.(Get-ColumnName name)
+            'b' | Should -Not -BeIn $testResults.(Get-ColumnName name)
+
+            #Verifying SchemaVersions table
+            $fqn = Get-QuotedIdentifier ($logtable)
+            $svResults = Invoke-DBOQuery @dbConnectionParams -Query "SELECT ScriptName FROM $fqn"
+            $svResults.ScriptName | Should -Be "script.sql"
+        }
+        It "should deploy with changed content" {
+            $testResults = Invoke-Deployment -ScriptFile $scriptObject2 -Configuration $deploymentConfig -ChecksumValidation $true
+            $testResults.Successful | Should -Be $true
+            $testResults.Scripts.Name | Should -Be "script.sql"
+            $testResults.Configuration.SchemaVersionTable | Should -Be $logTable
+            $testResults.Error | Should -BeNullOrEmpty
+            'Upgrade successful' | Should -BeIn $testResults.DeploymentLog
+
+            #Verifying objects
+            $testResults = Invoke-DBOQuery @dbConnectionParams -InputFile $verificationScript
+            $testResults.(Get-ColumnName name) | Should -Be $logTable
+            'a' | Should -BeIn $testResults.(Get-ColumnName name)
+            'b' | Should -BeIn $testResults.(Get-ColumnName name)
+
+            #Verifying SchemaVersions table
+            $fqn = Get-QuotedIdentifier ($logtable)
+            $svResults = Invoke-DBOQuery @dbConnectionParams -Query "SELECT ScriptName, Checksum FROM $fqn"
+            $svResults.ScriptName | Should -Be "script.sql"
+            $svResults[0].Checksum | Should -Not -Be $svResults[1].Checksum
+        }
+    }
     Context "testing registration of scripts" {
         BeforeAll {
             Reset-TestDatabase
