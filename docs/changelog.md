@@ -1,3 +1,5 @@
+# Release notes for v0.8.1:
+- ### Wrapper around dotnet call to filter output (#148) by @nvarscar
 # Release notes for v0.8.0:
 - ### Hotfix: Nuget downloads now use lowercase filename in the URL (#139) by @nvarscar
 - ### Feature: Allow ErrorAction to properly handle errors (#140) by @nvarscar
