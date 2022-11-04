@@ -29,23 +29,47 @@ $outputFile = "$workFolder\log.txt"
 
 switch ($Type) {
     SqlServer {
+        $instance = $script:mssqlInstance
+        $credential = $script:mssqlCredential
         $saConnectionParams = @{
-            SqlInstance = $script:mssqlInstance
+            SqlInstance = $instance
             Silent      = $true
-            Credential  = $script:mssqlCredential
+            Credential  = $credential
             Database    = "master"
+            Type        = $Type
         }
         $dbConnectionParams = @{
-            SqlInstance = $script:mssqlInstance
+            SqlInstance = $instance
             Silent      = $true
-            Credential  = $script:mssqlCredential
+            Credential  = $credential
             Database    = $newDbName
+            Type        = $Type
         }
         $etcFolder = "sqlserver-tests"
         $dropDatabaseScript = 'IF EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{0}]; END' -f $newDbName
         $createDatabaseScript = 'IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN CREATE DATABASE [{0}]; END' -f $newDbName
-        $instance = $script:mssqlInstance
-        $credential = $script:mssqlCredential
+
+    }
+    MySQL {
+        $instance = $script:mysqlInstance
+        $credential = $script:mysqlCredential
+        $saConnectionParams = @{
+            SqlInstance = $instance
+            Silent      = $true
+            Credential  = $credential
+            Database    = "mysql"
+            Type        = $Type
+        }
+        $dbConnectionParams = @{
+            SqlInstance = $instance
+            Silent      = $true
+            Credential  = $credential
+            Database    = $newDbName
+            Type        = $Type
+        }
+        $etcFolder = "mysql-tests"
+        $dropDatabaseScript = 'DROP DATABASE IF EXISTS `{0}`' -f $newDbName
+        $createDatabaseScript = 'CREATE DATABASE IF NOT EXISTS `{0}`' -f $newDbName
     }
     default {
         throw "Unknown server type $Type"
@@ -143,4 +167,20 @@ function Test-DeploymentState {
 
 function Reset-TestDatabase {
     $null = Invoke-DBOQuery @dbConnectionParams -InputFile $cleanupScript
+}
+function Remove-Workfolder {
+    if ((Test-Path $workFolder) -and $workFolder -like '*dbops-test') { Remove-Item $workFolder -Recurse }
+}
+
+function Remove-TestDatabase {
+    $null = Invoke-DBOQuery @saConnectionParams -Query $dropDatabaseScript
+}
+function New-TestDatabase {
+    param(
+        [switch]$Force
+    )
+    if ($Force) {
+        Remove-TestDatabase
+    }
+    $null = Invoke-DBOQuery @saConnectionParams -Query $createDatabaseScript
 }
