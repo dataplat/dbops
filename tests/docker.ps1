@@ -29,4 +29,11 @@ switch ($Type) {
             -e "MYSQL_ROOT_PASSWORD=$($script:mysqlCredential.GetNetworkCredential().Password)" `
             --platform linux/amd64 mysql:5.7
     }
+    PostgreSQL {
+        $containerName = "dbops-postgresql"
+        Test-Force $containerName
+        docker run -d --name $containerName -p 5432:5432 `
+            -e "POSTGRES_PASSWORD=$($script:postgresqlCredential.GetNetworkCredential().Password)" `
+            postgres:14
+    }
 }

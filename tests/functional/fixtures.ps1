@@ -71,6 +71,30 @@ switch ($Type) {
         $dropDatabaseScript = 'DROP DATABASE IF EXISTS `{0}`' -f $newDbName
         $createDatabaseScript = 'CREATE DATABASE IF NOT EXISTS `{0}`' -f $newDbName
     }
+    PostgreSQL {
+        $instance = $script:postgresqlInstance
+        $credential = $script:postgresqlCredential
+        $saConnectionParams = @{
+            SqlInstance = $instance
+            Silent      = $true
+            Credential  = $credential
+            Database    = "postgres"
+            Type        = $Type
+        }
+        $dbConnectionParams = @{
+            SqlInstance = $instance
+            Silent      = $true
+            Credential  = $credential
+            Database    = $newDbName
+            Type        = $Type
+        }
+        $etcFolder = "postgresql-tests"
+        $dropDatabaseScript = @(
+            'SELECT pid, pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = ''{0}'' AND pid <> pg_backend_pid()' -f $newDbName
+            'DROP DATABASE IF EXISTS {0}' -f $newDbName
+        )
+        $createDatabaseScript = 'CREATE DATABASE {0}' -f $newDbName
+    }
     default {
         throw "Unknown server type $Type"
     }
@@ -174,6 +198,9 @@ function Remove-Workfolder {
 
 function Remove-TestDatabase {
     $null = Invoke-DBOQuery @saConnectionParams -Query $dropDatabaseScript
+    if ($Type -eq 'Postgresql') {
+        [Npgsql.NpgsqlConnection]::ClearAllPools()
+    }
 }
 function New-TestDatabase {
     param(
