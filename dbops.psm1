@@ -5,13 +5,20 @@ foreach ($bin in (Get-DBOModuleFileList -Type Libraries -Edition $PSVersionTable
     if ($PSVersionTable.Platform -eq 'Win32NT') {
         Unblock-File -Path $bin -ErrorAction SilentlyContinue
     }
-    Add-Type -Path $bin
+    Add-Type -Path $bin -ErrorAction SilentlyContinue
 }
 
 'Functions', 'Internal' | ForEach-Object {
     foreach ($function in (Get-DBOModuleFileList -Type $_).FullName) {
         . $function
     }
+}
+# import type and format data
+if (!(Get-TypeData -TypeName DBOpsPackageFile)) {
+    Update-TypeData -Path $PSScriptRoot\internal\xml\dbops.types.ps1xml
+}
+if (!(Get-FormatData -TypeName DBOpsPackageFile)) {
+    Update-FormatData -Path $PSScriptRoot\internal\xml\dbops.format.ps1xml
 }
 
 # defining validations
