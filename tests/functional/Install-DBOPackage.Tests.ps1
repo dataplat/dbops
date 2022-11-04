@@ -748,4 +748,39 @@ Describe "Install-DBOPackage integration tests" -Tag $commandName, IntegrationTe
             ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 3)
         }
     }
+    Context "testing deployment from a package using an external config file" {
+        BeforeAll {
+            $p1 = New-DBOPackage -ScriptPath $v1scripts -Name "$workFolder\pv1" -Build 1.0 -Force -Absolute
+            $outputFile = "$workFolder\log.txt"
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $cleanupScript
+        }
+        AfterAll {
+            $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -Query "IF OBJECT_ID('SchemaVersions') IS NOT NULL DROP TABLE SchemaVersions"
+        }
+        It "should deploy version 1.0" {
+            $before = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            $rowsBefore = ($before | Measure-Object).Count
+
+            $config = $p1 | Get-DBOConfig -Configuration @{
+                SqlInstance = $server
+                Database    = $newDbName
+                Username    = $script:mssqlCredential.UserName
+                Password    = $script:mssqlCredential.GetNetworkCredential().Password | ConvertTo-SecureString -AsPlainText -Force
+                Silent      = $true
+            }
+            $config.SaveToFile("$workFolder\config.json")
+
+            $testResults = Install-DBOPackage -Path $p1.FullName -Configuration $workFolder\config.json -OutputFile "$workFolder\log.txt"
+            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
+
+            #Verifying objects
+            $testResults = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database $newDbName -InputFile $verificationScript
+            'SchemaVersions' | Should BeIn $testResults.name
+            'a' | Should BeIn $testResults.name
+            'b' | Should BeIn $testResults.name
+            'c' | Should Not BeIn $testResults.name
+            'd' | Should Not BeIn $testResults.name
+            ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 3)
+        }
+    }
 }
