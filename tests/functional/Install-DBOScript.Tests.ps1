@@ -54,30 +54,30 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
             # drop the database before installing the package
             $null = Invoke-DBOQuery -SqlInstance $script:mssqlInstance -Silent -Credential $script:mssqlCredential -Database master -Query $dropDatabaseScript
             $testResults = Install-DBOScript -Absolute -ScriptPath $v1scripts -CreateDatabase @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -Schema dbo
-            $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
-            $testResults.SqlInstance | Should Be $script:mssqlInstance
-            $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be $v1scripts
-            $testResults.ConnectionType | Should Be 'SQLServer'
-            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
-            $testResults.Configuration.CreateDatabase | Should Be $true
-            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Successful | Should -Be $true
+            $testResults.Scripts.Name | Should -Be (Resolve-Path $v1scripts).Path
+            $testResults.SqlInstance | Should -Be $script:mssqlInstance
+            $testResults.Database | Should -Be $newDbName
+            $testResults.SourcePath | Should -Be $v1scripts
+            $testResults.ConnectionType | Should -Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should -Be $logTable
+            $testResults.Configuration.CreateDatabase | Should -Be $true
+            $testResults.Error | Should -BeNullOrEmpty
             $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.StartTime | Should -Not -BeNullOrEmpty
+            $testResults.EndTime | Should -Not -BeNullOrEmpty
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
-            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
-            "Created database $newDbName" | Should BeIn $testResults.DeploymentLog
+            'Upgrade successful' | Should -BeIn $testResults.DeploymentLog
+            "Created database $newDbName" | Should -BeIn $testResults.DeploymentLog
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
-            ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 3)
+            $logTable | Should -BeIn $testResults.name
+            'a' | Should -BeIn $testResults.name
+            'b' | Should -BeIn $testResults.name
+            'c' | Should -Not -BeIn $testResults.name
+            'd' | Should -Not -BeIn $testResults.name
+            ($testResults | Measure-Object).Count | Should -Be ($rowsBefore + 3)
         }
     }
     Context "testing transactional deployment of scripts" {
@@ -92,14 +92,14 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
             catch {
                 $testResults = $_
             }
-            $testResults.Exception.Message | Should Be "There is already an object named 'a' in the database."
+            $testResults.Exception.Message | Should -Be "There is already an object named 'a' in the database."
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should Not BeIn $testResults.name
-            'a' | Should Not BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should -Not -BeIn $testResults.name
+            'a' | Should -Not -BeIn $testResults.name
+            'b' | Should -Not -BeIn $testResults.name
+            'c' | Should -Not -BeIn $testResults.name
+            'd' | Should -Not -BeIn $testResults.name
         }
     }
     Context "testing non transactional deployment of scripts" {
@@ -114,14 +114,14 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
             catch {
                 $testResults = $_
             }
-            $testResults.Exception.Message | Should Be "There is already an object named 'a' in the database."
+            $testResults.Exception.Message | Should -Be "There is already an object named 'a' in the database."
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should -BeIn $testResults.name
+            'a' | Should -BeIn $testResults.name
+            'b' | Should -Not -BeIn $testResults.name
+            'c' | Should -Not -BeIn $testResults.name
+            'd' | Should -Not -BeIn $testResults.name
         }
     }
     Context "testing script deployment" {
@@ -130,27 +130,27 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
         }
         It "should deploy version 1.0" {
             $testResults = Install-DBOScript -ScriptPath $v1scripts @connParams -SchemaVersionTable $logTable
-            $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be (Get-Item $v1scripts).Name
-            $testResults.SqlInstance | Should Be $script:mssqlInstance
-            $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be $v1scripts
-            $testResults.ConnectionType | Should Be 'SQLServer'
-            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
-            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Successful | Should -Be $true
+            $testResults.Scripts.Name | Should -Be (Get-Item $v1scripts).Name
+            $testResults.SqlInstance | Should -Be $script:mssqlInstance
+            $testResults.Database | Should -Be $newDbName
+            $testResults.SourcePath | Should -Be $v1scripts
+            $testResults.ConnectionType | Should -Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should -Be $logTable
+            $testResults.Error | Should -BeNullOrEmpty
             $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.StartTime | Should -Not -BeNullOrEmpty
+            $testResults.EndTime | Should -Not -BeNullOrEmpty
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
-            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
+            'Upgrade successful' | Should -BeIn $testResults.DeploymentLog
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should -BeIn $testResults.name
+            'a' | Should -BeIn $testResults.name
+            'b' | Should -BeIn $testResults.name
+            'c' | Should -Not -BeIn $testResults.name
+            'd' | Should -Not -BeIn $testResults.name
 
             #Validating schema version table
             $svResults = Invoke-DBOQuery @connParams -Query "SELECT * FROM $logTable"
@@ -165,27 +165,27 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
         }
         It "should deploy version 2.0" {
             $testResults = Install-DBOScript -ScriptPath $v2scripts @connParams -SchemaVersionTable $logTable
-            $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be (Get-Item $v2scripts).Name
-            $testResults.SqlInstance | Should Be $script:mssqlInstance
-            $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be $v2scripts
-            $testResults.ConnectionType | Should Be 'SQLServer'
-            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
-            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Successful | Should -Be $true
+            $testResults.Scripts.Name | Should -Be (Get-Item $v2scripts).Name
+            $testResults.SqlInstance | Should -Be $script:mssqlInstance
+            $testResults.Database | Should -Be $newDbName
+            $testResults.SourcePath | Should -Be $v2scripts
+            $testResults.ConnectionType | Should -Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should -Be $logTable
+            $testResults.Error | Should -BeNullOrEmpty
             $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.StartTime | Should -Not -BeNullOrEmpty
+            $testResults.EndTime | Should -Not -BeNullOrEmpty
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
-            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
+            'Upgrade successful' | Should -BeIn $testResults.DeploymentLog
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should BeIn $testResults.name
-            'd' | Should BeIn $testResults.name
+            $logTable | Should -BeIn $testResults.name
+            'a' | Should -BeIn $testResults.name
+            'b' | Should -BeIn $testResults.name
+            'c' | Should -BeIn $testResults.name
+            'd' | Should -BeIn $testResults.name
         }
     }
     Context "testing deployment order" {
@@ -194,30 +194,30 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
         }
         It "should deploy 2.sql before 1.sql" {
             $testResults = Install-DBOScript -Absolute -ScriptPath $v2scripts, $v1scripts @connParams -SchemaVersionTable $logTable
-            $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be (Resolve-Path $v2scripts, $v1scripts).Path
-            $testResults.SqlInstance | Should Be $script:mssqlInstance
-            $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be @($v2scripts, $v1scripts)
-            $testResults.ConnectionType | Should Be 'SQLServer'
-            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
-            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Successful | Should -Be $true
+            $testResults.Scripts.Name | Should -Be (Resolve-Path $v2scripts, $v1scripts).Path
+            $testResults.SqlInstance | Should -Be $script:mssqlInstance
+            $testResults.Database | Should -Be $newDbName
+            $testResults.SourcePath | Should -Be @($v2scripts, $v1scripts)
+            $testResults.ConnectionType | Should -Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should -Be $logTable
+            $testResults.Error | Should -BeNullOrEmpty
             $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.StartTime | Should -Not -BeNullOrEmpty
+            $testResults.EndTime | Should -Not -BeNullOrEmpty
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
-            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
+            'Upgrade successful' | Should -BeIn $testResults.DeploymentLog
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should BeIn $testResults.name
-            'd' | Should BeIn $testResults.name
+            $logTable | Should -BeIn $testResults.name
+            'a' | Should -BeIn $testResults.name
+            'b' | Should -BeIn $testResults.name
+            'c' | Should -BeIn $testResults.name
+            'd' | Should -BeIn $testResults.name
             #Verifying order
             $r1 = Invoke-DBOQuery @connParams -Query "SELECT ScriptName FROM $logtable ORDER BY Id"
-            $r1.ScriptName | Should Be (Get-Item $v2scripts, $v1scripts).FullName
+            $r1.ScriptName | Should -Be (Get-Item $v2scripts, $v1scripts).FullName
         }
     }
     Context "testing timeouts" {
@@ -235,50 +235,50 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
             catch {
                 $testResults = $_
             }
-            $testResults | Should Not Be $null
-            $testResults.Exception.Message | Should BeLike '*Timeout Expired.*'
+            $testResults | Should -Not -BeNullOrEmpty
+            $testResults.Exception.Message | Should -BeLike '*Timeout Expired.*'
             $output = Get-Content "$workFolder\log.txt" -Raw
-            $output | Should BeLike '*Timeout Expired*'
-            $output | Should Not BeLike '*Successful!*'
+            $output | Should -BeLike '*Timeout Expired*'
+            $output | Should -Not -BeLike '*Successful!*'
         }
         It "should successfully run within specified timeout" {
             $testResults = Install-DBOScript -Absolute -ScriptPath "$workFolder\delay.sql" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 6
-            $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
-            $testResults.SqlInstance | Should Be $script:mssqlInstance
-            $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
-            $testResults.ConnectionType | Should Be 'SQLServer'
-            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
-            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Successful | Should -Be $true
+            $testResults.Scripts.Name | Should -Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
+            $testResults.SqlInstance | Should -Be $script:mssqlInstance
+            $testResults.Database | Should -Be $newDbName
+            $testResults.SourcePath | Should -Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
+            $testResults.ConnectionType | Should -Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should -Be $logTable
+            $testResults.Error | Should -BeNullOrEmpty
             $testResults.Duration.TotalMilliseconds | Should -BeGreaterThan 3000
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.StartTime | Should -Not -BeNullOrEmpty
+            $testResults.EndTime | Should -Not -BeNullOrEmpty
             $testResults.EndTime | Should -BeGreaterThan $testResults.StartTime
 
             $output = Get-Content "$workFolder\log.txt" -Raw
-            $output | Should Not BeLike '*Timeout Expired*'
-            $output | Should BeLike '*Successful!*'
+            $output | Should -Not -BeLike '*Timeout Expired*'
+            $output | Should -BeLike '*Successful!*'
         }
         It "should successfully run with infinite timeout" {
             $testResults = Install-DBOScript -Absolute -ScriptPath "$workFolder\delay.sql" @connParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -ExecutionTimeout 0
-            $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
-            $testResults.SqlInstance | Should Be $script:mssqlInstance
-            $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
-            $testResults.ConnectionType | Should Be 'SQLServer'
-            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
-            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Successful | Should -Be $true
+            $testResults.Scripts.Name | Should -Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
+            $testResults.SqlInstance | Should -Be $script:mssqlInstance
+            $testResults.Database | Should -Be $newDbName
+            $testResults.SourcePath | Should -Be (Join-PSFPath -Normalize "$workFolder\delay.sql")
+            $testResults.ConnectionType | Should -Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should -Be $logTable
+            $testResults.Error | Should -BeNullOrEmpty
             $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.StartTime | Should -Not -BeNullOrEmpty
+            $testResults.EndTime | Should -Not -BeNullOrEmpty
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
-            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
+            'Upgrade successful' | Should -BeIn $testResults.DeploymentLog
 
             $output = Get-Content "$workFolder\log.txt" -Raw
-            $output | Should Not BeLike '*Timeout Expired*'
-            $output | Should BeLike '*Successful!*'
+            $output | Should -Not -BeLike '*Timeout Expired*'
+            $output | Should -BeLike '*Successful!*'
         }
     }
     Context "testing variable replacement" {
@@ -292,7 +292,7 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
                 var2 = 'Replaced!'
             }
             $testResults = Install-DBOScript -ScriptPath "$workFolder\delay.sql" @connParams -SchemaVersionTable $null -OutputFile "$workFolder\log.txt" -Variables $vars
-            $testResults.Successful | Should Be $true
+            $testResults.Successful | Should -Be $true
             "$workFolder\log.txt" | Should -FileContentMatch '1337'
             "$workFolder\log.txt" | Should -FileContentMatch 'Replaced!'
         }
@@ -305,28 +305,28 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
         }
         It "should deploy nothing" {
             $testResults = Install-DBOScript -Absolute -ScriptPath $v1scripts @connParams -SchemaVersionTable $logTable -WhatIf
-            $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be $v1scripts
-            $testResults.SqlInstance | Should Be $script:mssqlInstance
-            $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be $v1scripts
-            $testResults.ConnectionType | Should Be 'SQLServer'
-            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
-            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Successful | Should -Be $true
+            $testResults.Scripts.Name | Should -Be $v1scripts
+            $testResults.SqlInstance | Should -Be $script:mssqlInstance
+            $testResults.Database | Should -Be $newDbName
+            $testResults.SourcePath | Should -Be $v1scripts
+            $testResults.ConnectionType | Should -Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should -Be $logTable
+            $testResults.Error | Should -BeNullOrEmpty
             $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.StartTime | Should -Not -BeNullOrEmpty
+            $testResults.EndTime | Should -Not -BeNullOrEmpty
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
-            "No deployment performed - WhatIf mode." | Should BeIn $testResults.DeploymentLog
-            "$v1scripts would have been executed - WhatIf mode." | Should BeIn $testResults.DeploymentLog
+            "No deployment performed - WhatIf mode." | Should -BeIn $testResults.DeploymentLog
+            "$v1scripts would have been executed - WhatIf mode." | Should -BeIn $testResults.DeploymentLog
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            $logTable | Should Not BeIn $testResults.name
-            'a' | Should Not BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should -Not -BeIn $testResults.name
+            'a' | Should -Not -BeIn $testResults.name
+            'b' | Should -Not -BeIn $testResults.name
+            'c' | Should -Not -BeIn $testResults.name
+            'd' | Should -Not -BeIn $testResults.name
         }
     }
     Context "testing deployment without specifying SchemaVersion table" {
@@ -340,55 +340,55 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
             $before = Invoke-DBOQuery @connParams -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
             $testResults = Install-DBOScript -Absolute -ScriptPath $v1scripts @connParams
-            $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
-            $testResults.SqlInstance | Should Be $script:mssqlInstance
-            $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be $v1scripts
-            $testResults.ConnectionType | Should Be 'SQLServer'
-            $testResults.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
-            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Successful | Should -Be $true
+            $testResults.Scripts.Name | Should -Be (Resolve-Path $v1scripts).Path
+            $testResults.SqlInstance | Should -Be $script:mssqlInstance
+            $testResults.Database | Should -Be $newDbName
+            $testResults.SourcePath | Should -Be $v1scripts
+            $testResults.ConnectionType | Should -Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should -Be 'SchemaVersions'
+            $testResults.Error | Should -BeNullOrEmpty
             $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.StartTime | Should -Not -BeNullOrEmpty
+            $testResults.EndTime | Should -Not -BeNullOrEmpty
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
-            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
+            'Upgrade successful' | Should -BeIn $testResults.DeploymentLog
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            'SchemaVersions' | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
-            ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 3)
+            'SchemaVersions' | Should -BeIn $testResults.name
+            'a' | Should -BeIn $testResults.name
+            'b' | Should -BeIn $testResults.name
+            'c' | Should -Not -BeIn $testResults.name
+            'd' | Should -Not -BeIn $testResults.name
+            ($testResults | Measure-Object).Count | Should -Be ($rowsBefore + 3)
         }
         It "should deploy version 2.0" {
             $before = Invoke-DBOQuery @connParams -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
             $testResults = Install-DBOScript -Absolute -ScriptPath $v2scripts @connParams
-            $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be (Resolve-Path $v2scripts).Path
-            $testResults.SqlInstance | Should Be $script:mssqlInstance
-            $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be $v2scripts
-            $testResults.ConnectionType | Should Be 'SQLServer'
-            $testResults.Configuration.SchemaVersionTable | Should Be 'SchemaVersions'
-            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Successful | Should -Be $true
+            $testResults.Scripts.Name | Should -Be (Resolve-Path $v2scripts).Path
+            $testResults.SqlInstance | Should -Be $script:mssqlInstance
+            $testResults.Database | Should -Be $newDbName
+            $testResults.SourcePath | Should -Be $v2scripts
+            $testResults.ConnectionType | Should -Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should -Be 'SchemaVersions'
+            $testResults.Error | Should -BeNullOrEmpty
             $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.StartTime | Should -Not -BeNullOrEmpty
+            $testResults.EndTime | Should -Not -BeNullOrEmpty
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
-            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
+            'Upgrade successful' | Should -BeIn $testResults.DeploymentLog
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            'SchemaVersions' | Should BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should BeIn $testResults.name
-            'd' | Should BeIn $testResults.name
-            ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 2)
+            'SchemaVersions' | Should -BeIn $testResults.name
+            'a' | Should -BeIn $testResults.name
+            'b' | Should -BeIn $testResults.name
+            'c' | Should -BeIn $testResults.name
+            'd' | Should -BeIn $testResults.name
+            ($testResults | Measure-Object).Count | Should -Be ($rowsBefore + 2)
         }
     }
     Context "testing deployment with no history`: SchemaVersion is null" {
@@ -402,29 +402,29 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
             $before = Invoke-DBOQuery @connParams -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
             $testResults = Install-DBOScript -Absolute -ScriptPath $v1scripts @connParams -SchemaVersionTable $null
-            $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be (Resolve-Path $v1scripts).Path
-            $testResults.SqlInstance | Should Be $script:mssqlInstance
-            $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be $v1scripts
-            $testResults.ConnectionType | Should Be 'SQLServer'
-            $testResults.Configuration.SchemaVersionTable | Should BeNullOrEmpty
-            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Successful | Should -Be $true
+            $testResults.Scripts.Name | Should -Be (Resolve-Path $v1scripts).Path
+            $testResults.SqlInstance | Should -Be $script:mssqlInstance
+            $testResults.Database | Should -Be $newDbName
+            $testResults.SourcePath | Should -Be $v1scripts
+            $testResults.ConnectionType | Should -Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should -BeNullOrEmpty
+            $testResults.Error | Should -BeNullOrEmpty
             $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.StartTime | Should -Not -BeNullOrEmpty
+            $testResults.EndTime | Should -Not -BeNullOrEmpty
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
-            'Upgrade successful' | Should BeIn $testResults.DeploymentLog
-            'Checking whether journal table exists..' | Should Not BeIn $testResults.DeploymentLog
+            'Upgrade successful' | Should -BeIn $testResults.DeploymentLog
+            'Checking whether journal table exists..' | Should -Not -BeIn $testResults.DeploymentLog
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            'SchemaVersions' | Should Not BeIn $testResults.name
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
-            ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 2)
+            'SchemaVersions' | Should -Not -BeIn $testResults.name
+            'a' | Should -BeIn $testResults.name
+            'b' | Should -BeIn $testResults.name
+            'c' | Should -Not -BeIn $testResults.name
+            'd' | Should -Not -BeIn $testResults.name
+            ($testResults | Measure-Object).Count | Should -Be ($rowsBefore + 2)
         }
     }
     Context "testing deployments to the native DbUp SchemaVersion table" {
@@ -470,9 +470,9 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
             catch {
                 $errorObject = $_
             }
-            $testResults | Should Be $null
-            $errorObject | Should Not BeNullOrEmpty
-            $errorObject.Exception.Message | Should Be "There is already an object named 'a' in the database."
+            $testResults | Should -Be $null
+            $errorObject | Should -Not -BeNullOrEmpty
+            $errorObject.Exception.Message | Should -Be "There is already an object named 'a' in the database."
         }
         It "should not deploy anything after throwing an error" {
             #Running package
@@ -484,15 +484,15 @@ Describe "Install-DBOScript integration tests" -Tag $commandName, IntegrationTes
             catch {
                 $errorObject = $_
             }
-            $testResults | Should Be $null
-            $errorObject | Should Not BeNullOrEmpty
-            $errorObject.Exception.Message | Should Be "There is already an object named 'a' in the database."
+            $testResults | Should -Be $null
+            $errorObject | Should -Not -BeNullOrEmpty
+            $errorObject.Exception.Message | Should -Be "There is already an object named 'a' in the database."
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -InputFile $verificationScript
-            'a' | Should BeIn $testResults.name
-            'b' | Should BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            'a' | Should -BeIn $testResults.name
+            'b' | Should -BeIn $testResults.name
+            'c' | Should -Not -BeIn $testResults.name
+            'd' | Should -Not -BeIn $testResults.name
         }
     }
 }

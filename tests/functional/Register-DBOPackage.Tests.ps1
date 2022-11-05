@@ -51,34 +51,34 @@ Describe "Register-DBOPackage integration tests" -Tag $commandName, IntegrationT
         }
         It "should register version 1.0 in a new database using -CreateDatabase switch" {
             $testResults = Register-DBOPackage $p1 -CreateDatabase @connParams -Database $newDbName -SchemaVersionTable $logTable
-            $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be (@($v1Journal) + @($v2Journal))
-            $testResults.SqlInstance | Should Be $script:mssqlInstance
-            $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
-            $testResults.ConnectionType | Should Be 'SQLServer'
-            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
-            $testResults.Configuration.CreateDatabase | Should Be $true
-            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Successful | Should -Be $true
+            $testResults.Scripts.Name | Should -Be (@($v1Journal) + @($v2Journal))
+            $testResults.SqlInstance | Should -Be $script:mssqlInstance
+            $testResults.Database | Should -Be $newDbName
+            $testResults.SourcePath | Should -Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
+            $testResults.ConnectionType | Should -Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should -Be $logTable
+            $testResults.Configuration.CreateDatabase | Should -Be $true
+            $testResults.Error | Should -BeNullOrEmpty
             $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.StartTime | Should -Not -BeNullOrEmpty
+            $testResults.EndTime | Should -Not -BeNullOrEmpty
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
-            $v1Journal | ForEach-Object { "$_ was registered in table $logtable" } | Should BeIn $testResults.DeploymentLog
-            $v2Journal | ForEach-Object { "$_ was registered in table $logtable" } | Should BeIn $testResults.DeploymentLog
-            "Created database $newDbName" | Should BeIn $testResults.DeploymentLog
+            $v1Journal | ForEach-Object { "$_ was registered in table $logtable" } | Should -BeIn $testResults.DeploymentLog
+            $v2Journal | ForEach-Object { "$_ was registered in table $logtable" } | Should -BeIn $testResults.DeploymentLog
+            "Created database $newDbName" | Should -BeIn $testResults.DeploymentLog
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should Not BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should -BeIn $testResults.name
+            'a' | Should -Not -BeIn $testResults.name
+            'b' | Should -Not -BeIn $testResults.name
+            'c' | Should -Not -BeIn $testResults.name
+            'd' | Should -Not -BeIn $testResults.name
 
             #Verifying SchemaVersions table
             $testResults = Invoke-DBOQuery @connParams -Database $newDbName -Query "SELECT * FROM $logTable"
-            $testResults.ScriptName | Should Be (@($v1Journal) + @($v2Journal))
+            $testResults.ScriptName | Should -Be (@($v1Journal) + @($v2Journal))
         }
     }
     Context "testing registration of scripts" {
@@ -92,63 +92,63 @@ Describe "Register-DBOPackage integration tests" -Tag $commandName, IntegrationT
             $before = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
             $testResults = Register-DBOPackage -Package $p2 -Build 1.0 @connParams -Database $newDbName -SchemaVersionTable $logTable
-            $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be $v1Journal
-            $testResults.SqlInstance | Should Be $script:mssqlInstance
-            $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv2.zip")
-            $testResults.ConnectionType | Should Be 'SQLServer'
-            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
-            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Successful | Should -Be $true
+            $testResults.Scripts.Name | Should -Be $v1Journal
+            $testResults.SqlInstance | Should -Be $script:mssqlInstance
+            $testResults.Database | Should -Be $newDbName
+            $testResults.SourcePath | Should -Be (Join-PSFPath -Normalize "$workFolder\pv2.zip")
+            $testResults.ConnectionType | Should -Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should -Be $logTable
+            $testResults.Error | Should -BeNullOrEmpty
             $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.StartTime | Should -Not -BeNullOrEmpty
+            $testResults.EndTime | Should -Not -BeNullOrEmpty
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
-            $v1Journal | ForEach-Object { "$_ was registered in table $logtable" } | Should BeIn $testResults.DeploymentLog
+            $v1Journal | ForEach-Object { "$_ was registered in table $logtable" } | Should -BeIn $testResults.DeploymentLog
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should Not BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
-            ($testResults | Measure-Object).Count | Should Be ($rowsBefore + 1)
+            $logTable | Should -BeIn $testResults.name
+            'a' | Should -Not -BeIn $testResults.name
+            'b' | Should -Not -BeIn $testResults.name
+            'c' | Should -Not -BeIn $testResults.name
+            'd' | Should -Not -BeIn $testResults.name
+            ($testResults | Measure-Object).Count | Should -Be ($rowsBefore + 1)
 
             #Verifying SchemaVersions table
             $testResults = Invoke-DBOQuery @connParams -Database $newDbName -Query "SELECT * FROM $logTable"
-            $testResults.ScriptName | Should Be $v1Journal
+            $testResults.ScriptName | Should -Be $v1Journal
         }
         It "should register version 1.0 + 2.0 without creating any objects" {
             $before = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
             $rowsBefore = ($before | Measure-Object).Count
             $testResults = Register-DBOPackage -Package $p2 @connParams -Database $newDbName -SchemaVersionTable $logTable
-            $testResults.Successful | Should Be $true
-            $testResults.Scripts.Name | Should Be $v2Journal
-            $testResults.SqlInstance | Should Be $script:mssqlInstance
-            $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be (Join-PSFPath -Normalize "$workFolder\pv2.zip")
-            $testResults.ConnectionType | Should Be 'SQLServer'
-            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
-            $testResults.Error | Should BeNullOrEmpty
+            $testResults.Successful | Should -Be $true
+            $testResults.Scripts.Name | Should -Be $v2Journal
+            $testResults.SqlInstance | Should -Be $script:mssqlInstance
+            $testResults.Database | Should -Be $newDbName
+            $testResults.SourcePath | Should -Be (Join-PSFPath -Normalize "$workFolder\pv2.zip")
+            $testResults.ConnectionType | Should -Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should -Be $logTable
+            $testResults.Error | Should -BeNullOrEmpty
             $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.StartTime | Should -Not -BeNullOrEmpty
+            $testResults.EndTime | Should -Not -BeNullOrEmpty
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
-            $v2Journal | ForEach-Object { "$_ was registered in table $logtable" } | Should BeIn $testResults.DeploymentLog
+            $v2Journal | ForEach-Object { "$_ was registered in table $logtable" } | Should -BeIn $testResults.DeploymentLog
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
-            $logTable | Should BeIn $testResults.name
-            'a' | Should Not BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
-            ($testResults | Measure-Object).Count | Should Be $rowsBefore
+            $logTable | Should -BeIn $testResults.name
+            'a' | Should -Not -BeIn $testResults.name
+            'b' | Should -Not -BeIn $testResults.name
+            'c' | Should -Not -BeIn $testResults.name
+            'd' | Should -Not -BeIn $testResults.name
+            ($testResults | Measure-Object).Count | Should -Be $rowsBefore
 
             #Verifying SchemaVersions table
             $testResults = Invoke-DBOQuery @connParams -Database $newDbName -Query "SELECT * FROM $logTable"
-            $testResults.ScriptName | Should Be (@($v1Journal) + @($v2Journal))
+            $testResults.ScriptName | Should -Be (@($v1Journal) + @($v2Journal))
         }
     }
     Context  "$commandName whatif tests" {
@@ -161,25 +161,25 @@ Describe "Register-DBOPackage integration tests" -Tag $commandName, IntegrationT
         }
         It "should deploy nothing" {
             $testResults = Register-DBOPackage $p1 @connParams -Database $newDbName -SchemaVersionTable $logTable -WhatIf
-            $testResults.SqlInstance | Should Be $script:mssqlInstance
-            $testResults.Database | Should Be $newDbName
-            $testResults.SourcePath | Should Be $p1.FullName
-            $testResults.ConnectionType | Should Be 'SQLServer'
-            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
-            $testResults.Error | Should BeNullOrEmpty
+            $testResults.SqlInstance | Should -Be $script:mssqlInstance
+            $testResults.Database | Should -Be $newDbName
+            $testResults.SourcePath | Should -Be $p1.FullName
+            $testResults.ConnectionType | Should -Be 'SQLServer'
+            $testResults.Configuration.SchemaVersionTable | Should -Be $logTable
+            $testResults.Error | Should -BeNullOrEmpty
             $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $testResults.StartTime | Should Not BeNullOrEmpty
-            $testResults.EndTime | Should Not BeNullOrEmpty
+            $testResults.StartTime | Should -Not -BeNullOrEmpty
+            $testResults.EndTime | Should -Not -BeNullOrEmpty
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
-            "Running in WhatIf mode - no registration performed." | Should BeIn $testResults.DeploymentLog
+            "Running in WhatIf mode - no registration performed." | Should -BeIn $testResults.DeploymentLog
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $verificationScript
-            $logTable | Should Not BeIn $testResults.name
-            'a' | Should Not BeIn $testResults.name
-            'b' | Should Not BeIn $testResults.name
-            'c' | Should Not BeIn $testResults.name
-            'd' | Should Not BeIn $testResults.name
+            $logTable | Should -Not -BeIn $testResults.name
+            'a' | Should -Not -BeIn $testResults.name
+            'b' | Should -Not -BeIn $testResults.name
+            'c' | Should -Not -BeIn $testResults.name
+            'd' | Should -Not -BeIn $testResults.name
         }
     }
 }

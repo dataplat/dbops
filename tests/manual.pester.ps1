@@ -32,7 +32,8 @@ if ($Tag) {
     }
 }
 $config = New-PesterConfiguration -Hashtable $conf
-# set environment vars for batch mode
-$env:DBOPS_TEST_DB_TYPE = $Type | Join-String -Separator " "
-$env:DBOPS_TEST_UUID = New-Guid
+# set environment vars to limit DB types
+if ($Type.Count -gt 0) {
+    $env:DBOPS_TEST_DB_TYPE = $Type | Join-String -Separator " "
+}
 Invoke-Pester -Configuration $config

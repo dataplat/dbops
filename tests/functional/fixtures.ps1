@@ -8,7 +8,7 @@ param (
 if (!$Batch) {
     # Explicitly import the module for testing
     Import-Module "$PSScriptRoot\..\..\dbops.psd1" -Force
-    # Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
+    Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
 }
 . "$PSScriptRoot\..\constants.ps1"
 
@@ -19,8 +19,13 @@ $logTable = "testdeploymenthistory"
 $packageName = Join-PSFPath -Normalize $workFolder 'TempDeployment.zip'
 $newDbName = "dbops_test"
 $outputFile = "$workFolder\log.txt"
+$testPassword = 'TestPassword'
+$fullConfig = Join-PSFPath -Normalize "$PSScriptRoot\..\etc\tmp_full_config.json"
+$fullConfigSource = Join-PSFPath -Normalize "$PSScriptRoot\..\etc\full_config.json"
+$noNewScriptsText = 'No new scripts need to be executed - completing.'
 
-
+# for replacement
+$packageNamev1 = Join-Path $workFolder "TempDeployment_v1.zip"
 
 switch ($Type) {
     SqlServer {
@@ -43,7 +48,15 @@ switch ($Type) {
         $etcFolder = "sqlserver-tests"
         $dropDatabaseScript = 'IF EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{0}]; END' -f $newDbName
         $createDatabaseScript = 'IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN CREATE DATABASE [{0}]; END' -f $newDbName
-
+        $timeoutError = '*Timeout Expired.*'
+        $defaultSchema = 'dbo'
+        $connectionString = "Server=$instance;Database=$newDbName;"
+        if ($credential) {
+            $connectionString += "User ID=$($credential.UserName);Password=$($credential.GetNetworkCredential().Password)"
+        }
+        else {
+            $connectionString += "Trusted_Connection=True"
+        }
     }
     MySQL {
         $instance = $script:mysqlInstance
@@ -65,6 +78,15 @@ switch ($Type) {
         $etcFolder = "mysql-tests"
         $dropDatabaseScript = 'DROP DATABASE IF EXISTS `{0}`' -f $newDbName
         $createDatabaseScript = 'CREATE DATABASE IF NOT EXISTS `{0}`' -f $newDbName
+        $timeoutError = if ($PSVersionTable.PSVersion.Major -ge 6) { '*Fatal error encountered during command execution*' } else { '*Timeout expired*' }
+        $defaultSchema = $newDbName
+        $configCS = New-DBOConfig -Configuration @{
+            SqlInstance = $instance
+            Database    = $newDbName
+            Credential  = $credential
+        }
+        $connectionString = "server=$($instance.Split(':')[0]);port=$($instance.Split(':')[1]);database=$newDbName;user id=$($credential.UserName);password=$($credential.GetNetworkCredential().Password)"
+
     }
     PostgreSQL {
         $instance = $script:postgresqlInstance
@@ -89,6 +111,8 @@ switch ($Type) {
             'DROP DATABASE IF EXISTS {0}' -f $newDbName
         )
         $createDatabaseScript = 'CREATE DATABASE {0}' -f $newDbName
+        $timeoutError = "*Unable to read data from the transport connection*"
+        $defaultSchema = 'public'
     }
     Oracle {
         $instance = $script:oracleInstance
@@ -133,6 +157,8 @@ switch ($Type) {
                 END LOOP;
             END;
             /"
+        $timeoutError = "*user requested cancel of current operation*"
+        $defaultSchema = $dbUserName
     }
     default {
         throw "Unknown server type $Type"
@@ -140,9 +166,11 @@ switch ($Type) {
 }
 
 $cleanupScript = Join-PSFPath -Normalize "$PSScriptRoot\..\etc\$etcFolder\Cleanup.sql"
-$v1scripts = Join-PSFPath -Normalize "$PSScriptRoot\..\etc\$etcFolder\success\1.sql"
-$v1Journal = Get-Item $v1scripts | ForEach-Object { '1.0\' + $_.Name }
+$delayScript = Join-PSFPath -Normalize "$PSScriptRoot\..\etc\$etcFolder\delay.sql"
+$tranFailScripts = Join-PSFPath -Normalize "$PSScriptRoot\..\etc\$etcFolder\transactional-failure"
 $verificationScript = Join-PSFPath -Normalize "$PSScriptRoot\..\etc\$etcFolder\verification\select.sql"
+$logFile1 = Join-PSFPath -Normalize "$PSScriptRoot\..\etc\$etcFolder\verification\log1.txt"
+$logFile2 = Join-PSFPath -Normalize "$PSScriptRoot\..\etc\$etcFolder\verification\log2.txt"
 
 # input data functions
 
@@ -171,6 +199,8 @@ function Test-DeploymentOutput {
         [object]$InputObject,
         [Parameter(Mandatory)]
         [int]$Version,
+        [string]$JournalName = $logTable,
+        [switch]$HasJournal,
         [switch]$WhatIf
     )
     $InputObject.Successful | Should -Be $true
@@ -189,54 +219,98 @@ function Test-DeploymentOutput {
     else {
         'Upgrade successful' | Should -BeIn $InputObject.DeploymentLog
     }
+    if ($HasJournal) {
+        $InputObject.Configuration.SchemaVersionTable | Should -Be $JournalName
+    }
+    else {
+        $InputObject.Configuration.SchemaVersionTable | Should -BeNullOrEmpty
+    }
 }
 
 
 function Test-DeploymentState {
     param (
-        [Parameter(Mandatory, ValueFromPipeline)]
-        [object]$InputObject,
         [Parameter(Mandatory)]
         [int]$Version,
-        [switch]$HasJournal
+        [switch]$HasJournal,
+        [string]$JournalName = $logTable,
+        [string]$Schema = $defaultSchema
     )
     $versionMap = @{
         0 = @()
         1 = @('a', 'b')
         2 = @('c', 'd')
     }
-    $tableColumn = switch ($Type) {
-        Oracle { "NAME" }
-        Default { "name" }
+    function Get-ColumnName {
+        param (
+            [Parameter(Mandatory, ValueFromPipeline)]
+            [string]$InputObject
+        )
+        $InputObject | Foreach-Object { if ($Type -eq 'Oracle') { $_.ToUpper() } else { $_ } }
     }
 
     #Verifying objects
     $testResults = Invoke-DBOQuery @dbConnectionParams -InputFile $verificationScript
     if ($HasJournal) {
-        $logTable | Should -BeIn $testResults.$tableColumn
+        $JournalName | Should -BeIn $testResults.(Get-ColumnName name)
     }
     else {
-        $logTable | Should -Not -BeIn $testResults.$tableColumn
+        $JournalName | Should -Not -BeIn $testResults.(Get-ColumnName name)
     }
     foreach ($ver in 0..($versionMap.Keys.Count - 1)) {
         if ($Version -ge $ver) {
             foreach ($table in $versionMap[$ver]) {
-                $table | Should -BeIn $testResults.$tableColumn
+                $table | Should -BeIn $testResults.(Get-ColumnName name)
             }
         }
         else {
             foreach ($table in $versionMap[$ver]) {
-                $table | Should -Not -BeIn $testResults.$tableColumn
+                $table | Should -Not -BeIn $testResults.(Get-ColumnName name)
             }
         }
     }
+    if ($testResults) {
+        $testResults.(Get-ColumnName schema) | ForEach-Object { $_ | Should -Be $Schema }
+    }
 }
 
+function Get-DeploymentTableCount {
+    return @(Invoke-DBOQuery @dbConnectionParams -InputFile $verificationScript).Count
+}
 function Reset-TestDatabase {
     $null = Invoke-DBOQuery @dbConnectionParams -InputFile $cleanupScript
+    if ($Type -eq 'Postgresql') {
+        [Npgsql.NpgsqlConnection]::ClearAllPools()
+    }
 }
 function Remove-Workfolder {
-    if ((Test-Path $workFolder) -and $workFolder -like '*dbops-test') { Remove-Item $workFolder -Recurse }
+    param(
+        [switch]$Unpacked
+    )
+    if ($Unpacked) {
+        $folder = $unpackedFolder
+    }
+    else {
+        $folder = $workFolder
+    }
+    if ((Test-Path $folder) -and $workFolder -like '*dbops-test*') { Remove-Item $folder -Recurse }
+}
+function New-Workfolder {
+    param(
+        [switch]$Force,
+        [switch]$Unpacked
+    )
+    if ($Force) {
+        Remove-Workfolder -Unpacked:$Unpacked
+    }
+    if ($Unpacked) {
+        New-Workfolder
+        $folder = $unpackedFolder
+    }
+    else {
+        $folder = $workFolder
+    }
+    $null = New-Item $folder -ItemType Directory -Force
 }
 
 function Remove-TestDatabase {
@@ -265,5 +339,18 @@ function Test-IsSkipped {
         if ($InputObject -notin $types) {
             Set-ItResult -Skipped -Because "disabled in settings"
         }
+    }
+}
+
+function Get-TableExistsMessage {
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [string]$InputObject
+    )
+    switch ($Type) {
+        SqlServer { "There is already an object named '$InputObject' in the database." }
+        MySQL { "Table '$InputObject' already exists" }
+        Postgres { "relation `"$InputObject`" already exists" }
+        Oracle { 'name is already used by an existing object' }
     }
 }

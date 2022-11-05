@@ -1,0 +1,1 @@
+DO SLEEP(3); SELECT 'Successful!'

@@ -177,9 +177,9 @@ Describe "Invoke-DBOQuery tests" -Tag $commandName, IntegrationTests {
             $query = "SELECT 1 AS A, 2, 3"
             $result = Invoke-DBOQuery -Query $query -SqlInstance $script:mssqlInstance -Credential $script:mssqlCredential -As DataTable
             $result.Columns.ColumnName | Should -Be @('A', 'Column1', 'Column2')
-            $result.A | Should Be 1
-            $result.Column1 | Should Be 2
-            $result.Column2 | Should Be 3
+            $result.A | Should -Be 1
+            $result.Column1 | Should -Be 2
+            $result.Column2 | Should -Be 3
         }
         It "should work with configurations" {
             $result = Invoke-DBOQuery -Query 'SELECT 1' -Configuration @{ SqlInstance = $script:mssqlInstance; Credential = $script:mssqlCredential } -As SingleValue
