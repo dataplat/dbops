@@ -1,14 +1,12 @@
-﻿Param (
-    [switch]$Batch,
-    [string]$Type = "SqlServer"
-)
-$commandName = $MyInvocation.MyCommand.Name.Replace(".Tests.ps1", "")
-
-Describe "<command> deploy.ps1 integration tests" -Tag $commandName, IntegrationTests -ForEach @(
-    @{ Batch = $Batch; $Type = $Type; Command = $commandName }
+﻿Describe "<type> deploy.ps1 integration tests" -Tag IntegrationTests -ForEach @(
+    @{ Type = "SqlServer" }
+    @{ Type = "MySQL" }
+    @{ Type = "Postgresql" }
+    @{ Type = "Oracle" }
 ) {
     BeforeAll {
-        . $PSScriptRoot\fixtures.ps1 -CommandName $Command -Type $Type -Batch $Batch
+        $commandName = $PSCommandPath.Replace(".Tests.ps1", "").Replace($PSScriptRoot, "").Trim("/")
+        . $PSScriptRoot\fixtures.ps1 -CommandName $commandName -Type $Type
 
         $null = New-Item $workFolder -ItemType Directory -Force
         $null = New-Item $unpackedFolder -ItemType Directory -Force
@@ -19,6 +17,9 @@ Describe "<command> deploy.ps1 integration tests" -Tag $commandName, Integration
     AfterAll {
         Remove-TestDatabase
         Remove-Workfolder
+    }
+    BeforeEach {
+        $Type | Test-IsSkipped
     }
     Context "testing deployment of extracted package" {
         BeforeEach {
@@ -53,7 +54,7 @@ Describe "<command> deploy.ps1 integration tests" -Tag $commandName, Integration
                     $Type,
                     $Database
                 )
-                . $DotSource -Type $Type -Batch $true
+                . $DotSource -Type $Type -Batch
                 $testResults = & $Path\deploy.ps1 @dbConnectionParams
                 $testResults | Test-DeploymentOutput -Version 1
                 $testResults.Configuration.SchemaVersionTable | Should -Be 'SchemaVersions'
@@ -69,7 +70,7 @@ Describe "<command> deploy.ps1 integration tests" -Tag $commandName, Integration
             Reset-TestDatabase
         }
         It "should deploy nothing" {
-            $testResults = & $workFolder\deploy.ps1 @dbConnectionParams -SchemaVersionTable $logTable -OutputFile "$workFolder\log.txt" -WhatIf
+            $testResults = & $workFolder\deploy.ps1 @dbConnectionParams -SchemaVersionTable $logTable -WhatIf
             $testResults | Test-DeploymentOutput -Version 1 -WhatIf
             $testResults.Configuration.SchemaVersionTable | Should -Be $logTable
             $v1Journal | ForEach-Object { "$_ would have been executed - WhatIf mode." } | Should -BeIn $testResults.DeploymentLog

@@ -3,17 +3,12 @@ param (
     [string]$CommandName = "DBOps",
     [ValidateSet('SqlServer', 'Oracle', 'MySQL', 'PostgreSQL')]
     [string]$Type = "SqlServer",
-    [bool]$Batch = $false
+    [switch]$Batch
 )
 if (!$Batch) {
-    # Is not a part of the global batch => import module
-    #Explicitly import the module for testing
+    # Explicitly import the module for testing
     Import-Module "$PSScriptRoot\..\..\dbops.psd1" -Force
     # Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
-}
-else {
-    # Is a part of a batch, output some eye-catching happiness
-    Write-Host "Running $CommandName tests" -ForegroundColor Cyan
 }
 . "$PSScriptRoot\..\constants.ps1"
 
@@ -95,6 +90,50 @@ switch ($Type) {
         )
         $createDatabaseScript = 'CREATE DATABASE {0}' -f $newDbName
     }
+    Oracle {
+        $instance = $script:oracleInstance
+        $credential = $script:oracleCredential
+        $logTable = "DEPLOYHISTORY"
+        $dbUserName = 'DBOPSDEPLOYPS1'
+        $dbPassword = 'S3cur_pAss'
+        $dbCredentials = [pscredential]::new($dbUserName, (ConvertTo-SecureString $dbPassword -AsPlainText -Force))
+        $saConnectionParams = @{
+            SqlInstance         = $instance
+            Silent              = $true
+            Credential          = $credential
+            Type                = $Type
+            ConnectionAttribute = @{
+                'DBA Privilege' = 'SYSDBA'
+            }
+        }
+        $dbConnectionParams = @{
+            SqlInstance = $instance
+            Silent      = $true
+            Credential  = $dbCredentials
+            Type        = $Type
+        }
+        $etcFolder = "oracle-tests"
+        $createDatabaseScript = "CREATE USER $oraUserName IDENTIFIED BY $oraPassword/
+            GRANT CONNECT, RESOURCE, CREATE ANY TABLE TO $oraUserName/
+            GRANT EXECUTE on dbms_lock to $oraUserName"
+        $dropDatabaseScript = "
+            BEGIN
+                FOR ln_cur IN (SELECT sid, serial# FROM v`$session WHERE username = '$oraUserName')
+                LOOP
+                    EXECUTE IMMEDIATE ('ALTER SYSTEM KILL SESSION ''' || ln_cur.sid || ',' || ln_cur.serial# || ''' IMMEDIATE');
+                END LOOP;
+                FOR x IN ( SELECT count(*) cnt
+                    FROM DUAL
+                    WHERE EXISTS (SELECT * FROM DBA_USERS WHERE USERNAME = '$oraUserName')
+                )
+                LOOP
+                    IF ( x.cnt = 1 ) THEN
+                        EXECUTE IMMEDIATE 'DROP USER $oraUserName CASCADE';
+                    END IF;
+                END LOOP;
+            END;
+            /"
+    }
     default {
         throw "Unknown server type $Type"
     }
@@ -166,24 +205,28 @@ function Test-DeploymentState {
         1 = @('a', 'b')
         2 = @('c', 'd')
     }
+    $tableColumn = switch ($Type) {
+        Oracle { "NAME" }
+        Default { "name" }
+    }
 
     #Verifying objects
     $testResults = Invoke-DBOQuery @dbConnectionParams -InputFile $verificationScript
     if ($HasJournal) {
-        $logTable | Should -BeIn $testResults.name
+        $logTable | Should -BeIn $testResults.$tableColumn
     }
     else {
-        $logTable | Should -Not -BeIn $testResults.name
+        $logTable | Should -Not -BeIn $testResults.$tableColumn
     }
     foreach ($ver in 0..($versionMap.Keys.Count - 1)) {
         if ($Version -ge $ver) {
             foreach ($table in $versionMap[$ver]) {
-                $table | Should -BeIn $testResults.name
+                $table | Should -BeIn $testResults.$tableColumn
             }
         }
         else {
             foreach ($table in $versionMap[$ver]) {
-                $table | Should -Not -BeIn $testResults.name
+                $table | Should -Not -BeIn $testResults.$tableColumn
             }
         }
     }
@@ -210,4 +253,17 @@ function New-TestDatabase {
         Remove-TestDatabase
     }
     $null = Invoke-DBOQuery @saConnectionParams -Query $createDatabaseScript
+}
+
+function Test-IsSkipped {
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [object]$InputObject
+    )
+    if ($env:DBOPS_TEST_DB_TYPE) {
+        $types = $env:DBOPS_TEST_DB_TYPE.split(" ")
+        if ($InputObject -notin $types) {
+            Set-ItResult -Skipped -Because "disabled in settings"
+        }
+    }
 }

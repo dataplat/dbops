@@ -36,4 +36,10 @@ switch ($Type) {
             -e "POSTGRES_PASSWORD=$($script:postgresqlCredential.GetNetworkCredential().Password)" `
             postgres:14
     }
+    Oracle {
+        $containerName = "dbops-oracle"
+        Test-Force $containerName
+        docker run -d --name $containerName -p 1521:1521 `
+            -e ORACLE_ALLOW_REMOTE=true wnameless/oracle-xe-11g-r2
+    }
 }
