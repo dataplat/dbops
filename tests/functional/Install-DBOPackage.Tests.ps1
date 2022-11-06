@@ -77,16 +77,16 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
             }
             $testResults.Exception.Message | Should -BeLike (Get-TableExistsMessage "a")
             #Verifying objects
-            $testResults = Invoke-DBOQuery @dbConnectionParams -InputFile $verificationScript
+            $after = Invoke-DBOQuery @dbConnectionParams -InputFile $verificationScript
             $tableColumn = switch ($Type) {
                 Oracle { "NAME" }
                 Default { "name" }
             }
-            $logTable | Should -BeIn $testResults.$tableColumn
-            'a' | Should -BeIn $testResults.$tableColumn
-            'b' | Should -Not -BeIn $testResults.$tableColumn
-            'c' | Should -Not -BeIn $testResults.$tableColumn
-            'd' | Should -Not -BeIn $testResults.$tableColumn
+            $logTable | Should -BeIn $after.$tableColumn
+            'a' | Should -BeIn $after.$tableColumn
+            'b' | Should -Not -BeIn $after.$tableColumn
+            'c' | Should -Not -BeIn $after.$tableColumn
+            'd' | Should -Not -BeIn $after.$tableColumn
         }
     }
     Context "testing regular deployment" {
@@ -280,7 +280,7 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
                 Silent             = $true
                 DeploymentMethod   = 'NoTransaction'
             }
-            if ($Type -ne 'Oracle') { $config.Database = $newDbName}
+            if ($Type -ne 'Oracle') { $config.Database = $newDbName }
             $config | ConvertTo-Json -Depth 2 | Out-File $configFile -Force
             $testResults = Install-DBOPackage "$workFolder\pv1.zip" -Type $Type -Configuration $configFile -OutputFile $outputFile -Credential $credential
             $testResults | Test-DeploymentOutput -Version 1 -HasJournal
@@ -298,7 +298,7 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
                 Silent             = $true
                 DeploymentMethod   = 'NoTransaction'
             }
-            if ($Type -ne 'Oracle') { $config.Database = $newDbName}
+            if ($Type -ne 'Oracle') { $config.Database = $newDbName }
             $testResults = Install-DBOPackage "$workFolder\pv2.zip" -Configuration $config -Type $Type -OutputFile $outputFile
             $testResults | Test-DeploymentOutput -Version 2 -HasJournal
             $testResults.SourcePath | Should -Be (Join-PSFPath -Normalize "$workFolder\pv2.zip")

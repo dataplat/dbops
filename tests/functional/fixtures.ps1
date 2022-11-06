@@ -181,10 +181,18 @@ function Get-PackageScript {
 function Get-JournalScript {
     param(
         [Parameter(Mandatory)]
-        [int[]]$Version
+        [int[]]$Version,
+        [switch]$Script,
+        [switch]$Absolute
     )
     foreach ($ver in $Version) {
-        Get-Item (Get-PackageScript -Version $Version) | ForEach-Object { "$ver.0\" + $_.Name }
+        Get-Item (Get-PackageScript -Version $Version) | ForEach-Object {
+            if ($Script) {
+                if ($Absolute) { (Resolve-Path $_).Path }
+                else { $_.Name }
+            }
+            else { "$ver.0\" + $_.Name }
+        }
     }
 }
 
@@ -198,11 +206,12 @@ function Test-DeploymentOutput {
         [int]$Version,
         [string]$JournalName = $logTable,
         [switch]$HasJournal,
+        [switch]$Script,
         [switch]$WhatIf
     )
     $InputObject.Successful | Should -Be $true
     $InputObject.SqlInstance | Should -Be $instance
-    $InputObject.Scripts.Name | Should -Be (Get-JournalScript -Version $Version)
+    $InputObject.Scripts.Name | Should -Be (Get-JournalScript -Version $Version -Script:$Script)
     if ($Type -ne 'Oracle') {
         $InputObject.Database | Should -Be $newDbName
     }
@@ -226,7 +235,13 @@ function Test-DeploymentOutput {
     }
 }
 
-
+function Get-ColumnName {
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [string]$InputObject
+    )
+    $InputObject | Foreach-Object { if ($Type -eq 'Oracle') { $_.ToUpper() } else { $_ } }
+}
 function Test-DeploymentState {
     param (
         [Parameter(Mandatory)]
@@ -240,22 +255,10 @@ function Test-DeploymentState {
         1 = @('a', 'b')
         2 = @('c', 'd')
     }
-    function Get-ColumnName {
-        param (
-            [Parameter(Mandatory, ValueFromPipeline)]
-            [string]$InputObject
-        )
-        $InputObject | Foreach-Object { if ($Type -eq 'Oracle') { $_.ToUpper() } else { $_ } }
-    }
+
 
     #Verifying objects
     $testResults = Invoke-DBOQuery @dbConnectionParams -InputFile $verificationScript
-    if ($HasJournal) {
-        $JournalName | Should -BeIn $testResults.(Get-ColumnName name)
-    }
-    else {
-        $JournalName | Should -Not -BeIn $testResults.(Get-ColumnName name)
-    }
     foreach ($ver in 0..($versionMap.Keys.Count - 1)) {
         if ($Version -ge $ver) {
             foreach ($table in $versionMap[$ver]) {
@@ -270,6 +273,25 @@ function Test-DeploymentState {
     }
     if ($testResults) {
         $testResults.(Get-ColumnName schema) | ForEach-Object { $_ | Should -Be $Schema }
+    }
+    if ($HasJournal) {
+        $JournalName | Should -BeIn $testResults.(Get-ColumnName name)
+        #Validating schema version table
+        $fqn = Get-QuotedIdentifier ($Schema + '.' + $JournalName)
+        $svResults = Invoke-DBOQuery @dbConnectionParams -Query "SELECT * FROM $fqn"
+        foreach ($row in $svResults) {
+            $row.(Get-ColumnName Checksum) | Should -Not -BeNullOrEmpty
+            $row.(Get-ColumnName ExecutionTime) | Should -BeGreaterOrEqual 0
+            if ($credential) {
+                $row.(Get-ColumnName AppliedBy) | Should -Be $credential.UserName
+            }
+            else {
+                $row.(Get-ColumnName AppliedBy) | Should -Not -BeNullOrEmpty
+            }
+        }
+    }
+    else {
+        $JournalName | Should -Not -BeIn $testResults.(Get-ColumnName name)
     }
 }
 
@@ -352,4 +374,19 @@ function Get-TableExistsMessage {
         PostgreSQL { "*relation `"$InputObject`" already exists*" }
         Oracle { '*name is already used by an existing object*' }
     }
+}
+function Get-QuotedIdentifier {
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [string]$InputObject
+    )
+    $ids = foreach ($part in $InputObject.Split('.')) {
+        switch ($Type) {
+            SqlServer { "[$part]" }
+            MySQL { $part }
+            PostgreSQL { "`"$part`"" }
+            Oracle { $part.ToUpper() }
+        }
+    }
+    $ids -Join '.'
 }
