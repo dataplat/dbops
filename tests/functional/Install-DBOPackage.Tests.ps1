@@ -8,9 +8,6 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
         . $PSScriptRoot\fixtures.ps1 -CommandName $commandName -Type $Type
 
         New-Workfolder -Force
-        New-Workfolder -Unpacked
-        # $packageZip = New-DBOPackage -Path $packageName -ScriptPath (Get-PackageScript -Version 1) -Build 1.0 -Force
-        # $null = Expand-Archive -Path $packageZip -DestinationPath $workFolder -Force
         New-TestDatabase -Force
     }
     AfterAll {
@@ -344,7 +341,7 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
         }
         It "should deploy version 1.0 without creating SchemaVersions" {
             $before = Get-DeploymentTableCount
-            $testResults = Install-DBOPackage "$workFolder\pv1.zip" @dbConnectionParams -Silent -SchemaVersionTable $null
+            $testResults = Install-DBOPackage "$workFolder\pv1.zip" @dbConnectionParams -SchemaVersionTable $null
             $testResults | Test-DeploymentOutput -Version 1
             Test-DeploymentState -Version 1
             Get-DeploymentTableCount | Should -Be ($before + 2)
