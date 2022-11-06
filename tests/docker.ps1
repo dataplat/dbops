@@ -40,9 +40,10 @@ switch ($Type) {
         Start-Container -Name dbops-mssql -Port 1433 -Image dbatools/sqlinstance
     }
     MySQL {
+        $argl = if ($PSVersionTable.OS -like "*ARM*") { @("--platform linux/amd64") } else { $null }
         Start-Container -Name dbops-mysql -Port 3306 -Image mysql:5.7 -Environment @{
             MYSQL_ROOT_PASSWORD = $script:mysqlCredential.GetNetworkCredential().Password
-        } -ArgumentList @("--platform linux/amd64")
+        } -ArgumentList $argl
     }
     PostgreSQL {
         Start-Container -Name dbops-postgresql -Port 5432 -Image postgres:14 -Environment @{

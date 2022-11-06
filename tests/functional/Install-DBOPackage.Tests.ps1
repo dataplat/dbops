@@ -20,6 +20,9 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
             $p1 = New-DBOPackage -ScriptPath (Get-PackageScript -Version 1) -Name "$workFolder\pv1" -Build 1.0 -Force
         }
         It "should deploy version 1.0 to a new database using -CreateDatabase switch" {
+            if ($Type -eq 'Oracle') {
+                Set-ItResult -Skipped -Because "Oracle doens't have databases"
+            }
             # Drop database and allow the function to create it
             Remove-TestDatabase
             $testResults = Install-DBOPackage $p1 -CreateDatabase @dbConnectionParams -SchemaVersionTable $logTable -OutputFile $outputFile
@@ -42,8 +45,8 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
             Reset-TestDatabase
         }
         It "Should throw an error and not create any objects" {
-            if ($Type -eq 'MySQL') {
-                Set-ItResult -Skipped -Because "CREATE TABLE cannot be rolled back in MySQL"
+            if ($Type -in 'MySQL', 'Oracle') {
+                Set-ItResult -Skipped -Because "CREATE TABLE cannot be rolled back in $Type"
             }
             try {
                 $null = Install-DBOPackage $packageName @dbConnectionParams -SchemaVersionTable $logTable -DeploymentMethod SingleTransaction
@@ -271,13 +274,14 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
         }
         It "should deploy version 1.0 using -Configuration file override" {
             $configFile = "$workFolder\config.custom.json"
-            @{
+            $config = @{
                 SqlInstance        = $instance
-                Database           = $newDbName
                 SchemaVersionTable = $logTable
                 Silent             = $true
                 DeploymentMethod   = 'NoTransaction'
-            } | ConvertTo-Json -Depth 2 | Out-File $configFile -Force
+            }
+            if ($Type -ne 'Oracle') { $config.Database = $newDbName}
+            $config | ConvertTo-Json -Depth 2 | Out-File $configFile -Force
             $testResults = Install-DBOPackage "$workFolder\pv1.zip" -Type $Type -Configuration $configFile -OutputFile $outputFile -Credential $credential
             $testResults | Test-DeploymentOutput -Version 1 -HasJournal
             $testResults.SourcePath | Should -Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
@@ -287,14 +291,15 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
             Test-DeploymentState -Version 1 -HasJournal
         }
         It "should deploy version 2.0 using -Configuration object override" {
-            $testResults = Install-DBOPackage "$workFolder\pv2.zip" -Configuration @{
+            $config = @{
                 SqlInstance        = $instance
                 Credential         = $credential
-                Database           = $newDbName
                 SchemaVersionTable = $logTable
                 Silent             = $true
                 DeploymentMethod   = 'NoTransaction'
-            } -Type $Type -OutputFile $outputFile
+            }
+            if ($Type -ne 'Oracle') { $config.Database = $newDbName}
+            $testResults = Install-DBOPackage "$workFolder\pv2.zip" -Configuration $config -Type $Type -OutputFile $outputFile
             $testResults | Test-DeploymentOutput -Version 2 -HasJournal
             $testResults.SourcePath | Should -Be (Join-PSFPath -Normalize "$workFolder\pv2.zip")
 
@@ -367,21 +372,14 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
             $testResults | Test-DeploymentOutput -Version 1 -HasJournal -JournalName 'SchemaVersions'
             $testResults.Configuration.Schema | Should -Be $schemaName
 
-            if ($Type -in 'SqlServer', 'Postgresql') {
-                $after = Invoke-DBOQuery @dbConnectionParams -InputFile $verificationScript
-                $after | Where-Object name -eq 'SchemaVersions' | Select-Object -ExpandProperty schema | Should -Be $schemaName
-                $after.Count | Should -Be ($before + 3)
-            }
-            elseif ($Type -eq 'MySQL') {
+            if ($Type -eq 'MySQL') {
                 $after = Invoke-DBOQuery @dbConnectionParams -Schema $schemaName -InputFile $verificationScript
-                $after | Where-Object name -eq 'SchemaVersions' | Select-Object -ExpandProperty schema | Should -Be $schemaName
-                $after.Count | Should -Be ($before + 3)
             }
             else {
-                Test-DeploymentState -Version 1 -Schema $schemaName -HasJournal -JournalName 'SchemaVersions'
-                Get-DeploymentTableCount | Should -Be ($before + 3)
+                $after = Invoke-DBOQuery @dbConnectionParams -InputFile $verificationScript
             }
-
+            $after | Where-Object name -eq 'SchemaVersions' | Select-Object -ExpandProperty schema | Should -Be $schemaName
+            $after.Count | Should -Be ($before + 3)
         }
     }
     Context "testing deployment using variables in config" {

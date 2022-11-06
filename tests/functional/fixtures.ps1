@@ -112,15 +112,15 @@ switch ($Type) {
     }
     Oracle {
         $instance = $script:oracleInstance
-        $credential = $script:oracleCredential
         $logTable = "DEPLOYHISTORY"
         $dbUserName = 'DBOPSDEPLOYPS1'
         $dbPassword = 'S3cur_pAss'
         $dbCredentials = [pscredential]::new($dbUserName, (ConvertTo-SecureString $dbPassword -AsPlainText -Force))
+        $credential = $dbCredentials
         $saConnectionParams = @{
             SqlInstance         = $instance
             Silent              = $true
-            Credential          = $credential
+            Credential          = $script:oracleCredential
             Type                = $Type
             ConnectionAttribute = @{
                 'DBA Privilege' = 'SYSDBA'
@@ -133,34 +133,29 @@ switch ($Type) {
             Type        = $Type
         }
         $etcFolder = "oracle-tests"
-        $createDatabaseScript = "CREATE USER $oraUserName IDENTIFIED BY $oraPassword/
-            GRANT CONNECT, RESOURCE, CREATE ANY TABLE TO $oraUserName/
-            GRANT EXECUTE on dbms_lock to $oraUserName"
+        $createDatabaseScript = "CREATE USER $dbUserName IDENTIFIED BY $dbPassword account unlock/
+            GRANT CONNECT, RESOURCE, CREATE ANY TABLE TO $dbUserName/
+            GRANT EXECUTE on dbms_lock to $dbUserName"
         $dropDatabaseScript = "
             BEGIN
-                FOR ln_cur IN (SELECT sid, serial# FROM v`$session WHERE username = '$oraUserName')
+                FOR ln_cur IN (SELECT sid, serial# FROM v`$session WHERE username = '$dbUserName')
                 LOOP
                     EXECUTE IMMEDIATE ('ALTER SYSTEM KILL SESSION ''' || ln_cur.sid || ',' || ln_cur.serial# || ''' IMMEDIATE');
                 END LOOP;
                 FOR x IN ( SELECT count(*) cnt
                     FROM DUAL
-                    WHERE EXISTS (SELECT * FROM DBA_USERS WHERE USERNAME = '$oraUserName')
+                    WHERE EXISTS (SELECT * FROM DBA_USERS WHERE USERNAME = '$dbUserName')
                 )
                 LOOP
                     IF ( x.cnt = 1 ) THEN
-                        EXECUTE IMMEDIATE 'DROP USER $oraUserName CASCADE';
+                        EXECUTE IMMEDIATE 'DROP USER $dbUserName CASCADE';
                     END IF;
                 END LOOP;
             END;
             /"
         $timeoutError = "*user requested cancel of current operation*"
         $defaultSchema = $dbUserName
-        $configCS = New-DBOConfig -Configuration @{
-            SqlInstance = $instance
-            Credential  = $credential
-        }
-        $connectionString = Get-ConnectionString -Configuration $configCS -Type $Type
-        Write-Host $connectionString
+        $connectionString = "DATA SOURCE=localhost;USER ID=$dbUserName;PASSWORD=$dbPassword"
     }
     default {
         throw "Unknown server type $Type"
@@ -208,7 +203,9 @@ function Test-DeploymentOutput {
     $InputObject.Successful | Should -Be $true
     $InputObject.SqlInstance | Should -Be $instance
     $InputObject.Scripts.Name | Should -Be (Get-JournalScript -Version $Version)
-    $InputObject.Database | Should -Be $newDbName
+    if ($Type -ne 'Oracle') {
+        $InputObject.Database | Should -Be $newDbName
+    }
     $InputObject.ConnectionType | Should -Be $Type
     $InputObject.Error | Should -BeNullOrEmpty
     $InputObject.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
@@ -353,6 +350,6 @@ function Get-TableExistsMessage {
         SqlServer { "There is already an object named '$InputObject' in the database." }
         MySQL { "Table '$InputObject' already exists" }
         PostgreSQL { "*relation `"$InputObject`" already exists*" }
-        Oracle { 'name is already used by an existing object' }
+        Oracle { '*name is already used by an existing object*' }
     }
 }
