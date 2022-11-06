@@ -16,30 +16,44 @@ function Test-Force {
     }
 }
 
+function Start-Container {
+    param (
+        $Name,
+        $Port,
+        $Image,
+        $Environment = @{},
+        $ArgumentList
+    )
+    Test-Force $Name
+    $envs = $Environment.GetEnumerator() | ForEach-Object { @("-e", "$($_.Name)=$($_.Value)")}
+    $null = docker inspect $Name
+    if ($?) {
+        docker start $Name
+    }
+    else {
+        docker run -d --name $Name -p "$Port`:$Port" $envs $ArgumentList $Image
+    }
+}
+
 switch ($Type) {
     SqlServer {
-        $containerName = "dbops-mssql"
-        Test-Force $containerName
-        docker run -d --name $containerName -p 1433:1433 dbatools/sqlinstance
+        Start-Container -Name dbops-mssql -Port 1433 -Image dbatools/sqlinstance
     }
     MySQL {
-        $containerName = "dbops-mysql"
-        Test-Force $containerName
-        docker run -d --name $containerName -p 3306:3306 `
-            -e "MYSQL_ROOT_PASSWORD=$($script:mysqlCredential.GetNetworkCredential().Password)" `
-            --platform linux/amd64 mysql:5.7
+        Start-Container -Name dbops-mysql -Port 3306 -Image mysql:5.7 -Environment @{
+            MYSQL_ROOT_PASSWORD = $script:mysqlCredential.GetNetworkCredential().Password
+        } -ArgumentList @("--platform linux/amd64")
     }
     PostgreSQL {
-        $containerName = "dbops-postgresql"
-        Test-Force $containerName
-        docker run -d --name $containerName -p 5432:5432 `
-            -e "POSTGRES_PASSWORD=$($script:postgresqlCredential.GetNetworkCredential().Password)" `
-            postgres:14
+        Start-Container -Name dbops-postgresql -Port 5432 -Image postgres:14 -Environment @{
+            POSTGRES_PASSWORD = $script:postgresqlCredential.GetNetworkCredential().Password
+            PGOPTIONS = "-c log_connections=yes -c log_statement=all -c log_duration=0"
+            POSTGRES_HOST_AUTH_METHOD = "md5"
+        }
     }
     Oracle {
-        $containerName = "dbops-oracle"
-        Test-Force $containerName
-        docker run -d --name $containerName -p 1521:1521 `
-            -e ORACLE_ALLOW_REMOTE=true wnameless/oracle-xe-11g-r2
+        Start-Container -Name dbops-oracle -Port 1521 -Image wnameless/oracle-xe-11g-r2 -Environment @{
+            ORACLE_ALLOW_REMOTE = $true
+        }
     }
 }

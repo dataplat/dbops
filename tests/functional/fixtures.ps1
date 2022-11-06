@@ -80,11 +80,6 @@ switch ($Type) {
         $createDatabaseScript = 'CREATE DATABASE IF NOT EXISTS `{0}`' -f $newDbName
         $timeoutError = if ($PSVersionTable.PSVersion.Major -ge 6) { '*Fatal error encountered during command execution*' } else { '*Timeout expired*' }
         $defaultSchema = $newDbName
-        $configCS = New-DBOConfig -Configuration @{
-            SqlInstance = $instance
-            Database    = $newDbName
-            Credential  = $credential
-        }
         $connectionString = "server=$($instance.Split(':')[0]);port=$($instance.Split(':')[1]);database=$newDbName;user id=$($credential.UserName);password=$($credential.GetNetworkCredential().Password)"
 
     }
@@ -111,8 +106,9 @@ switch ($Type) {
             'DROP DATABASE IF EXISTS {0}' -f $newDbName
         )
         $createDatabaseScript = 'CREATE DATABASE {0}' -f $newDbName
-        $timeoutError = "*Unable to read data from the transport connection*"
+        $timeoutError = if ($PSVersionTable.PSVersion.Major -ge 6) { '*Exception while reading from stream*' } else { "*Unable to read data from the transport connection*" }
         $defaultSchema = 'public'
+        $connectionString = "Host=$instance;Database=$newDbName;Username=$($credential.UserName);Password=$($credential.GetNetworkCredential().Password)"
     }
     Oracle {
         $instance = $script:oracleInstance
@@ -159,6 +155,12 @@ switch ($Type) {
             /"
         $timeoutError = "*user requested cancel of current operation*"
         $defaultSchema = $dbUserName
+        $configCS = New-DBOConfig -Configuration @{
+            SqlInstance = $instance
+            Credential  = $credential
+        }
+        $connectionString = Get-ConnectionString -Configuration $configCS -Type $Type
+        Write-Host $connectionString
     }
     default {
         throw "Unknown server type $Type"
@@ -350,7 +352,7 @@ function Get-TableExistsMessage {
     switch ($Type) {
         SqlServer { "There is already an object named '$InputObject' in the database." }
         MySQL { "Table '$InputObject' already exists" }
-        Postgres { "relation `"$InputObject`" already exists" }
+        PostgreSQL { "*relation `"$InputObject`" already exists*" }
         Oracle { 'name is already used by an existing object' }
     }
 }

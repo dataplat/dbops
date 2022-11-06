@@ -51,7 +51,7 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
             catch {
                 $testResults = $_
             }
-            $testResults.Exception.Message | Should -Be (Get-TableExistsMessage "a")
+            $testResults.Exception.Message | Should -BeLike (Get-TableExistsMessage "a")
 
             Test-DeploymentState -Version 0
         }
@@ -72,7 +72,7 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
             catch {
                 $testResults = $_
             }
-            $testResults.Exception.Message | Should -Be (Get-TableExistsMessage "a")
+            $testResults.Exception.Message | Should -BeLike (Get-TableExistsMessage "a")
             #Verifying objects
             $testResults = Invoke-DBOQuery @dbConnectionParams -InputFile $verificationScript
             $tableColumn = switch ($Type) {
@@ -191,7 +191,7 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
     }
     Context "testing timeouts" {
         BeforeAll {
-            $null = New-DBOPackage -ScriptPath $delayScript -Name "$workFolder\delay" -Build 1.0 -Force -Configuration @{ ExecutionTimeout = 2 }
+            $null = New-DBOPackage -ScriptPath $delayScript -Name "$workFolder\delay" -Build 1.0 -Force -Configuration @{ ExecutionTimeout = 1 }
         }
         BeforeEach {
             if ($Type -eq 'Oracle') {
@@ -367,7 +367,7 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
             $testResults | Test-DeploymentOutput -Version 1 -HasJournal -JournalName 'SchemaVersions'
             $testResults.Configuration.Schema | Should -Be $schemaName
 
-            if ($Type -eq 'SqlServer') {
+            if ($Type -in 'SqlServer', 'Postgresql') {
                 $after = Invoke-DBOQuery @dbConnectionParams -InputFile $verificationScript
                 $after | Where-Object name -eq 'SchemaVersions' | Select-Object -ExpandProperty schema | Should -Be $schemaName
                 $after.Count | Should -Be ($before + 3)
