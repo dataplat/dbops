@@ -12,13 +12,17 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
 
         switch ($Type) {
             SqlServer {
+                $separator = "GO"
                 $loginError = '*Login failed*'
                 $connectionError = "*The server was not found or was not accessible*"
-                $divideZeroError = "*Divide by zero*"
+                $unknownTableError = "*Invalid object name*"
                 $conversionError = "*Conversion failed*"
             }
             MySQL {
-
+                $separator = ";"
+                $loginError = '*Access denied*'
+                $connectionError = "*Unable to connect to any of the specified MySQL hosts*"
+                $unknownTableError = "*Table * doesn't exist*"
             }
             PostgreSQL {
 
@@ -35,8 +39,8 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
     }
     Context "Regular tests" {
         BeforeAll {
-            $file1 = Join-Path $workFolder 1.sql
-            $file2 = Join-Path $workFolder 2.sql
+            $file1 = Join-Path 'TestDrive:' 1.sql
+            $file2 = Join-Path 'TestDrive:' 2.sql
             $query = switch ($Type) {
                 Default { "SELECT 1 AS A, 2 AS B" }
             }
@@ -59,38 +63,45 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
                 Default { "SELECT NULL" }
             }
             $result = Invoke-DBOQuery -Query $query @dbConnectionParams -As DataTable
-            $result.Column1 | Should -Be ([DBNull]::Value)
+
+            $query = switch ($Type) {
+                MySQL { $result.Column1 | Should -Be $null }
+                Default { $result.Column1 | Should -Be ([DBNull]::Value) }
+            }
         }
         It "should run the query with print and capture output" {
+            if ($Type -ne 'SqlServer') {
+                Set-ItResult -Skipped -Because "$Type doesn't support print statements"
+            }
             $query = switch ($Type) {
                 Default { "print ('Foo bar!')" }
             }
             $null = Invoke-DBOQuery -Query $query @dbConnectionParams -As DataTable -OutputFile $outputFile
             $outputFile | Should -FileContentMatch '^Foo bar!$'
         }
-        It "should run the query with GO" {
+        It "should run the query with separator" {
             $query = switch ($Type) {
                 Default {
                     "SELECT 1 AS A, 2 AS B
-            GO
+            {0}
             SELECT 3 AS A, 4 AS B"
                 }
             }
-            $result = Invoke-DBOQuery -Query $query @dbConnectionParams -As DataTable
+            $result = Invoke-DBOQuery -Query ($query -f $separator) @dbConnectionParams -As DataTable
             $result[0].A | Should -Be 1
             $result[0].B | Should -Be 2
             $result[1].A | Should -Be 3
             $result[1].B | Should -Be 4
         }
-        It "should run the query with GO as a dataset" {
+        It "should run the query with separator as a dataset" {
             $query = switch ($Type) {
                 Default {
                     "SELECT 1 AS A, 2 AS B
-            GO
+            {0}
             SELECT 3 AS A, 4 AS B"
                 }
             }
-            $result = Invoke-DBOQuery -Query $query @dbConnectionParams -As Dataset
+            $result = Invoke-DBOQuery -Query ($query -f $separator) @dbConnectionParams -As Dataset
             $result.Tables[0].A | Should -Be 1
             $result.Tables[0].B | Should -Be 2
             $result.Tables[1].A | Should -Be 3
@@ -113,22 +124,30 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
             $query = switch ($Type) {
                 Default {
                     "SELECT 1 AS A, 2 AS B;
-            CREATE TABLE #t (a int);
-            INSERT INTO #t VALUES (1);
-            SELECT 3 AS A, 4 AS B"
+                    CREATE TABLE t (a int);
+                    INSERT INTO t VALUES (1);
+                    SELECT 3 AS A, 4 AS B"
                 }
             }
             $result = Invoke-DBOQuery -Query $query @dbConnectionParams -As DataTable
             $result[0].A | Should -Be 1
             $result[0].B | Should -Be 2
-            $result[1].A | Should -Be 3
-            $result[1].B | Should -Be 4
+            switch ($Type) {
+                MySQL {
+                    $result[3].A | Should -Be 3
+                    $result[3].B | Should -Be 4
+                }
+                Default {
+                    $result[1].A | Should -Be 3
+                    $result[1].B | Should -Be 4
+                }
+            }
         }
         It "should run the query with semicolon as Dataset" {
             $query = switch ($Type) {
                 Default {
                     "SELECT 1 AS A, 2 AS B;
-            SELECT 3 AS A, 4 AS B"
+                    SELECT 3 AS A, 4 AS B"
                 }
             }
             $result = Invoke-DBOQuery -Query $query @dbConnectionParams -As Dataset
@@ -171,6 +190,46 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
             $result[1].A | Should -Be 3
             $result[1].B | Should -Be 4
         }
+        It "should address column names automatically" {
+            $query = switch ($Type) {
+                Default { "SELECT 1 AS A, 2, 3" }
+            }
+            $result = Invoke-DBOQuery -Query $query @dbConnectionParams -As DataTable
+            switch ($Type) {
+                MySQL {
+                    $result.Columns.ColumnName | Should -Be @('A', '2', '3')
+                    $result.A | Should -Be 1
+                    $result.2 | Should -Be 2
+                    $result.3 | Should -Be 3
+                }
+                Default {
+                    $result.Columns.ColumnName | Should -Be @('A', 'Column1', 'Column2')
+                    $result.A | Should -Be 1
+                    $result.Column1 | Should -Be 2
+                    $result.Column2 | Should -Be 3
+                }
+            }
+
+        }
+        It "should work with configurations" {
+            $query = switch ($Type) {
+                Default { 'SELECT 1' }
+            }
+            $result = Invoke-DBOQuery -Type $Type -Query $query -Configuration @{ SqlInstance = $instance; Credential = $credential } -As SingleValue
+            $result | Should -Be 1
+        }
+        It "should connect via connection string" {
+            $query = switch ($Type) {
+                Default { 'SELECT 1' }
+            }
+            $result = Invoke-DBOQuery -Type $Type -Query $query -ConnectionString $connectionString -As SingleValue
+            $result | Should -Be 1
+        }
+    }
+    Context "Custom variables tests" {
+        AfterEach {
+            (Get-PSFConfig -FullName dbops.config.variabletoken).ResetValue()
+        }
         It "should run the query with custom variables" {
             $query = switch ($Type) {
                 Default { "SELECT '#{Test}' AS A, '#{Test2}' AS B UNION ALL SELECT '3' AS A, '4' AS B" }
@@ -193,7 +252,7 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
             $query = switch ($Type) {
                 Default { "SELECT 1 AS A, 2 AS B UNION ALL SELECT '#{tst}' AS A, #{a.b-c} AS B" }
             }
-            $result = Invoke-DBOQuery -Query $query -SqlInstance '#{srv}' -Credential $credential -As DataTable -Variables @{
+            $result = Invoke-DBOQuery -Type $Type -Query $query -SqlInstance '#{srv}' -Credential $credential -Database $newDbName -As DataTable -Variables @{
                 Srv     = $instance
                 tst     = 3
                 "a.b-c" = 4
@@ -209,42 +268,21 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
             $result.A | Should -Be 1
             $result.B | Should -Be string
         }
-        It "should address column names automatically" {
-            $query = switch ($Type) {
-                Default { "SELECT 1 AS A, 2, 3" }
-            }
-            $result = Invoke-DBOQuery -Query $query @dbConnectionParams -As DataTable
-            $result.Columns.ColumnName | Should -Be @('A', 'Column1', 'Column2')
-            $result.A | Should -Be 1
-            $result.Column1 | Should -Be 2
-            $result.Column2 | Should -Be 3
-        }
-        It "should work with configurations" {
-            $query = switch ($Type) {
-                Default { 'SELECT 1' }
-            }
-            $result = Invoke-DBOQuery -Query $query -Configuration @{ SqlInstance = $instance; Credential = $credential } -As SingleValue
-            $result | Should -Be 1
-        }
-        It "should connect via connection string" {
-            $query = switch ($Type) {
-                Default { 'SELECT 1' }
-            }
-            $result = Invoke-DBOQuery -Query $query -ConnectionString $connectionString -As SingleValue
-            $result | Should -Be 1
-        }
     }
     Context "Negative tests" {
-        It "Should -Throw a zero division error" {
+        It "should throw an unknown table error" {
             $query = switch ($Type) {
-                Default { "SELECT 1/0" }
+                Default { "SELECT * FROM nonexistent" }
             }
-            { $null = Invoke-DBOQuery -Query $query @dbConnectionParams } | Should -Throw $divideZeroError
+            { $null = Invoke-DBOQuery -Query $query @dbConnectionParams } | Should -Throw $unknownTableError
         }
         It "Should -Throw a connection timeout error" {
-            { $null = Invoke-DBOQuery -Query "foobar" -SqlInstance foobark:6493 -Credential $credential -ConnectionTimeout 2 } | Should -Throw $connectionError
+            { $null = Invoke-DBOQuery -Type $Type -Query "foobar" -SqlInstance foobark:6493 -Credential $credential -ConnectionTimeout 2 } | Should -Throw $connectionError
         }
         It "should fail when parameters are of a wrong type" {
+            if ($Type -eq 'MySQL') {
+                Set-ItResult -Skipped -Because "$Type doesn't care about wrong types, it seems"
+            }
             $query1 = switch ($Type) {
                 Default { 'SELECT 1/@foo' }
             }
@@ -259,8 +297,8 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
             $query = switch ($Type) {
                 Default { 'SELECT 1' }
             }
-            { Invoke-DBOQuery -Query $query -SqlInstance $instance -Credential ([pscredential]::new('nontexistent', ([securestring]::new()))) } | Should -Throw $loginError
-            { Invoke-DBOQuery -Query $query -SqlInstance $instance -UserName nontexistent -Password ([securestring]::new()) } | Should -Throw $loginError
+            { Invoke-DBOQuery -Type $Type -Query $query -SqlInstance $instance -Credential ([pscredential]::new('nontexistent', ([securestring]::new()))) } | Should -Throw $loginError
+            { Invoke-DBOQuery -Type $Type -Query $query -SqlInstance $instance -UserName nontexistent -Password ([securestring]::new()) } | Should -Throw $loginError
         }
         It "should fail when input file is not found" {
             { Invoke-DBOQuery -InputFile '.\nonexistent' @dbConnectionParams } | Should -Throw $pathError
