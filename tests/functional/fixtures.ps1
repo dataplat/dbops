@@ -240,12 +240,14 @@ function Get-JournalScript {
         [switch]$Script,
         [switch]$Absolute
     )
-    Get-PackageScript -Version $Version | Get-Item | ForEach-Object {
-        if ($Script) {
-            if ($Absolute) { (Resolve-Path $_).Path }
-            else { $_.Name }
+    foreach ($ver in $Version) {
+        Get-PackageScript -Version $ver | Get-Item | ForEach-Object {
+            if ($Script) {
+                if ($Absolute) { (Resolve-Path $_).Path }
+                else { $_.Name }
+            }
+            else { "$ver.0\" + $_.Name }
         }
-        else { "$ver.0\" + $_.Name }
     }
 }
 
