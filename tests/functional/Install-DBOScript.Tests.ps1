@@ -13,7 +13,6 @@ Describe "<type> Install-DBOScript integration tests" -Tag IntegrationTests -For
     AfterAll {
         Remove-TestDatabase
         Remove-Workfolder
-        if (Test-Path $fullConfig) { Remove-Item $fullConfig }
     }
     Context "testing regular deployment with CreateDatabase specified" {
         It "should deploy version 1.0 to a new database using -CreateDatabase switch" {
@@ -34,7 +33,7 @@ Describe "<type> Install-DBOScript integration tests" -Tag IntegrationTests -For
         BeforeEach {
             Reset-TestDatabase
         }
-        It "Should throw an error and not create any objects" {
+        It "Should -Throw an error and not create any objects" {
             if ($Type -in 'MySQL', 'Oracle') {
                 Set-ItResult -Skipped -Because "CREATE TABLE cannot be rolled back in $Type"
             }
@@ -53,7 +52,7 @@ Describe "<type> Install-DBOScript integration tests" -Tag IntegrationTests -For
         BeforeAll {
             $null = Invoke-DBOQuery @dbConnectionParams -InputFile $cleanupScript
         }
-        It "Should throw an error and create one object" {
+        It "Should -Throw an error and create one object" {
             #Running package
             try {
                 $null = Install-DBOScript -Path $tranFailScripts @dbConnectionParams -SchemaVersionTable $logTable -DeploymentMethod NoTransaction
@@ -118,7 +117,7 @@ Describe "<type> Install-DBOScript integration tests" -Tag IntegrationTests -For
             }
             Reset-TestDatabase
         }
-        It "should throw timeout error" {
+        It "Should -Throw timeout error" {
             try {
                 $null = Install-DBOScript -ScriptPath $delayScript @dbConnectionParams -SchemaVersionTable $logTable -OutputFile $outputFile -ExecutionTimeout 1
             }
@@ -241,7 +240,7 @@ Describe "<type> Install-DBOScript integration tests" -Tag IntegrationTests -For
             Test-DeploymentState -Version 1 -Script -Legacy -HasJournal
         }
     }
-    Context "deployments with errors should throw terminating errors" {
+    Context "deployments with errors Should -Throw terminating errors" {
         BeforeAll {
             Reset-TestDatabase
             $null = Install-DBOScript -ScriptPath (Get-PackageScript -Version 1) @dbConnectionParams -SchemaVersionTable $null

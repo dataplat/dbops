@@ -217,7 +217,7 @@ function Invoke-DBOQuery {
     }
     process {
         # Merge parameters in a new config
-        $config = Merge-Config -BoundParameters $PSBoundParameters -Package $package -ProcessVariables
+        $config = Merge-Config -BoundParameters $PSBoundParameters -ProcessVariables
 
         # Initialize external libraries if needed
         Initialize-ExternalLibrary -Type $Type
