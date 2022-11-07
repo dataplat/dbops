@@ -78,15 +78,11 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
             $testResults.Exception.Message | Should -BeLike (Get-TableExistsMessage "a")
             #Verifying objects
             $after = Invoke-DBOQuery @dbConnectionParams -InputFile $verificationScript
-            $tableColumn = switch ($Type) {
-                Oracle { "NAME" }
-                Default { "name" }
-            }
-            $logTable | Should -BeIn $after.$tableColumn
-            'a' | Should -BeIn $after.$tableColumn
-            'b' | Should -Not -BeIn $after.$tableColumn
-            'c' | Should -Not -BeIn $after.$tableColumn
-            'd' | Should -Not -BeIn $after.$tableColumn
+            $logTable | Should -BeIn $after.(Get-ColumnName name)
+            'a' | Should -BeIn $after.(Get-ColumnName name)
+            'b' | Should -Not -BeIn $after.(Get-ColumnName name)
+            'c' | Should -Not -BeIn $after.(Get-ColumnName name)
+            'd' | Should -Not -BeIn $after.(Get-ColumnName name)
         }
     }
     Context "testing regular deployment" {
@@ -254,7 +250,7 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
             $testResults = Install-DBOPackage $packageNamev1 @dbConnectionParams -SchemaVersionTable $logTable -WhatIf
             $testResults | Test-DeploymentOutput -Version 1 -HasJournal -WhatIf
             $testResults.SourcePath | Should -Be $packageNamev1
-            (Get-JournalScript -Version 1) | ForEach-Object { "$_ would have been executed - WhatIf mode." } | Should -BeIn $testResults.DeploymentLog
+            Get-JournalScript -Version 1 | ForEach-Object { "$_ would have been executed - WhatIf mode." } | Should -BeIn $testResults.DeploymentLog
             Test-DeploymentState -Version 0
         }
     }

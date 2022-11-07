@@ -23,6 +23,7 @@ $testPassword = 'TestPassword'
 $fullConfig = Join-PSFPath -Normalize "$PSScriptRoot\..\etc\tmp_full_config.json"
 $fullConfigSource = Join-PSFPath -Normalize "$PSScriptRoot\..\etc\full_config.json"
 $noNewScriptsText = 'No new scripts need to be executed - completing.'
+$idColumn = "Id"
 
 # for replacement
 $packageNamev1 = Join-Path $workFolder "TempDeployment_v1.zip"
@@ -57,6 +58,14 @@ switch ($Type) {
         else {
             $connectionString += "Trusted_Connection=True"
         }
+        $varQuery = "SELECT '#{var1}'; PRINT ('#{var2}')"
+        $schemaVersionv1 = @"
+create table $logTable (
+    [Id] int identity(1,1) not null constraint $($logTable)_pk primary key,
+    [ScriptName] nvarchar(255) not null,
+    [Applied] datetime not null
+)
+"@
     }
     MySQL {
         $instance = $script:mysqlInstance
@@ -81,7 +90,17 @@ switch ($Type) {
         $timeoutError = if ($PSVersionTable.PSVersion.Major -ge 6) { '*Fatal error encountered during command execution*' } else { '*Timeout expired*' }
         $defaultSchema = $newDbName
         $connectionString = "server=$($instance.Split(':')[0]);port=$($instance.Split(':')[1]);database=$newDbName;user id=$($credential.UserName);password=$($credential.GetNetworkCredential().Password)"
-
+        $varQuery = "SELECT '#{var1}'; SELECT '#{var2}'"
+        $schemaVersionv1 = @'
+        CREATE TABLE {0}
+        (
+            `schemaversionid` INT NOT NULL AUTO_INCREMENT,
+            `scriptname` VARCHAR(255) NOT NULL,
+            `applied` TIMESTAMP NOT NULL,
+            PRIMARY KEY (`schemaversionid`)
+        )
+'@ -f $logtable
+        $idColumn = "schemaversionid"
     }
     PostgreSQL {
         $instance = $script:postgresqlInstance
@@ -109,6 +128,17 @@ switch ($Type) {
         $timeoutError = if ($PSVersionTable.PSVersion.Major -ge 6) { '*Exception while reading from stream*' } else { "*Unable to read data from the transport connection*" }
         $defaultSchema = 'public'
         $connectionString = "Host=$instance;Database=$newDbName;Username=$($credential.UserName);Password=$($credential.GetNetworkCredential().Password)"
+        $varQuery = "SELECT '#{var1}'; SELECT '#{var2}'"
+        $schemaVersionv1 = @"
+CREATE TABLE $logtable
+(
+    schemaversionsid serial NOT NULL,
+    scriptname character varying(255) NOT NULL,
+    applied timestamp without time zone NOT NULL,
+    CONSTRAINT $($logtable)_pk PRIMARY KEY (schemaversionsid)
+)
+"@
+        $idColumn = "schemaversionsid"
     }
     Oracle {
         $instance = $script:oracleInstance
@@ -156,6 +186,31 @@ switch ($Type) {
         $timeoutError = "*user requested cancel of current operation*"
         $defaultSchema = $dbUserName
         $connectionString = "DATA SOURCE=localhost;USER ID=$dbUserName;PASSWORD=$dbPassword"
+        $varQuery = @"
+SELECT '#{var1}' FROM dual
+/
+SELECT '#{var2}' FROM dual
+"@
+        $schemaVersionv1 = @"
+CREATE TABLE $logTable (
+    schemaversionid NUMBER(10),
+    scriptname VARCHAR2(255) NOT NULL,
+    applied TIMESTAMP NOT NULL,
+    CONSTRAINT PK_$logTable PRIMARY KEY (schemaversionid)
+)
+/
+CREATE SEQUENCE $($logTable)_sequence
+/
+CREATE OR REPLACE TRIGGER $($logTable)_on_insert
+BEFORE INSERT ON $logTable
+FOR EACH ROW
+BEGIN
+    SELECT $($logTable)_sequence.nextval
+    INTO :new.schemaversionid
+    FROM dual;
+END;
+"@
+        $idColumn = "schemaversionid"
     }
     default {
         throw "Unknown server type $Type"
@@ -176,7 +231,7 @@ function Get-PackageScript {
         [Parameter(Mandatory)]
         [int[]]$Version
     )
-    return $Version | Foreach-Object { Join-PSFPath -Normalize "$PSScriptRoot\..\etc\$etcFolder\success\$_.sql" }
+    return $Version | Foreach-Object { Join-PSFPath -Normalize (Resolve-Path "$PSScriptRoot\..\etc\$etcFolder\success\$_.sql").Path }
 }
 function Get-JournalScript {
     param(
@@ -185,14 +240,12 @@ function Get-JournalScript {
         [switch]$Script,
         [switch]$Absolute
     )
-    foreach ($ver in $Version) {
-        Get-Item (Get-PackageScript -Version $Version) | ForEach-Object {
-            if ($Script) {
-                if ($Absolute) { (Resolve-Path $_).Path }
-                else { $_.Name }
-            }
-            else { "$ver.0\" + $_.Name }
+    Get-PackageScript -Version $Version | Get-Item | ForEach-Object {
+        if ($Script) {
+            if ($Absolute) { (Resolve-Path $_).Path }
+            else { $_.Name }
         }
+        else { "$ver.0\" + $_.Name }
     }
 }
 
@@ -247,6 +300,8 @@ function Test-DeploymentState {
         [Parameter(Mandatory)]
         [int]$Version,
         [switch]$HasJournal,
+        [switch]$Legacy,
+        [switch]$Script,
         [string]$JournalName = $logTable,
         [string]$Schema = $defaultSchema
     )
@@ -278,15 +333,32 @@ function Test-DeploymentState {
         $JournalName | Should -BeIn $testResults.(Get-ColumnName name)
         #Validating schema version table
         $fqn = Get-QuotedIdentifier ($Schema + '.' + $JournalName)
-        $svResults = Invoke-DBOQuery @dbConnectionParams -Query "SELECT * FROM $fqn"
+        $fields = @(
+            $idColumn
+            "ScriptName"
+            "Applied"
+        )
+        if (-not $Legacy) {
+            $fields += @(
+                "Checksum"
+                "ExecutionTime"
+                "AppliedBy"
+            )
+        }
+        $svResults = Invoke-DBOQuery @dbConnectionParams -Query "SELECT $($fields -join ', ') FROM $fqn"
         foreach ($row in $svResults) {
-            $row.(Get-ColumnName Checksum) | Should -Not -BeNullOrEmpty
-            $row.(Get-ColumnName ExecutionTime) | Should -BeGreaterOrEqual 0
-            if ($credential) {
-                $row.(Get-ColumnName AppliedBy) | Should -Be $credential.UserName
-            }
-            else {
-                $row.(Get-ColumnName AppliedBy) | Should -Not -BeNullOrEmpty
+            $row.(Get-ColumnName $idColumn) | Should -Not -BeNullOrEmpty
+            $row.(Get-ColumnName ScriptName) | Should -BeIn (Get-JournalScript -Version (1..$Version) -Script:$Script)
+            $row.(Get-ColumnName Applied) | Should -Not -BeNullOrEmpty
+            if (-not $Legacy) {
+                $row.(Get-ColumnName Checksum) | Should -Not -BeNullOrEmpty
+                $row.(Get-ColumnName ExecutionTime) | Should -BeGreaterOrEqual 0
+                if ($credential) {
+                    $row.(Get-ColumnName AppliedBy) | Should -Be $credential.UserName
+                }
+                else {
+                    $row.(Get-ColumnName AppliedBy) | Should -Not -BeNullOrEmpty
+                }
             }
         }
     }
@@ -383,7 +455,7 @@ function Get-QuotedIdentifier {
     $ids = foreach ($part in $InputObject.Split('.')) {
         switch ($Type) {
             SqlServer { "[$part]" }
-            MySQL { $part }
+            MySQL { '`{0}`' -f $part }
             PostgreSQL { "`"$part`"" }
             Oracle { $part.ToUpper() }
         }
