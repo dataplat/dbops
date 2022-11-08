@@ -148,8 +148,16 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
             $testResults.Successful | Should -Be $true
             $testResults.Scripts.Name | Should -Be (@((Get-Item (Get-PackageScript -Version 1)).Name | ForEach-Object { "2.0\$_" }), ((Get-Item (Get-PackageScript -Version 2)).Name | ForEach-Object { "1.0\$_" }))
             $testResults.SourcePath | Should -Be (Join-PSFPath -Normalize "$workFolder\pv3.zip")
-
-            Test-DeploymentState -Version 2 -HasJournal
+            #Verifying objects
+            $after = Invoke-DBOQuery @dbConnectionParams -InputFile $verificationScript
+            $logTable | Should -BeIn $after.(Get-ColumnName name)
+            'a' | Should -BeIn $after.(Get-ColumnName name)
+            'b' | Should -BeIn $after.(Get-ColumnName name)
+            'c' | Should -BeIn $after.(Get-ColumnName name)
+            'd' | Should -BeIn $after.(Get-ColumnName name)
+            $fqn = Get-QuotedIdentifier ($logTable)
+            $svResults = Invoke-DBOQuery @dbConnectionParams -Query "SELECT ScriptName FROM $fqn"
+            $svResults.(Get-ColumnName ScriptName) | Should -Be @('2.0\1.sql', '1.0\2.sql')
         }
     }
     Context "testing pre and post-script deployment" {
@@ -430,7 +438,6 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
             $testResults.Scripts.Name | Should -BeIn ($absolutePath -replace '/', '\')
 
             #Verifying objects
-            Test-DeploymentState -Version 1 -HasJournal -JournalName 'SchemaVersions'
             Get-DeploymentTableCount | Should -Be ($before + 3)
         }
     }

@@ -3,12 +3,15 @@ param (
     [string]$CommandName = "DBOps",
     [ValidateSet('SqlServer', 'Oracle', 'MySQL', 'PostgreSQL')]
     [string]$Type = "SqlServer",
+    [switch]$Internal,
     [switch]$Batch
 )
 if (!$Batch) {
     # Explicitly import the module for testing
     Import-Module "$PSScriptRoot\..\..\dbops.psd1" -Force
-    Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
+    if ($Internal) {
+        Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
+    }
 }
 . "$PSScriptRoot\..\constants.ps1"
 
