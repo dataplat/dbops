@@ -25,10 +25,16 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
                 $unknownTableError = "*Table * doesn't exist*"
             }
             PostgreSQL {
-
+                $separator = ";"
+                $loginError = '*No password has been provided*'
+                $connectionError = "*No such host is known*"
+                $unknownTableError = "*relation * does not exist*"
             }
             Oracle {
-
+                $separator = "`n/"
+                $loginError = '*logon denied*'
+                $connectionError = "*Connection request timed out*"
+                $unknownTableError = "*table or view does not exist*"
             }
         }
         $pathError = 'Cannot find path*'
@@ -42,16 +48,19 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
             $file1 = Join-Path 'TestDrive:' 1.sql
             $file2 = Join-Path 'TestDrive:' 2.sql
             $query = switch ($Type) {
+                Oracle { "SELECT 1 AS A, 2 AS B FROM DUAL" }
                 Default { "SELECT 1 AS A, 2 AS B" }
             }
             $query | Out-File $file1 -Force
             $query = switch ($Type) {
+                Oracle { "SELECT 3 AS A, 4 AS B FROM DUAL" }
                 Default { "SELECT 3 AS A, 4 AS B" }
             }
             $query | Out-File $file2 -Force -Encoding bigendianunicode
         }
         It "should run the query" {
             $query = switch ($Type) {
+                Oracle { "SELECT 1 AS A, 2 AS B FROM DUAL UNION ALL SELECT 3 AS A, 4 AS B FROM DUAL" }
                 Default { "SELECT 1 AS A, 2 AS B UNION ALL SELECT 3 AS A, 4 AS B" }
             }
             $result = Invoke-DBOQuery -Query $query @dbConnectionParams -As DataTable
@@ -60,12 +69,14 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
         }
         It "should select NULL" {
             $query = switch ($Type) {
+                Oracle { "SELECT NULL FROM DUAL" }
                 Default { "SELECT NULL" }
             }
             $result = Invoke-DBOQuery -Query $query @dbConnectionParams -As DataTable
 
             $query = switch ($Type) {
                 MySQL { $result.Column1 | Should -Be $null }
+                Oracle { $result.Column1 | Should -Be $null }
                 Default { $result.Column1 | Should -Be ([DBNull]::Value) }
             }
         }
@@ -81,6 +92,11 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
         }
         It "should run the query with separator" {
             $query = switch ($Type) {
+                Oracle {
+                    "SELECT 1 AS A, 2 AS B FROM DUAL
+            {0}
+            SELECT 3 AS A, 4 AS B FROM DUAL"
+                }
                 Default {
                     "SELECT 1 AS A, 2 AS B
             {0}
@@ -95,6 +111,11 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
         }
         It "should run the query with separator as a dataset" {
             $query = switch ($Type) {
+                Oracle {
+                    "SELECT 1 AS A, 2 AS B FROM DUAL
+            {0}
+            SELECT 3 AS A, 4 AS B FROM DUAL"
+                }
                 Default {
                     "SELECT 1 AS A, 2 AS B
             {0}
@@ -108,6 +129,9 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
             $result.Tables[1].B | Should -Be 4
         }
         It "should run 2 queries with semicolon" {
+            if ($Type -eq 'Oracle') {
+                Set-ItResult -Skipped -Because "$Type doesn't support semicolon separators"
+            }
             $query = switch ($Type) {
                 Default {
                     "SELECT 1 AS A, 2 AS B;
@@ -121,6 +145,9 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
             $result[1].B | Should -Be 4
         }
         It "should run 2 queries with semicolon and DDL in the middle" {
+            if ($Type -eq 'Oracle') {
+                Set-ItResult -Skipped -Because "$Type doesn't support semicolon separators"
+            }
             $query = switch ($Type) {
                 Default {
                     "SELECT 1 AS A, 2 AS B;
@@ -144,6 +171,9 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
             }
         }
         It "should run the query with semicolon as Dataset" {
+            if ($Type -eq 'Oracle') {
+                Set-ItResult -Skipped -Because "$Type doesn't support semicolon separators"
+            }
             $query = switch ($Type) {
                 Default {
                     "SELECT 1 AS A, 2 AS B;
@@ -158,6 +188,7 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
         }
         It "should run the query as a PSObject" {
             $query = switch ($Type) {
+                Oracle { "SELECT 1 AS A, 2 AS B FROM DUAL UNION ALL SELECT NULL AS A, 4 AS B FROM DUAL" }
                 Default { "SELECT 1 AS A, 2 AS B UNION ALL SELECT NULL AS A, 4 AS B" }
             }
             $result = Invoke-DBOQuery -Query $query @dbConnectionParams -As PSObject
@@ -166,6 +197,7 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
         }
         It "should run the query as a SingleValue" {
             $query = switch ($Type) {
+                Oracle { "SELECT 1 AS A FROM DUAL" }
                 Default { "SELECT 1 AS A" }
             }
             $result = Invoke-DBOQuery -Query $query @dbConnectionParams -As SingleValue
@@ -192,11 +224,18 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
         }
         It "should address column names automatically" {
             $query = switch ($Type) {
+                Oracle { "SELECT 1 AS A, 2, 3 FROM DUAL" }
                 Default { "SELECT 1 AS A, 2, 3" }
             }
             $result = Invoke-DBOQuery -Query $query @dbConnectionParams -As DataTable
             switch ($Type) {
                 MySQL {
+                    $result.Columns.ColumnName | Should -Be @('A', '2', '3')
+                    $result.A | Should -Be 1
+                    $result.2 | Should -Be 2
+                    $result.3 | Should -Be 3
+                }
+                Oracle {
                     $result.Columns.ColumnName | Should -Be @('A', '2', '3')
                     $result.A | Should -Be 1
                     $result.2 | Should -Be 2
@@ -213,6 +252,7 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
         }
         It "should work with configurations" {
             $query = switch ($Type) {
+                Oracle { 'SELECT 1 FROM DUAL' }
                 Default { 'SELECT 1' }
             }
             $result = Invoke-DBOQuery -Type $Type -Query $query -Configuration @{ SqlInstance = $instance; Credential = $credential } -As SingleValue
@@ -220,6 +260,7 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
         }
         It "should connect via connection string" {
             $query = switch ($Type) {
+                Oracle { 'SELECT 1 FROM DUAL' }
                 Default { 'SELECT 1' }
             }
             $result = Invoke-DBOQuery -Type $Type -Query $query -ConnectionString $connectionString -As SingleValue
@@ -232,6 +273,7 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
         }
         It "should run the query with custom variables" {
             $query = switch ($Type) {
+                Oracle { "SELECT '#{Test}' AS A, '#{Test2}' AS B FROM DUAL UNION ALL SELECT '3' AS A, '4' AS B FROM DUAL" }
                 Default { "SELECT '#{Test}' AS A, '#{Test2}' AS B UNION ALL SELECT '3' AS A, '4' AS B" }
             }
             $result = Invoke-DBOQuery -Query $query @dbConnectionParams -As DataTable -Variables @{ Test = '1'; Test2 = '2' }
@@ -241,6 +283,7 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
         It "should run the query with custom variables and custom token template" {
             Set-PSFConfig -FullName dbops.config.variabletoken -Value '\$(token)\$'
             $query = switch ($Type) {
+                Oracle { "SELECT '`$Test`$' AS A, '`$Test_2.1-3`$' AS B FROM DUAL UNION ALL SELECT '3' AS A, '4' AS B FROM DUAL" }
                 Default { "SELECT '`$Test`$' AS A, '`$Test_2.1-3`$' AS B UNION ALL SELECT '3' AS A, '4' AS B" }
             }
             $result = Invoke-DBOQuery -Query $query @dbConnectionParams -As DataTable -Variables @{ Test = '1'; "Test_2.1-3" = '2' }
@@ -250,18 +293,20 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
         }
         It "should connect to the server from a custom variable" {
             $query = switch ($Type) {
-                Default { "SELECT 1 AS A, 2 AS B UNION ALL SELECT '#{tst}' AS A, #{a.b-c} AS B" }
+                Oracle { "SELECT '1' AS A, 2 AS B FROM DUAL UNION ALL SELECT '#{tst}' AS A, #{a.b-c} AS B FROM DUAL" }
+                Default { "SELECT '1' AS A, 2 AS B UNION ALL SELECT '#{tst}' AS A, #{a.b-c} AS B" }
             }
             $result = Invoke-DBOQuery -Type $Type -Query $query -SqlInstance '#{srv}' -Credential $credential -Database $newDbName -As DataTable -Variables @{
                 Srv     = $instance
                 tst     = 3
                 "a.b-c" = 4
             }
-            $result.A | Should -Be 1, '3'
+            $result.A | Should -Be '1', '3'
             $result.B | Should -Be 2, 4
         }
         It "should run the query with custom parameters" {
             $query = switch ($Type) {
+                Oracle { "SELECT :p1 AS A, :p2 AS B FROM DUAL" }
                 Default { "SELECT @p1 AS A, @p2 AS B" }
             }
             $result = Invoke-DBOQuery -Query $query @dbConnectionParams -Parameter @{ p1 = '1'; p2 = 'string' }
@@ -284,9 +329,11 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
                 Set-ItResult -Skipped -Because "$Type doesn't care about wrong types, it seems"
             }
             $query1 = switch ($Type) {
+                Oracle { 'SELECT 1/@foo FROM DUAL' }
                 Default { 'SELECT 1/@foo' }
             }
             $query2 = switch ($Type) {
+                Oracle { 'SELECT ''bar'' + @foo FROM DUAL' }
                 Default { 'SELECT ''bar'' + @foo' }
             }
             { Invoke-DBOQuery -Query $query1 @dbConnectionParams -Parameter @{ foo = 'bar' } -Silent } | Should -Throw $conversionError

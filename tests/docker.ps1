@@ -1,6 +1,6 @@
 param(
     [ValidateSet('SqlServer', 'Oracle', 'MySQL', 'PostgreSQL')]
-    [string[]]$Type = 'SqlServer',
+    [string[]]$Type = @('SqlServer', 'Oracle', 'MySQL', 'PostgreSQL'),
     [switch]$Force
 )
 
@@ -25,7 +25,7 @@ function Start-Container {
         $ArgumentList
     )
     Test-Force $Name
-    $envs = $Environment.GetEnumerator() | ForEach-Object { @("-e", "$($_.Name)=$($_.Value)")}
+    $envs = $Environment.GetEnumerator() | ForEach-Object { @("-e", "$($_.Name)=$($_.Value)") }
     $null = docker inspect $Name
     if ($?) {
         docker start $Name
@@ -47,8 +47,8 @@ switch ($Type) {
     }
     PostgreSQL {
         Start-Container -Name dbops-postgresql -Port 5432 -Image postgres:14 -Environment @{
-            POSTGRES_PASSWORD = $script:postgresqlCredential.GetNetworkCredential().Password
-            PGOPTIONS = "-c log_connections=yes -c log_statement=all -c log_duration=0"
+            POSTGRES_PASSWORD         = $script:postgresqlCredential.GetNetworkCredential().Password
+            PGOPTIONS                 = "-c log_connections=yes -c log_statement=all -c log_duration=0"
             POSTGRES_HOST_AUTH_METHOD = "md5"
         }
     }
