@@ -265,6 +265,7 @@ function Test-DeploymentOutput {
         [string]$JournalName = $logTable,
         [switch]$HasJournal,
         [switch]$Script,
+        [switch]$Register,
         [switch]$WhatIf
     )
     $InputObject.Successful | Should -Be $true
@@ -281,6 +282,11 @@ function Test-DeploymentOutput {
     $InputObject.EndTime | Should -BeGreaterOrEqual $InputObject.StartTime
     if ($WhatIf) {
         "No deployment performed - WhatIf mode." | Should -BeIn $testResults.DeploymentLog
+    }
+    elseif ($Register) {
+        Get-JournalScript -Version $Version -Script:$Script | ForEach-Object {
+            $_ + " was registered in table $logtable" | Should -BeIn $InputObject.DeploymentLog
+        }
     }
     else {
         'Upgrade successful' | Should -BeIn $InputObject.DeploymentLog

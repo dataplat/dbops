@@ -2,7 +2,7 @@
     . $PSScriptRoot\detect_types.ps1
 }
 
-Describe "<type> Invoke-Deployment -Type $Typeintegration tests" -Tag IntegrationTests -ForEach $types {
+Describe "<type> Invoke-Deployment integration tests" -Tag IntegrationTests -ForEach $types {
     BeforeAll {
         $commandName = $PSCommandPath.Replace(".Tests.ps1", "").Replace($PSScriptRoot, "").Trim("/")
         . $PSScriptRoot\fixtures.ps1 -CommandName $commandName -Type $Type -Internal
@@ -213,31 +213,11 @@ Describe "<type> Invoke-Deployment -Type $Typeintegration tests" -Tag Integratio
         It "should register version 1.0 without creating any objects" {
             $before = Get-DeploymentTableCount
             $testResults = Invoke-Deployment -Type $Type -ScriptFile (Get-ScriptFile -Version 1) -Configuration $deploymentConfig -RegisterOnly
-            $testResults.Successful | Should -Be $true
-            $testResults.SqlInstance | Should -Be $instance
-            $testResults.Scripts.Name | Should -Be (Get-JournalScript -Version 1 -Script)
-            if ($Type -ne 'Oracle') {
-                $testResults.Database | Should -Be $newDbName
-            }
-            $testResults.SourcePath | Should -Be (Get-PackageScript -Version 1)
-            $testResults.ConnectionType | Should -Be $Type
-            $testResults.Configuration.SchemaVersionTable | Should -Be $logTable
-            $testResults.Error | Should -BeNullOrEmpty
-            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $testResults.StartTime | Should -Not -BeNullOrEmpty
-            $testResults.EndTime | Should -Not -BeNullOrEmpty
-            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
-            Get-JournalScript -Version 1 -Script | ForEach-Object {
-                $_ + " was registered in table $logtable" | Should -BeIn $testResults.DeploymentLog
-            }
+            $testResults | Test-DeploymentOutput -Version 1 -HasJournal -Script -Register
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @dbConnectionParams -InputFile $verificationScript
-            $logTable | Should -BeIn $testResults.(Get-ColumnName name)
-            'a' | Should -Not -BeIn $testResults.(Get-ColumnName name)
-            'b' | Should -Not -BeIn $testResults.(Get-ColumnName name)
-            'c' | Should -Not -BeIn $testResults.(Get-ColumnName name)
-            'd' | Should -Not -BeIn $testResults.(Get-ColumnName name)
+            $testResults.(Get-ColumnName name) | Should -Be $logTable
             Get-DeploymentTableCount | Should -Be ($before + 1)
 
             #Verifying SchemaVersions table
@@ -248,31 +228,12 @@ Describe "<type> Invoke-Deployment -Type $Typeintegration tests" -Tag Integratio
         It "should register version 1.0 + 2.0 without creating any objects" {
             $before = Get-DeploymentTableCount
             $testResults = Invoke-Deployment -Type $Type -ScriptFile (Get-ScriptFile -Version 1), (Get-ScriptFile -Version 2) -Configuration $deploymentConfig -RegisterOnly
-            $testResults.Successful | Should -Be $true
-            $testResults.SqlInstance | Should -Be $instance
-            $testResults.Scripts.Name | Should -Be (Get-JournalScript -Version 2 -Script)
-            if ($Type -ne 'Oracle') {
-                $testResults.Database | Should -Be $newDbName
-            }
-            $testResults.SourcePath | Should -Be (Get-PackageScript -Version 1, 2)
-            $testResults.ConnectionType | Should -Be $Type
-            $testResults.Configuration.SchemaVersionTable | Should -Be $logTable
-            $testResults.Error | Should -BeNullOrEmpty
-            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
-            $testResults.StartTime | Should -Not -BeNullOrEmpty
-            $testResults.EndTime | Should -Not -BeNullOrEmpty
-            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
-            Get-JournalScript -Version 2 -Script | ForEach-Object {
-                $_ + " was registered in table $logtable" | Should -BeIn $testResults.DeploymentLog
-            }
+            $testResults | Test-DeploymentOutput -Version 2 -HasJournal -Script -Register
+
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @dbConnectionParams -InputFile $verificationScript
-            $logTable | Should -BeIn $testResults.(Get-ColumnName name)
-            'a' | Should -Not -BeIn $testResults.(Get-ColumnName name)
-            'b' | Should -Not -BeIn $testResults.(Get-ColumnName name)
-            'c' | Should -Not -BeIn $testResults.(Get-ColumnName name)
-            'd' | Should -Not -BeIn $testResults.(Get-ColumnName name)
+            $testResults.(Get-ColumnName name) | Should -Be $logTable
             Get-DeploymentTableCount | Should -Be $before
 
             #Verifying SchemaVersions table
