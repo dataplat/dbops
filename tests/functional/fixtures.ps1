@@ -261,16 +261,23 @@ function Test-DeploymentOutput {
         [Parameter(Mandatory, ValueFromPipeline)]
         [object]$InputObject,
         [Parameter(Mandatory)]
-        [int]$Version,
+        [int[]]$Version,
         [string]$JournalName = $logTable,
         [switch]$HasJournal,
         [switch]$Script,
         [switch]$Register,
         [switch]$WhatIf
     )
+    # $finalVersion = $Version | Sort-Object | Select-Object -Last 1
     $InputObject.Successful | Should -Be $true
     $InputObject.SqlInstance | Should -Be $instance
-    $InputObject.Scripts.Name | Should -Be (Get-JournalScript -Version $Version -Script:$Script)
+
+    if ($Register -and $WhatIf) {
+        $InputObject.Scripts.Name | Should -BeNullOrEmpty
+    }
+    else {
+        $InputObject.Scripts.Name | Should -Be (Get-JournalScript -Version $Version -Script:$Script)
+    }
     if ($Type -ne 'Oracle') {
         $InputObject.Database | Should -Be $newDbName
     }
@@ -281,7 +288,12 @@ function Test-DeploymentOutput {
     $InputObject.EndTime | Should -Not -BeNullOrEmpty
     $InputObject.EndTime | Should -BeGreaterOrEqual $InputObject.StartTime
     if ($WhatIf) {
-        "No deployment performed - WhatIf mode." | Should -BeIn $testResults.DeploymentLog
+        if ($Register) {
+            "Running in WhatIf mode - no registration performed." | Should -BeIn $testResults.DeploymentLog
+        }
+        else {
+            "No deployment performed - WhatIf mode." | Should -BeIn $testResults.DeploymentLog
+        }
     }
     elseif ($Register) {
         Get-JournalScript -Version $Version -Script:$Script | ForEach-Object {
