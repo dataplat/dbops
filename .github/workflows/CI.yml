@@ -17,21 +17,33 @@ jobs:
       run: Install-Module PSFramework -Force; Import-Module ./dbops.psd1 -ErrorAction Stop
 
   tests:
-    name: Integration tests sqlserver
+    name: Integration tests
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         type: [sqlserver, postgresql, oracle, mysql]
         include:
           - image: dbatools/sqlinstance
             port: 1433
             type: sqlserver
+            env: {}
           - image: postgres:14
             port: 5432
             type: postgresql
             env:
               POSTGRES_PASSWORD: Password12!
               POSTGRES_HOST_AUTH_METHOD: md5
+          - image: mysql:5.7
+            port: 3306
+            type: mysql
+            env:
+              MYSQL_ROOT_PASSWORD: Password12!
+          - image: wnameless/oracle-xe-11g-r2
+            port: 1521
+            type: oracle
+            env:
+              ORACLE_ALLOW_REMOTE: true
     services:
       db:
         image: ${{ matrix.image }}
