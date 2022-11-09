@@ -48,13 +48,9 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
             if ($Type -in 'MySQL', 'Oracle') {
                 Set-ItResult -Skipped -Because "CREATE TABLE cannot be rolled back in $Type"
             }
-            try {
+            {
                 $null = Install-DBOPackage $packageName @dbConnectionParams -SchemaVersionTable $logTable -DeploymentMethod SingleTransaction
-            }
-            catch {
-                $testResults = $_
-            }
-            $testResults.Exception.Message | Should -BeLike (Get-TableExistsMessage "a")
+            } | Should -Throw (Get-TableExistsMessage "a")
 
             Test-DeploymentState -Version 0
         }
@@ -69,13 +65,9 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
         }
         It "Should throw an error and create one object" {
             #Running package
-            try {
+            {
                 $null = Install-DBOPackage $packageName @dbConnectionParams -SchemaVersionTable $logTable -DeploymentMethod NoTransaction
-            }
-            catch {
-                $testResults = $_
-            }
-            $testResults.Exception.Message | Should -BeLike (Get-TableExistsMessage "a")
+            } | Should -Throw (Get-TableExistsMessage "a")
             #Verifying objects
             $after = Invoke-DBOQuery @dbConnectionParams -InputFile $verificationScript
             $logTable | Should -BeIn $after.(Get-ColumnName name)
@@ -207,14 +199,9 @@ Describe "<type> Install-DBOPackage integration tests" -Tag IntegrationTests -Fo
             Reset-TestDatabase
         }
         It "should throw timeout error " {
-            try {
+            {
                 $null = Install-DBOPackage "$workFolder\delay.zip" @dbConnectionParams -OutputFile $outputFile
-            }
-            catch {
-                $testResults = $_
-            }
-            $testResults | Should -Not -BeNullOrEmpty
-            $testResults.Exception.Message | Should -BeLike $timeoutError
+            } | Should -Throw $timeoutError
             $output = Get-Content $outputFile -Raw
             $output | Should -BeLike $timeoutError
             $output | Should -Not -BeLike '*Successful!*'

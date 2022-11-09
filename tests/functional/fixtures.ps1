@@ -467,3 +467,13 @@ function Get-QuotedIdentifier {
     }
     $ids -Join '.'
 }
+
+function Get-ScriptFile {
+    param(
+        [Parameter(Mandatory)]
+        [int[]]$Version
+    )
+    Get-PackageScript -Version $Version | Get-Item | ForEach-Object {
+        [DBOpsFile]::new($_, $_.Name, $true)
+    }
+}

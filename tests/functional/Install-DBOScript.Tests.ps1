@@ -38,13 +38,9 @@ Describe "<type> Install-DBOScript integration tests" -Tag IntegrationTests -For
                 Set-ItResult -Skipped -Because "CREATE TABLE cannot be rolled back in $Type"
             }
             #Running package
-            try {
+            {
                 $null = Install-DBOScript -Path $tranFailScripts @dbConnectionParams -SchemaVersionTable $logTable -DeploymentMethod SingleTransaction
-            }
-            catch {
-                $testResults = $_
-            }
-            $testResults.Exception.Message | Should -BeLike (Get-TableExistsMessage "a")
+            } | Should -Throw (Get-TableExistsMessage "a")
             Test-DeploymentState -Script -Version 0
         }
     }
@@ -118,14 +114,9 @@ Describe "<type> Install-DBOScript integration tests" -Tag IntegrationTests -For
             Reset-TestDatabase
         }
         It "Should -Throw timeout error" {
-            try {
+            {
                 $null = Install-DBOScript -ScriptPath $delayScript @dbConnectionParams -SchemaVersionTable $logTable -OutputFile $outputFile -ExecutionTimeout 1
-            }
-            catch {
-                $testResults = $_
-            }
-            $testResults | Should -Not -BeNullOrEmpty
-            $testResults.Exception.Message | Should -BeLike $timeoutError
+            } | Should -Throw $timeoutError
             $output = Get-Content $outputFile -Raw
             $output | Should -BeLike $timeoutError
             $output | Should -Not -BeLike '*Successful!*'
@@ -258,12 +249,12 @@ Describe "<type> Install-DBOScript integration tests" -Tag IntegrationTests -For
             $errorObject | Should -Not -BeNullOrEmpty
             $errorObject.Exception.Message | Should -BeLike (Get-TableExistsMessage "a")
         }
-        It "should not deploy anything after throwing an error" {
+        It "should halt after throwing an error" {
             #Running package
             try {
                 $testResults = $null
                 $null = Install-DBOScript -Path $tranFailScripts @dbConnectionParams -SchemaVersionTable $logTable -DeploymentMethod NoTransaction
-                $testResults = Install-DBOScript -ScriptPath (Get-PackageScript -Version 2) @dbConnectionParams -SchemaVersionTable $logTable
+                $testResults = "foo"
             }
             catch {
                 $errorObject = $_

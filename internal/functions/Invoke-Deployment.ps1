@@ -151,7 +151,7 @@
             $package = Get-DBOPackage -InputObject $InputObject
         }
         # Merge package config into the current config
-        $config = Merge-Config -BoundParameters @{Configuration = $Configuration} -Package $package -ProcessVariables
+        $config = Merge-Config -BoundParameters @{Configuration = $Configuration } -Package $package -ProcessVariables
 
         # Initialize external libraries if needed
         Write-PSFMessage -Level Debug -Message "Initializing libraries for $Type"
@@ -212,7 +212,7 @@
         $status = [DBOpsDeploymentStatus]::new()
         $status.StartTime = [datetime]::Now
         $status.Configuration = $config
-        if (!$ConnectionString) {
+        if (!$config.ConnectionString) {
             $status.SqlInstance = $config.SqlInstance
             $status.Database = $config.Database
         }
