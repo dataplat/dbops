@@ -1,8 +1,8 @@
 name: CI
-on: [pull_request]
+on: [push]
 
 jobs:
-  build:
+  import:
     name: Module imports on all platforms
     runs-on: ${{ matrix.os }}
     strategy:
@@ -15,3 +15,34 @@ jobs:
     - name: Perform the import
       shell: pwsh
       run: Install-Module PSFramework -Force; Import-Module ./dbops.psd1 -ErrorAction Stop
+
+  tests:
+    name: Integration tests sqlserver
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        type: [sqlserver, postgresql, oracle, mysql]
+        include:
+          - image: dbatools/sqlinstance
+            port: 1433
+            type: sqlserver
+          - image: postgres:14
+            port: 5432
+            type: postgresql
+            env:
+              POSTGRES_PASSWORD: Password12!
+              POSTGRES_HOST_AUTH_METHOD: md5
+    services:
+      db:
+        image: ${{ matrix.image }}
+        ports:
+          - ${{ matrix.port }}:${{ matrix.port }}
+        env: ${{ matrix.env }}
+    steps:
+      - uses: actions/checkout@v1
+      - name: Prepare
+        shell: pwsh
+        run: tests/pester.prep.ps1
+      - name: Run tests
+        shell: pwsh
+        run: tests/ci.pester.ps1 -Type ${{ matrix.type }}
