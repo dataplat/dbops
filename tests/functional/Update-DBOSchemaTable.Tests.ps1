@@ -1,83 +1,53 @@
-﻿Param (
-    [switch]$Batch
-)
-
-if ($PSScriptRoot) { $commandName = $MyInvocation.MyCommand.Name.Replace(".Tests.ps1", ""); $here = $PSScriptRoot }
-else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
-
-if (!$Batch) {
-    # Is not a part of the global batch => import module
-    #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
-}
-else {
-    # Is a part of a batch, output some eye-catching happiness
-    Write-Host "Running $commandName tests" -ForegroundColor Cyan
+﻿BeforeDiscovery {
+    . $PSScriptRoot\detect_types.ps1
 }
 
-. "$here\constants.ps1"
-
-$logTable = "testdeploymenthistory"
-$cleanupScript = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\Cleanup.sql"
-
-$newDbName = "_test_$commandName"
-$connParams = @{
-    SqlInstance = $script:mssqlInstance
-    Silent = $true
-    Credential = $script:mssqlCredential
-}
-
-Describe "Update-DBOSchemaTable integration tests" -Tag $commandName, IntegrationTests {
+Describe "<type> Update-DBOSchemaTable integration tests" -Tag IntegrationTests -ForEach $types {
     BeforeAll {
-        $dropDatabaseScript = 'IF EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{0}]; END' -f $newDbName
-        $createDatabaseScript = 'CREATE DATABASE [{0}]' -f $newDbName
-        $null = Invoke-DBOQuery @connParams -Database master -Query $dropDatabaseScript
-        $null = Invoke-DBOQuery @connParams -Database master -Query $createDatabaseScript
-        $schemaTableQuery = @"
-            create table {0} (
-            [Id] int identity(1,1) not null constraint {0}_pk primary key,
-            [ScriptName] nvarchar(255) not null,
-            [Applied] datetime not null
-            )
-"@
-        $verificationQuery = "SELECT column_name from INFORMATION_SCHEMA.columns WHERE table_name = '{0}'"
+        $commandName = $PSCommandPath.Replace(".Tests.ps1", "").Replace($PSScriptRoot, "").Trim("/")
+        . $PSScriptRoot\fixtures.ps1 -CommandName $commandName -Type $Type -Internal
+        New-TestDatabase -Force
+        $verificationQuery = switch ($Type) {
+            Oracle { "SELECT column_name from sys.all_tab_columns WHERE table_name = UPPER('{0}')" }
+            Default { "SELECT column_name from INFORMATION_SCHEMA.columns WHERE table_name = '{0}'" }
+        }
     }
     AfterAll {
-        $null = Invoke-DBOQuery @connParams -Database master -Query $dropDatabaseScript
+        Remove-TestDatabase
     }
     BeforeEach {
-        $null = Invoke-DBOQuery @connParams -Database $newDbName -InputFile $cleanupScript
+        Reset-TestDatabase
     }
     Context "testing upgrade of the schema table" {
         It "upgrade default schema table" {
-            $null = Invoke-DBOQuery @connParams -Database $newDbName -Query ($schemaTableQuery -f 'SchemaVersions')
+            $null = Invoke-DBOQuery @dbConnectionParams -Query ($schemaVersionv1.Replace($logTable, "SchemaVersions"))
 
-            $result = Update-DBOSchemaTable @connParams -Database $newDbName
+            $result = Update-DBOSchemaTable @dbConnectionParams
             $result | Should -BeNullOrEmpty
 
             #Verifying SchemaVersions table
-            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -Query ($verificationQuery -f 'SchemaVersions')
-            $testResults.column_name | Should -BeIn @('Id', 'ScriptName', 'Applied', 'Checksum', 'AppliedBy', 'ExecutionTime')
+            $testResults = Invoke-DBOQuery @dbConnectionParams -Query ($verificationQuery -f 'SchemaVersions')
+            $testResults.column_name | Should -BeIn @($idColumn, 'ScriptName', 'Applied', 'Checksum', 'AppliedBy', 'ExecutionTime')
         }
         It "upgrade custom schema table" {
-            $null = Invoke-DBOQuery @connParams -Database $newDbName -Query ($schemaTableQuery -f $logTable)
+            $null = Invoke-DBOQuery @dbConnectionParams -Query $schemaVersionv1
 
-            $result = Update-DBOSchemaTable @connParams -Database $newDbName -SchemaVersionTable $logTable
+            $result = Update-DBOSchemaTable @dbConnectionParams -SchemaVersionTable $logTable
             $result | Should -BeNullOrEmpty
 
-            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -Query ($verificationQuery -f $logTable)
-            $testResults.column_name | Should -BeIn @('Id', 'ScriptName', 'Applied', 'Checksum', 'AppliedBy', 'ExecutionTime')
+            $testResults = Invoke-DBOQuery @dbConnectionParams -Query ($verificationQuery -f $logTable)
+            $testResults.column_name | Should -BeIn @($idColumn, 'ScriptName', 'Applied', 'Checksum', 'AppliedBy', 'ExecutionTime')
         }
     }
     Context  "$commandName whatif tests" {
         It "should upgrade nothing" {
-            $null = Invoke-DBOQuery @connParams -Database $newDbName -Query ($schemaTableQuery -f $logTable)
+            $null = Invoke-DBOQuery @dbConnectionParams -Query $schemaVersionv1
 
-            $result = Update-DBOSchemaTable @connParams -Database $newDbName -SchemaVersionTable $logTable -WhatIf
+            $result = Update-DBOSchemaTable @dbConnectionParams -SchemaVersionTable $logTable -WhatIf
             $result | Should -BeNullOrEmpty
 
-            $testResults = Invoke-DBOQuery @connParams -Database $newDbName -Query ($verificationQuery -f $logTable)
-            $testResults.column_name | Should -BeIn @('Id', 'ScriptName', 'Applied')
+            $testResults = Invoke-DBOQuery @dbConnectionParams -Query ($verificationQuery -f $logTable)
+            $testResults.column_name | Should -BeIn @($idColumn, 'ScriptName', 'Applied')
         }
     }
 }

@@ -8,7 +8,7 @@ Describe "<type> Register-DBOPackage integration tests" -Tag IntegrationTests -F
         . $PSScriptRoot\fixtures.ps1 -CommandName $commandName -Type $Type -Internal
 
         New-Workfolder -Force
-        New-TestDatabase -ForEach
+        New-TestDatabase -Force
     }
     AfterAll {
         Remove-TestDatabase

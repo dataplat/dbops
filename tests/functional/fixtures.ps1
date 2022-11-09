@@ -133,7 +133,7 @@ create table $logTable (
         $connectionString = "Host=$instance;Database=$newDbName;Username=$($credential.UserName);Password=$($credential.GetNetworkCredential().Password)"
         $varQuery = "SELECT '#{var1}'; SELECT '#{var2}'"
         $schemaVersionv1 = @"
-CREATE TABLE $logtable
+CREATE TABLE "$logtable"
 (
     schemaversionsid serial NOT NULL,
     scriptname character varying(255) NOT NULL,
