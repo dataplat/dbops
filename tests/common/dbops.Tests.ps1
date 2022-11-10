@@ -1,63 +1,56 @@
-Param (
-    [switch]$Batch
-)
-
-$commandName = $MyInvocation.MyCommand.Name.Replace(".Tests.ps1", "")
-$here = if ($PSScriptRoot) { $PSScriptRoot } else {	(Get-Item . ).FullName }
-
-if (!$Batch) {
-    # Is not a part of the global batch => import module
-    #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
-}
-else {
-    # Is a part of a batch, output some eye-catching happiness
-    Write-Host "Running $commandName tests" -ForegroundColor Cyan
-}
-
-$ModuleName = 'dbops'
-$ModulePath = (Get-Item $here).Parent.FullName
-
-Describe "$ModuleName indentation" -Tag 'Compliance' {
-    $AllFiles = Get-ChildItem -Path $ModulePath -File -Recurse  -Filter '*.ps*1'
-    It "should test $($AllFiles.Count) files" {
-        $AllFiles.Count | Should BeGreaterThan 0
-    }
-    foreach ($f in $AllFiles) {
-        $LeadingTabs = Select-String -Path $f -Pattern '^[\t]+'
-        if ($LeadingTabs.Count -gt 0) {
-            It "$f is not indented with tabs (line(s) $($LeadingTabs.LineNumber -join ','))" {
-                $LeadingTabs.Count | Should Be 0
-            }
-        }
-        $TrailingSpaces = Select-String -Path $f -Pattern '([^ \t\r\n])[ \t]+$'
-        if ($TrailingSpaces.Count -gt 0) {
-            It "$f has no trailing spaces (line(s) $($TrailingSpaces.LineNumber -join ','))" {
-                $TrailingSpaces.Count | Should Be 0
-            }
-        }
-    }
-}
-
-Describe "$ModuleName ScriptAnalyzerErrors" -Tag 'Compliance' {
+BeforeDiscovery {
+    $moduleName = 'dbops'
+    $modulePath = (Get-Item $PSScriptRoot).Parent.Parent.FullName
+    $allFiles = Get-ChildItem -Path $ModulePath -File -Recurse  -Filter '*.ps*1'
     $settings = @{
         ExcludeRules = @(
             'PSUseShouldProcessForStateChangingFunctions'
         )
     }
-    $functionErrors = Invoke-ScriptAnalyzer -Path "$ModulePath\functions" -Severity Warning -Settings $settings
-    $internalErrors = Invoke-ScriptAnalyzer -Path "$ModulePath\internal\functions" -Severity Error -Settings $settings
-    $moduleErrors = Invoke-ScriptAnalyzer -Path "$ModulePath\$ModuleName.psm1" -Severity Error -Settings $settings
-    foreach ($scriptAnalyzerErrors in @($functionErrors, $internalErrors, $moduleErrors)) {
-        foreach ($err in $scriptAnalyzerErrors) {
-            It "$($err.scriptName) has Error(s) : $($err.RuleName)" {
-                $err.Message | Should Be $null
-            }
+    $analyzerErrors = @{
+        function = Invoke-ScriptAnalyzer -Path "$ModulePath\functions" -Severity Warning -Settings $settings
+        internal = Invoke-ScriptAnalyzer -Path "$ModulePath\internal\functions" -Severity Error -Settings $settings
+        module   = Invoke-ScriptAnalyzer -Path "$ModulePath\$ModuleName.psm1" -Severity Error -Settings $settings
+    }
+}
+
+
+Describe "<ModuleName> indentation" -Tag 'Compliance' -Foreach @(
+    @{AllFiles = $allFiles; ModuleName = $moduleName }
+) {
+    Context "Leading tabs" {
+        It "ensures <_> is not indented with tabs" -ForEach $AllFiles {
+            $LeadingTabs = Select-String -Path $_ -Pattern '^[\t]+'
+            $LeadingTabs.Count | Should -Be 0
         }
     }
-    It "should successfully pass all the tests" {
-        $functionErrors | Should BeNullOrEmpty
-        $internalErrors | Should BeNullOrEmpty
-        $moduleErrors | Should BeNullOrEmpty
+    Context "Trailing spaces" {
+        It "ensures <_> has no trailing spaces" -ForEach $AllFiles {
+            $TrailingSpaces = Select-String -Path $_ -Pattern '([^ \t\r\n])[ \t]+$'
+            $TrailingSpaces.Count | Should -Be 0
+        }
+    }
+}
+
+Describe "<ModuleName> ScriptAnalyzerErrors" -Tag 'Compliance' -Foreach @(
+    @{AnalyzerErrors = $analyzerErrors; ModuleName = $moduleName }
+) {
+    Context "<_> errors" -ForEach @(
+        @{AnalyzerErrors = $AnalyzerErrors; Type = "functions" }
+        @{AnalyzerErrors = $AnalyzerErrors; Type = "internal" }
+        @{AnalyzerErrors = $AnalyzerErrors; Type = "module" }
+    ) {
+        It "<_.scriptName> has Error(s) : <_.RuleName>" -Foreach $AnalyzerErrors.$Type {
+            $_.Message | Should -Be $null
+        }
+    }
+    Context "Overall success" -ForEach @(
+        @{AnalyzerErrors = $AnalyzerErrors; Type = "functions" }
+        @{AnalyzerErrors = $AnalyzerErrors; Type = "internal" }
+        @{AnalyzerErrors = $AnalyzerErrors; Type = "module" }
+    ) {
+        It "should successfully pass all <Type> tests" {
+            $AnalyzerErrors.$Type | Should -BeNullOrEmpty
+        }
     }
 }
