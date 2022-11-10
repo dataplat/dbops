@@ -8,7 +8,7 @@ param (
 )
 if (!$Batch) {
     # Explicitly import the module for testing
-    . "$PSScriptRoot\..\import.ps1"
+    . "$PSScriptRoot\..\import.ps1" -Internal:$Internal
 }
 # import test fixtures
 . "$PSScriptRoot\..\fixtures.ps1"
