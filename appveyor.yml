@@ -64,7 +64,6 @@ for:
       - mysql
       - postgresql
     before_test:
-      - sudo -u postgres psql -c "CREATE USER sa WITH SUPERUSER PASSWORD 'Password12!';"
       - ps: .\tests\pester.prep.ps1
       - docker run --name dbops-oracle -d -p 1521:1521 -e ORACLE_ALLOW_REMOTE=true wnameless/oracle-xe-11g-r2
 

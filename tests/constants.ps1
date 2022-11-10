@@ -16,7 +16,7 @@ else {
     }
     else {
         if ($env:GITHUB_ACTION) {
-            $script:mssqlCredential = [pscredential]::new('sa', $dbatoolsSaPassword)
+            $script:mssqlCredential = [pscredential]::new('sqladmin', $dbatoolsSaPassword)
         }
         else {
             $script:mssqlCredential = [pscredential]::new('sa', $appveyorPassword)
@@ -29,7 +29,7 @@ else {
 
     # PostgreSQL
     $script:postgresqlInstance = 'localhost'
-    $script:postgresqlCredential = [pscredential]::new('sa', $appveyorPassword)
+    $script:postgresqlCredential = [pscredential]::new('postgres', $appveyorPassword)
 
     # Oracle
     $script:oracleInstance = 'localhost'
