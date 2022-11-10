@@ -10,26 +10,16 @@ if (!$Batch) {
     # Explicitly import the module for testing
     . "$PSScriptRoot\..\import.ps1"
 }
+# import test fixtures
+. "$PSScriptRoot\..\fixtures.ps1"
+
 # add environment constans
 . "$PSScriptRoot\..\constants.ps1"
 
-# define test fixtures
-$buildFolder = New-Item -Path "$PSScriptRoot\..\build" -ItemType Directory -Force
-$workFolder = Join-PSFPath -Normalize $buildFolder "dbops-test"
-$unpackedFolder = Join-PSFPath -Normalize $workFolder 'unpacked'
-$logTable = "testdeploymenthistory"
-$packageName = Join-PSFPath -Normalize $workFolder 'TempDeployment.zip'
-$newDbName = "dbops_test"
-$outputFile = "$workFolder\log.txt"
-$testPassword = 'TestPassword'
-$fullConfig = Join-PSFPath -Normalize "$PSScriptRoot\..\etc\tmp_full_config.json"
-$fullConfigSource = Join-PSFPath -Normalize "$PSScriptRoot\..\etc\full_config.json"
 $noNewScriptsText = 'No new scripts need to be executed - completing.'
 $idColumn = "Id"
 
-# for replacement
-$packageNamev1 = Join-Path $workFolder "TempDeployment_v1.zip"
-
+# db-dependent fixtures
 switch ($Type) {
     SqlServer {
         $instance = $script:mssqlInstance
@@ -48,7 +38,7 @@ switch ($Type) {
             Database    = $newDbName
             Type        = $Type
         }
-        $etcFolder = "sqlserver-tests"
+        $etcDbFolder = Join-Path -Normalize $etcFolder "sqlserver-tests"
         $dropDatabaseScript = 'IF EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{0}]; END' -f $newDbName
         $createDatabaseScript = 'IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN CREATE DATABASE [{0}]; END' -f $newDbName
         $timeoutError = '*Timeout Expired.*'
@@ -86,7 +76,7 @@ create table $logTable (
             Database    = $newDbName
             Type        = $Type
         }
-        $etcFolder = "mysql-tests"
+        $etcDbFolder = Join-Path -Normalize $etcFolder "mysql-tests"
         $dropDatabaseScript = 'DROP DATABASE IF EXISTS `{0}`' -f $newDbName
         $createDatabaseScript = 'CREATE DATABASE IF NOT EXISTS `{0}`' -f $newDbName
         $timeoutError = if ($PSVersionTable.PSVersion.Major -ge 6) { '*Fatal error encountered during command execution*' } else { '*Timeout expired*' }
@@ -121,7 +111,7 @@ create table $logTable (
             Database    = $newDbName
             Type        = $Type
         }
-        $etcFolder = "postgresql-tests"
+        $etcDbFolder = Join-Path -Normalize $etcFolder "postgresql-tests"
         $dropDatabaseScript = @(
             'SELECT pid, pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = ''{0}'' AND pid <> pg_backend_pid()' -f $newDbName
             'DROP DATABASE IF EXISTS {0}' -f $newDbName
@@ -164,7 +154,7 @@ CREATE TABLE "$logtable"
             Credential  = $dbCredentials
             Type        = $Type
         }
-        $etcFolder = "oracle-tests"
+        $etcDbFolder = Join-Path -Normalize $etcFolder "oracle-tests"
         $createDatabaseScript = "CREATE USER $dbUserName IDENTIFIED BY $dbPassword account unlock/
             GRANT CONNECT, RESOURCE, CREATE ANY TABLE TO $dbUserName/
             GRANT EXECUTE on dbms_lock to $dbUserName"
@@ -219,21 +209,21 @@ END;
     }
 }
 
-$cleanupScript = Join-PSFPath -Normalize "$PSScriptRoot\..\etc\$etcFolder\Cleanup.sql"
-$delayScript = Join-PSFPath -Normalize "$PSScriptRoot\..\etc\$etcFolder\delay.sql"
-$tranFailScripts = Join-PSFPath -Normalize "$PSScriptRoot\..\etc\$etcFolder\transactional-failure"
-$verificationScript = Join-PSFPath -Normalize "$PSScriptRoot\..\etc\$etcFolder\verification\select.sql"
-$logFile1 = Join-PSFPath -Normalize "$PSScriptRoot\..\etc\$etcFolder\verification\log1.txt"
-$logFile2 = Join-PSFPath -Normalize "$PSScriptRoot\..\etc\$etcFolder\verification\log2.txt"
+$cleanupScript = Join-PSFPath -Normalize $etcDbFolder "Cleanup.sql"
+$delayScript = Join-PSFPath -Normalize $etcDbFolder "delay.sql"
+$tranFailScripts = Join-PSFPath -Normalize $etcDbFolder "transactional-failure"
+$verificationScript = Join-PSFPath -Normalize $etcDbFolder "verification\select.sql"
+$logFile1 = Join-PSFPath -Normalize $etcDbFolder "verification\log1.txt"
+$logFile2 = Join-PSFPath -Normalize $etcDbFolder "verification\log2.txt"
 
-# input data functions
+# source data functions
 
 function Get-PackageScript {
     param(
         [Parameter(Mandatory)]
         [int[]]$Version
     )
-    return $Version | Foreach-Object { Join-PSFPath -Normalize (Resolve-Path "$PSScriptRoot\..\etc\$etcFolder\success\$_.sql").Path }
+    Get-SourceScript -Version $Version -EtcPath $etcDbFolder
 }
 function Get-JournalScript {
     param(
@@ -267,7 +257,6 @@ function Test-DeploymentOutput {
         [switch]$Register,
         [switch]$WhatIf
     )
-    # $finalVersion = $Version | Sort-Object | Select-Object -Last 1
     $InputObject.Successful | Should -Be $true
     $InputObject.SqlInstance | Should -Be $instance
 
@@ -398,36 +387,6 @@ function Reset-TestDatabase {
         [Npgsql.NpgsqlConnection]::ClearAllPools()
     }
 }
-function Remove-Workfolder {
-    param(
-        [switch]$Unpacked
-    )
-    if ($Unpacked) {
-        $folder = $unpackedFolder
-    }
-    else {
-        $folder = $workFolder
-    }
-    if ((Test-Path $folder) -and $workFolder -like '*dbops-test*') { Remove-Item $folder -Recurse }
-}
-function New-Workfolder {
-    param(
-        [switch]$Force,
-        [switch]$Unpacked
-    )
-    if ($Force) {
-        Remove-Workfolder -Unpacked:$Unpacked
-    }
-    if ($Unpacked) {
-        New-Workfolder
-        $folder = $unpackedFolder
-    }
-    else {
-        $folder = $workFolder
-    }
-    $null = New-Item $folder -ItemType Directory -Force
-}
-
 function Remove-TestDatabase {
     $null = Invoke-DBOQuery @saConnectionParams -Query $dropDatabaseScript
     if ($Type -eq 'Postgresql') {
