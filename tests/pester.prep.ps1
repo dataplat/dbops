@@ -14,3 +14,19 @@ Install-Module -Name PSScriptAnalyzer -Repository PSGallery -Force -Scope Curren
 # Set logging parameters
 Set-PSFConfig -FullName psframework.logging.filesystem.maxmessagefilebytes -Value (100 * 1024 * 1024) -PassThru | Register-PSFConfig
 Set-PSFConfig -FullName psframework.logging.filesystem.maxtotalfoldersize -Value (500 * 1024 * 1024) -PassThru | Register-PSFConfig
+
+# install and import libraries
+. "$PSScriptRoot\import.ps1" -Internal
+
+foreach ($type in @('Oracle', 'MySQL', 'PostgreSQL')) {
+    foreach ($lib in (Get-ExternalLibrary -Type $type)) {
+        if (-not ($ver = $lib.RequiredVersion)) {
+            $ver = $lib.MaximumVersion
+        }
+
+        $package = Install-NugetPackage -Name $lib.Name -RequiredVersion $ver -Force -Confirm:$false -Scope CurrentUser
+        foreach ($path in $lib.Path) {
+            Add-Type -Path (Join-Path (Split-Path $package.Source -Parent) $path)
+        }
+    }
+}

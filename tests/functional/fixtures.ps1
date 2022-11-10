@@ -8,13 +8,12 @@ param (
 )
 if (!$Batch) {
     # Explicitly import the module for testing
-    Import-Module "$PSScriptRoot\..\..\dbops.psd1" -Force
-    if ($Internal) {
-        Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
-    }
+    . "$PSScriptRoot\..\import.ps1"
 }
+# add environment constans
 . "$PSScriptRoot\..\constants.ps1"
 
+# define test fixtures
 $buildFolder = New-Item -Path "$PSScriptRoot\..\build" -ItemType Directory -Force
 $workFolder = Join-PSFPath -Normalize $buildFolder "dbops-test"
 $unpackedFolder = Join-PSFPath -Normalize $workFolder 'unpacked'

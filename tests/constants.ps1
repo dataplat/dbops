@@ -7,6 +7,7 @@ if (Test-Path "$PSScriptRoot\constants.local.ps1") {
 else {
     # default appveyor password
     $appveyorPassword = ConvertTo-SecureString 'Password12!' -AsPlainText -Force
+    $dbatoolsSaPassword = ConvertTo-SecureString 'dbatools.IO' -AsPlainText -Force
 
     # SqlServer
     $script:mssqlInstance = $env:mssql_instance
@@ -14,7 +15,12 @@ else {
         $script:mssqlCredential = $null
     }
     else {
-        $script:mssqlCredential = [pscredential]::new('sa', $appveyorPassword)
+        if ($env:GITHUB_ACTION) {
+            $script:mssqlCredential = [pscredential]::new('sa', $dbatoolsSaPassword)
+        }
+        else {
+            $script:mssqlCredential = [pscredential]::new('sa', $appveyorPassword)
+        }
     }
 
     # MySQL
