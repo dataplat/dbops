@@ -38,7 +38,7 @@ switch ($Type) {
             Database    = $newDbName
             Type        = $Type
         }
-        $etcDbFolder = Join-Path -Normalize $etcFolder "sqlserver-tests"
+        $etcDbFolder = Join-PSFPath -Normalize $etcFolder "sqlserver-tests"
         $dropDatabaseScript = 'IF EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN ALTER DATABASE [{0}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{0}]; END' -f $newDbName
         $createDatabaseScript = 'IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = ''{0}'') BEGIN CREATE DATABASE [{0}]; END' -f $newDbName
         $timeoutError = '*Timeout Expired.*'
@@ -76,7 +76,7 @@ create table $logTable (
             Database    = $newDbName
             Type        = $Type
         }
-        $etcDbFolder = Join-Path -Normalize $etcFolder "mysql-tests"
+        $etcDbFolder = Join-PSFPath -Normalize $etcFolder "mysql-tests"
         $dropDatabaseScript = 'DROP DATABASE IF EXISTS `{0}`' -f $newDbName
         $createDatabaseScript = 'CREATE DATABASE IF NOT EXISTS `{0}`' -f $newDbName
         $timeoutError = if ($PSVersionTable.PSVersion.Major -ge 6) { '*Fatal error encountered during command execution*' } else { '*Timeout expired*' }
@@ -111,7 +111,7 @@ create table $logTable (
             Database    = $newDbName
             Type        = $Type
         }
-        $etcDbFolder = Join-Path -Normalize $etcFolder "postgresql-tests"
+        $etcDbFolder = Join-PSFPath -Normalize $etcFolder "postgresql-tests"
         $dropDatabaseScript = @(
             'SELECT pid, pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = ''{0}'' AND pid <> pg_backend_pid()' -f $newDbName
             'DROP DATABASE IF EXISTS {0}' -f $newDbName
@@ -154,7 +154,7 @@ CREATE TABLE "$logtable"
             Credential  = $dbCredentials
             Type        = $Type
         }
-        $etcDbFolder = Join-Path -Normalize $etcFolder "oracle-tests"
+        $etcDbFolder = Join-PSFPath -Normalize $etcFolder "oracle-tests"
         $createDatabaseScript = "CREATE USER $dbUserName IDENTIFIED BY $dbPassword account unlock/
             GRANT CONNECT, RESOURCE, CREATE ANY TABLE TO $dbUserName/
             GRANT EXECUTE on dbms_lock to $dbUserName"

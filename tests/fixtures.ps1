@@ -26,7 +26,7 @@ function Get-SourceScript {
         [int[]]$Version,
         [string]$EtcPath = $etcScriptFolder
     )
-    return $Version | Foreach-Object { Join-PSFPath -Normalize (Resolve-Path "$scriptFolder\$_.sql").Path }
+    return $Version | Foreach-Object { Join-PSFPath -Normalize (Resolve-Path "$EtcPath\success\$_.sql").Path }
 }
 
 
