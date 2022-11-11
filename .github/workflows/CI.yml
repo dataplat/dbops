@@ -69,6 +69,9 @@ jobs:
       - name: Prepare
         shell: pwsh
         run: tests/pester.prep.ps1
-      - name: Run tests
+      - name: Run unittests
         shell: pwsh
-        run: tests/ci.pester.ps1 -Tag UnitTests, Compliance
+        run: tests/ci.pester.ps1 -Tag UnitTests
+      - name: Run compliance tests
+        shell: pwsh
+        run: tests/ci.pester.ps1 -Tag Compliance
