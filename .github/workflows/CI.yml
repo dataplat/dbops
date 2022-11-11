@@ -57,7 +57,7 @@ jobs:
         run: tests/functional.prep.ps1 -Type ${{ matrix.type }}
       - name: Run tests
         shell: pwsh
-        run: tests/ci.pester.ps1 -Tag IntegrationTests -Type ${{ matrix.type }}
+        run: tests/ci.pester.ps1 -Tag FunctionalTests -Type ${{ matrix.type }}
 
   unit-tests:
     name: Unit tests
@@ -74,7 +74,7 @@ jobs:
         run: tests/ci.pester.ps1 -Tag UnitTests
       - name: Run integration tests
         shell: pwsh
-        run: tests/ci.pester.ps1 -Tag Integration
+        run: tests/ci.pester.ps1 -Tag IntegrationTests
       - name: Run compliance tests
         shell: pwsh
-        run: tests/ci.pester.ps1 -Tag Compliance
+        run: tests/ci.pester.ps1 -Tag ComplianceTests

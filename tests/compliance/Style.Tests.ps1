@@ -15,7 +15,7 @@ BeforeDiscovery {
 }
 
 
-Describe "<ModuleName> indentation" -Tag 'Compliance' -Foreach @(
+Describe "<ModuleName> indentation" -Tag ComplianceTests -Foreach @(
     @{AllFiles = $allFiles; ModuleName = $moduleName }
 ) {
     Context "Leading tabs" {
@@ -32,7 +32,7 @@ Describe "<ModuleName> indentation" -Tag 'Compliance' -Foreach @(
     }
 }
 
-Describe "<ModuleName> ScriptAnalyzerErrors" -Tag 'Compliance' -Foreach @(
+Describe "<ModuleName> ScriptAnalyzerErrors" -Tag ComplianceTests -Foreach @(
     @{AnalyzerErrors = $analyzerErrors; ModuleName = $moduleName }
 ) {
     Context "<_> errors" -ForEach @(

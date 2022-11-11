@@ -2,7 +2,7 @@ BeforeDiscovery {
     . "$PSScriptRoot\..\detect_types.ps1"
 }
 
-Describe "Test-DBOSupportedSystem tests" -Tag Integration {
+Describe "Test-DBOSupportedSystem tests" -Tag IntegrationTests {
     BeforeAll {
         . "$PSScriptRoot\fixtures.ps1"
         . "$PSScriptRoot\..\..\internal\functions\Get-ExternalLibrary.ps1"

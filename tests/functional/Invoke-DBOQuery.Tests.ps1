@@ -2,7 +2,7 @@ BeforeDiscovery {
     . "$PSScriptRoot\..\detect_types.ps1"
 }
 
-Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEach $types {
+Describe "<type> Invoke-DBOQuery integration tests" -Tag FunctionalTests -ForEach $types {
     BeforeAll {
         $commandName = $PSCommandPath.Replace(".Tests.ps1", "").Replace($PSScriptRoot, "").Trim("/")
         . $PSScriptRoot\fixtures.ps1 -CommandName $commandName -Type $Type
@@ -27,9 +27,9 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
             PostgreSQL {
                 $separator = ";"
                 $loginError = '*No password has been provided*'
-                $connectionError = switch ($PSVersionTable.PSVersion.Major) {
-                    7 { "*No such host is known*" }
-                    default { '*Resource temporarily unavailable*' }
+                $connectionError = switch ($isWindows) {
+                    $false { '*Resource temporarily unavailable*' }
+                    default { "*No such host is known*" }
                 }
                 $unknownTableError = "*relation * does not exist*"
             }

@@ -2,7 +2,7 @@ BeforeDiscovery {
     . "$PSScriptRoot\..\detect_types.ps1"
 }
 
-Describe "Install-NugetPackage tests" -Tag Integration {
+Describe "Install-NugetPackage tests" -Tag IntegrationTests {
     BeforeAll {
         . "$PSScriptRoot\fixtures.ps1"
         . "$PSScriptRoot\..\..\internal\functions\Get-ExternalLibrary.ps1"

@@ -3,6 +3,7 @@
     [string[]]$Path = '.\*.Tests.ps1',
     [ValidateSet('SqlServer', 'Oracle', 'MySQL', 'PostgreSQL')]
     [string[]]$Type = @(),
+    [ValidateSet('UnitTests', 'FunctionalTests', 'ComplianceTests', 'IntegrationTests')]
     [string[]]$Tag
 
 )

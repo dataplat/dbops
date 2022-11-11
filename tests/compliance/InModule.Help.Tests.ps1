@@ -14,7 +14,7 @@ BeforeDiscovery {
 ## To test, restart session.
 
 
-Describe "Test help for $commandName" -Tag 'Compliance' -Foreach $testCases {
+Describe "Test help for $commandName" -Tag ComplianceTests -Foreach $testCases {
     Context "Help topics for <CommandName>" {
         It "<CommandName> help should not be auto-generated" {
             # If help is not found, synopsis in auto-generated help is the syntax diagram

@@ -3,6 +3,7 @@
     [string[]]$Path = "$PSScriptRoot\**\*.Tests.ps1",
     [ValidateSet('SqlServer', 'Oracle', 'MySQL', 'PostgreSQL')]
     [string[]]$Type = @('SqlServer', 'Oracle', 'MySQL', 'PostgreSQL'),
+    [ValidateSet('UnitTests', 'FunctionalTests', 'ComplianceTests', 'IntegrationTests')]
     [string[]]$Tag
 
 )
