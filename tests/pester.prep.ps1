@@ -1,4 +1,5 @@
 ﻿# "Get required modules"
+Write-Host -ForegroundColor Cyan "Installing modules for Powershell $($PSVersionTable.PSVersion)"
 Write-Host -Object "appveyor.prep: Install Pester" -ForegroundColor DarkGreen
 Uninstall-Module -Name Pester -Force -AllVersions -ErrorAction SilentlyContinue | Out-Null
 Install-Module -Name Pester -Repository PSGallery -Force -Scope CurrentUser -MinimumVersion 5.0 | Out-Null

@@ -1,6 +1,9 @@
 ﻿param (
     $Type = @('SqlServer', 'Oracle', 'MySQL', 'PostgreSQL')
 )
+
+Write-Host -ForegroundColor Cyan "Preparing functional tests for $($Type -join ', ')"
+
 # install modules
 . "$PSScriptRoot\pester.prep.ps1"
 

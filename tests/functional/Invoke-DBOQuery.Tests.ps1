@@ -27,7 +27,10 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag IntegrationTests -ForEa
             PostgreSQL {
                 $separator = ";"
                 $loginError = '*No password has been provided*'
-                $connectionError = "*No such host is known*"
+                $connectionError = switch ($PSVersionTable.PSVersion.Major) {
+                    7 { "*No such host is known*" }
+                    default { '*Resource temporarily unavailable*' }
+                }
                 $unknownTableError = "*relation * does not exist*"
             }
             Oracle {
