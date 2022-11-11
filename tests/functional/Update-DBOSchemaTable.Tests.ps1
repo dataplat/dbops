@@ -1,5 +1,5 @@
 ﻿BeforeDiscovery {
-    . $PSScriptRoot\detect_types.ps1
+    . "$PSScriptRoot\..\detect_types.ps1"
 }
 
 Describe "<type> Update-DBOSchemaTable integration tests" -Tag IntegrationTests -ForEach $types {

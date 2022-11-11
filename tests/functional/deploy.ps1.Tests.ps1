@@ -1,5 +1,5 @@
 ﻿BeforeDiscovery {
-    . $PSScriptRoot\detect_types.ps1
+    . "$PSScriptRoot\..\detect_types.ps1"
 }
 
 Describe "<type> deploy.ps1 integration tests" -Tag IntegrationTests -ForEach $types {
