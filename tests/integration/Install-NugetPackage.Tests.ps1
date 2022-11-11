@@ -4,10 +4,14 @@ BeforeDiscovery {
 
 Describe "Install-NugetPackage tests" -Tag Integration {
     BeforeAll {
+        . "$PSScriptRoot\fixtures.ps1"
         . "$PSScriptRoot\..\..\internal\functions\Get-ExternalLibrary.ps1"
         . "$PSScriptRoot\..\..\internal\functions\Install-NugetPackage.ps1"
     }
     Context "Testing support for <Type>" -ForEach $types {
+        AfterAll {
+            Uninstall-Dependencies -Type $Type
+        }
         It "should attempt to install dependencies" {
             $dependencies = Get-ExternalLibrary -Type $Type
             if ($Type -ne 'SqlServer') {

@@ -88,5 +88,19 @@ function Set-NewScopeInitConfigValue {
         Get-PSFConfigValue -FullName dbops.$Name
     }
     $job = Start-Job -ScriptBlock $scriptBlock -ArgumentList $Name, $Value
-    $job | Wait-Job | Receive-Job
+    $result = $job | Wait-Job | Receive-Job
+    $job | Remove-Job
+    return $result
+}
+
+function Uninstall-Dependencies {
+    param (
+        $Type = @('SqlServer', 'Oracle', 'MySQL', 'PostgreSQL')
+    )
+    . "$PSScriptRoot\..\internal\functions\Get-ExternalLibrary.ps1"
+    foreach ($t in $Type) {
+        foreach ($lib in (Get-ExternalLibrary -Type $t)) {
+            $package = Uninstall-Package -Name $lib.Name -Confirm:$false -Scope CurrentUser
+        }
+    }
 }

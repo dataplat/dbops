@@ -4,11 +4,13 @@ BeforeDiscovery {
 
 Describe "Install-DBOSupportLibrary tests" -Tag Integration {
     BeforeAll {
-        $commandName = $PSCommandPath.Replace(".Tests.ps1", "").Replace($PSScriptRoot, "").Trim("/")
-        . $PSScriptRoot\fixtures.ps1 -CommandName $commandName
+        . "$PSScriptRoot\fixtures.ps1"
         . "$PSScriptRoot\..\..\internal\functions\Get-ExternalLibrary.ps1"
     }
     Context "Testing support for <Type>" -ForEach $types {
+        AfterAll {
+            Uninstall-Dependencies -Type $Type
+        }
         It "should attempt to install dependencies" {
             $dependencies = Get-ExternalLibrary -Type $Type
             Install-DBOSupportLibrary -Type $Type -Scope CurrentUser -Force -Confirm:$false
