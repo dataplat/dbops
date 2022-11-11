@@ -44,6 +44,20 @@ function Remove-Workfolder {
     }
     if ((Test-Path $folder) -and $workFolder -like '*dbops-test*') { Remove-Item $folder -Recurse }
 }
+function Reset-Workfolder {
+    param(
+        [switch]$Unpacked
+    )
+    if ($Unpacked) {
+        $folder = $unpackedFolder
+    }
+    else {
+        $folder = $workFolder
+    }
+    if ((Test-Path $folder) -and $workFolder -like '*dbops-test*') {
+        if (Test-Path $folder\*) { Remove-Item $folder\* -Recurse }
+    }
+}
 function New-Workfolder {
     param(
         [switch]$Force,
@@ -60,4 +74,19 @@ function New-Workfolder {
         $folder = $workFolder
     }
     $null = New-Item $folder -ItemType Directory -Force
+}
+
+function Set-NewScopeInitConfigValue {
+    param(
+        [parameter(Mandatory)][string]$Name,
+        [parameter(Mandatory)][object]$Value
+    )
+    $scriptBlock = {
+        param ($Name, $Value)
+        Import-Module PSFramework
+        Set-PSFConfig -FullName dbops.$Name -Value $Value -Initialize
+        Get-PSFConfigValue -FullName dbops.$Name
+    }
+    $job = Start-Job -ScriptBlock $scriptBlock -ArgumentList $Name, $Value
+    $job | Wait-Job | Receive-Job
 }

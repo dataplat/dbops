@@ -1,31 +1,18 @@
-Param (
-    [switch]$Batch
-)
-
-if ($PSScriptRoot) { $commandName = $MyInvocation.MyCommand.Name.Replace(".Tests.ps1", ""); $here = $PSScriptRoot }
-else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
-
-if (!$Batch) {
-    # Is not a part of the global batch => import module
-    #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
-}
-else {
-    # Is a part of a batch, output some eye-catching happiness
-    Write-Host "Running $commandName tests" -ForegroundColor Cyan
-}
-$userScope = switch ($isWindows) {
-    $false { 'FileUserLocal' }
-    default { 'UserDefault' }
-}
-
-$systemScope = switch ($isWindows) {
-    $false { 'FileUserShared' }
-    default { 'SystemDefault' }
-}
-
-Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
+Describe "Reset-DBODefaultSetting tests" -Tag UnitTests {
     BeforeAll {
+        $commandName = $PSCommandPath.Replace(".Tests.ps1", "").Replace($PSScriptRoot, "").Trim("/")
+        . $PSScriptRoot\fixtures.ps1 -CommandName $commandName
+
+        $userScope = switch ($isWindows) {
+            $false { 'FileUserLocal' }
+            default { 'UserDefault' }
+        }
+
+        $systemScope = switch ($isWindows) {
+            $false { 'FileUserShared' }
+            default { 'SystemDefault' }
+        }
+
         Set-PSFConfig -FullName dbops.tc1 -Value 1 -Initialize
         Set-PSFConfig -FullName dbops.tc2 -Value 'string' -Initialize
         Set-PSFConfig -FullName dbops.tc3 -Value 'another' -Initialize
@@ -40,7 +27,7 @@ Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
             Unregister-PSFConfig -Module dbops -Name tc3 -Scope $systemScope
         }
         catch {
-            $_.Exception.Message | Should BeLike '*access*'
+            $_.Exception.Message | Should -BeLike '*access*'
         }
     }
     Context "Resetting various configs" {
@@ -59,13 +46,7 @@ Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
             $testResult = Reset-DBODefaultSetting -Name tc1
             $testResult | Should -BeNullOrEmpty
             Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 1
-            $scriptBlock = {
-                Import-Module PSFramework, Pester
-                Set-PSFConfig -FullName dbops.tc1 -Value 1 -Initialize
-                Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 1
-            }
-            $job = Start-Job -ScriptBlock $scriptBlock
-            $job | Wait-Job | Receive-Job
+            Set-NewScopeInitConfigValue -Name tc1 -Value 1 | Should -Be 1
         }
         It "resets temporary config" {
             Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 2
@@ -80,15 +61,8 @@ Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
             $testResult | Should -BeNullOrEmpty
             Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 1
             Get-PSFConfigValue -FullName dbops.tc2 | Should -Be 'string'
-            $scriptBlock = {
-                Import-Module PSFramework, Pester
-                Set-PSFConfig -FullName dbops.tc1 -Value 1 -Initialize
-                Set-PSFConfig -FullName dbops.tc2 -Value 'string' -Initialize
-                Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 1
-                Get-PSFConfigValue -FullName dbops.tc2 | Should -Be 'string'
-            }
-            $job = Start-Job -ScriptBlock $scriptBlock
-            $job | Wait-Job | Receive-Job
+            Set-NewScopeInitConfigValue -Name tc1 -Value 1 | Should -Be 1
+            Set-NewScopeInitConfigValue -Name tc2 -Value 'string' | Should -Be 'string'
         }
         It "resets all configs" {
             Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 2
@@ -96,7 +70,7 @@ Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
             Get-PSFConfigValue -FullName dbops.tc3 | Should -Be 'another2'
             $testResult = Get-PSFConfigValue -FullName dbops.secret
             $cred = [pscredential]::new('test', $testResult)
-            $cred.GetNetworkCredential().Password | Should Be 'bar'
+            $cred.GetNetworkCredential().Password | Should -Be 'bar'
             $testResult = Reset-DBODefaultSetting -All
             $testResult | Should -BeNullOrEmpty
             Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 1
@@ -104,42 +78,31 @@ Describe "Reset-DBODefaultSetting tests" -Tag $commandName, UnitTests {
             Get-PSFConfigValue -FullName dbops.tc3 | Should -Be 'another'
             $testResult = Get-PSFConfigValue -FullName dbops.secret
             $cred = [pscredential]::new('test', $testResult)
-            $cred.GetNetworkCredential().Password | Should Be 'foo'
-            $scriptBlock = {
-                Import-Module PSFramework, Pester
-                Set-PSFConfig -FullName dbops.tc1 -Value 1 -Initialize
-                Set-PSFConfig -FullName dbops.tc2 -Value 'string' -Initialize
-                Set-PSFConfig -FullName dbops.tc3 -Value 'another' -Initialize
-                Set-PSFConfig -FullName dbops.secret -Value (ConvertTo-SecureString -AsPlainText 'foo' -Force) -Initialize
-                Get-PSFConfigValue -FullName dbops.tc1 | Should -Be 1
-                Get-PSFConfigValue -FullName dbops.tc2 | Should -Be 'string'
-                Get-PSFConfigValue -FullName dbops.tc3 | Should -Be 'another'
-                $testResult = Get-PSFConfigValue -FullName dbops.secret
-                $cred = [pscredential]::new('test', $testResult)
-                $cred.GetNetworkCredential().Password | Should Be 'foo'
-            }
-            $job = Start-Job -ScriptBlock $scriptBlock
-            $job | Wait-Job | Receive-Job
+            $cred.GetNetworkCredential().Password | Should -Be 'foo'
+            Set-NewScopeInitConfigValue -Name tc1 -Value 1 | Should -Be 1
+            Set-NewScopeInitConfigValue -Name tc2 -Value 'string' | Should -Be 'string'
+            Set-NewScopeInitConfigValue -Name tc2 -Value 'string' | Should -Be 'string'
+            $testResult = Set-NewScopeInitConfigValue -Name secret -Value (ConvertTo-SecureString -AsPlainText 'foo' -Force)
+            $cred = [pscredential]::new('test', $testResult)
+            $cred.GetNetworkCredential().Password | Should -Be 'foo'
         }
         It "resets an AllUsers-scoped value" {
             try {
                 Register-PSFConfig -FullName dbops.tc3 -Scope $systemScope
                 $testResult = Reset-DBODefaultSetting -Name tc3 -Scope AllUsers
                 $testResult | Should -BeNullOrEmpty
-                Get-PSFConfigValue -FullName dbops.tc3 | Should Be 'another'
+                Get-PSFConfigValue -FullName dbops.tc3 | Should -Be 'another'
             }
             catch {
-                $_.Exception.Message | Should BeLike '*access*'
+                $_.Exception.Message | Should -BeLike '*access*'
             }
         }
     }
     Context "Negative tests" {
         It "should throw when setting does not exist" {
-            try {
-                $null = Reset-DBODefaultSetting -Name nonexistent
-            }
-            catch { $testResult = $_ }
-            $testResult.Exception.Message | Should -Be 'Unable to find setting nonexistent'
+            {
+                Reset-DBODefaultSetting -Name nonexistent
+            } | Should -Throw 'Unable to find setting nonexistent*'
         }
     }
 }
