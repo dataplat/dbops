@@ -8,12 +8,14 @@ $logTable = "testdeploymenthistory"
 $packageName = Join-PSFPath -Normalize $workFolder 'TempDeployment.zip'
 $newDbName = "dbops_test"
 $outputFile = "$workFolder\log.txt"
+$slash = [IO.Path]::DirectorySeparatorChar
 $testPassword = 'TestPassword'
+$securePassword = $testPassword | ConvertTo-SecureString -Force -AsPlainText
 $etcFolder = "$PSScriptRoot\etc"
 $noRecurseFolder = Join-PSFPath -Normalize $etcFolder "sqlserver-tests"
 $etcScriptFolder = Join-PSFPath -Normalize $etcFolder "sqlserver-tests"
 $scriptFolder = Join-PSFPath -Normalize $etcScriptFolder "success"
-$fullConfig = Join-PSFPath -Normalize $etcFolder "tmp_full_config.json"
+$fullConfig = Join-PSFPath -Normalize $workFolder "tmp_full_config.json"
 $fullConfigSource = Join-PSFPath -Normalize $etcFolder "full_config.json"
 
 # for replacement

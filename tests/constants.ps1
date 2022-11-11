@@ -10,7 +10,12 @@ else {
     $dbatoolsSaPassword = ConvertTo-SecureString 'dbatools.IO' -AsPlainText -Force
 
     # SqlServer
-    $script:mssqlInstance = $env:mssql_instance
+    if ($env:GITHUB_ACTION) {
+        $script:mssqlInstance = "localhost"
+    }
+    else {
+        $script:mssqlInstance = $env:mssql_instance
+    }
     if (Test-Windows) {
         $script:mssqlCredential = $null
     }
