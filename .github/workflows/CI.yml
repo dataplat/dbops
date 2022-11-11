@@ -72,6 +72,9 @@ jobs:
       - name: Run unittests
         shell: pwsh
         run: tests/ci.pester.ps1 -Tag UnitTests
+      - name: Run integration tests
+        shell: pwsh
+        run: tests/ci.pester.ps1 -Tag Integration
       - name: Run compliance tests
         shell: pwsh
         run: tests/ci.pester.ps1 -Tag Compliance

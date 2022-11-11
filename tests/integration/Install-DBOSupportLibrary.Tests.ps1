@@ -2,13 +2,11 @@ BeforeDiscovery {
     . "$PSScriptRoot\..\detect_types.ps1"
 }
 
-Describe "Install-DBOSupportLibrary tests" -Tag UnitTests {
+Describe "Install-DBOSupportLibrary tests" -Tag Integration {
     BeforeAll {
         $commandName = $PSCommandPath.Replace(".Tests.ps1", "").Replace($PSScriptRoot, "").Trim("/")
         . $PSScriptRoot\fixtures.ps1 -CommandName $commandName
         . "$PSScriptRoot\..\..\internal\functions\Get-ExternalLibrary.ps1"
-
-        New-Workfolder -Force
     }
     Context "Testing support for <Type>" -ForEach $types {
         It "should attempt to install dependencies" {
