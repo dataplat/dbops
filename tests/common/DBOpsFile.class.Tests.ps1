@@ -1,47 +1,27 @@
-Param (
-    [switch]$Batch
-)
-
-if ($PSScriptRoot) { $commandName = $MyInvocation.MyCommand.Name.Replace(".Tests.ps1", ""); $here = $PSScriptRoot }
-else { $commandName = "_ManualExecution"; $here = (Get-Item . ).FullName }
-
-if (!$Batch) {
-    # Is not a part of the global batch => import module
-    #Explicitly import the module for testing
-    Import-Module "$here\..\dbops.psd1" -Force; Get-DBOModuleFileList -Type internal | ForEach-Object { . $_.FullName }
-}
-else {
-    # Is a part of a batch, output some eye-catching happiness
-    Write-Host "Running $commandName tests" -ForegroundColor Cyan
-}
-
-Add-Type -AssemblyName System.IO.Compression
-Add-Type -AssemblyName System.IO.Compression.FileSystem
-. "$here\..\internal\classes\DBOpsHelper.class.ps1"
-. "$here\..\internal\classes\DBOps.class.ps1"
-
-$packageName = Join-PSFPath -Normalize "$here\etc\$commandName.zip"
-$script1 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\1.sql"
-$script2 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\2.sql"
-$script3 = Join-PSFPath -Normalize "$here\etc\sqlserver-tests\success\3.sql"
-$fileObject1 = Get-Item $script1
-$fileObject2 = Get-Item $script2
-$fileObject3 = Get-Item $script3
-
-Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
+Describe "DBOpsFile class tests" -Tag UnitTests {
     BeforeAll {
-        if (Test-Path $packageName) { Remove-Item $packageName }
+        . $PSScriptRoot\fixtures.ps1
+
+        Add-Type -AssemblyName System.IO.Compression
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        . "$PSScriptRoot\..\..\internal\classes\DBOpsHelper.class.ps1"
+        . "$PSScriptRoot\..\..\internal\classes\DBOps.class.ps1"
+
+        New-Workfolder -Force
+
+        $script1, $script2, $script3 = Get-SourceScript -Version 1, 2, 3
+
+        $fileObject1, $fileObject2, $fileObject3 = Get-SourceScript -Version 1, 2, 3 | Get-Item
     }
     AfterAll {
-        if (Test-Path $packageName) { Remove-Item $packageName }
+        Reset-Workfolder
     }
     Context "tests DBOpsFile object creation" {
         AfterAll {
-            if (Test-Path $packageName) { Remove-Item $packageName }
+            Reset-Workfolder
         }
         It "Should create new DBOpsFile object" {
             $f = [DBOpsFile]::new('1.sql')
-            # $f | Should -Not -BeNullOrEmpty
             $f.PackagePath | Should -Be '1.sql'
             $f.Length | Should -Be 0
             $f.Name | Should -BeNullOrEmpty
@@ -61,7 +41,7 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
             $f.Hash | Should -BeNullOrEmpty
             $f.Parent | Should -BeNullOrEmpty
             #Negative tests
-            { [DBOpsFile]::new(([System.IO.FileInfo]$null), $script1, '1.sql') } | Should -Throw 'Empty path name is not legal'
+            { [DBOpsFile]::new(([System.IO.FileInfo]$null), $script1, '1.sql') } | Should -Throw '*empty string*'
             { [DBOpsFile]::new($fileObject1, '') } | Should -Throw 'Path inside the package cannot be empty'
         }
         It "Should create new hash-protected DBOpsFile" {
@@ -90,9 +70,9 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
             $f.Parent | Should -BeNullOrEmpty
 
             #Negative tests
-            { [DBOpsFile]::new($fileObject1, '1.sql', '0xf00') } | Should -Throw 'File cannot be loaded, hash mismatch'
-            { [DBOpsFile]::new($fileObject1, '1.sql', '') } | Should -Throw 'File cannot be loaded, hash mismatch'
-            { [DBOpsFile]::new($fileObject1, '1.sql', 'foo') } | Should -Throw 'File cannot be loaded, hash mismatch'
+            { [DBOpsFile]::new($fileObject1, '1.sql', '0xf00') } | Should -Throw 'File cannot be loaded, hash mismatch*'
+            { [DBOpsFile]::new($fileObject1, '1.sql', '') } | Should -Throw 'File cannot be loaded, hash mismatch*'
+            { [DBOpsFile]::new($fileObject1, '1.sql', 'foo') } | Should -Throw 'File cannot be loaded, hash mismatch*'
         }
         It "Should create new DBOpsFile object from zipfile using custom object" {
             $p = [DBOpsPackage]::new()
@@ -128,9 +108,9 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
                     $f.Hash | Should -Be $f1.Hash
                     $f.Parent | Should -BeNullOrEmpty
                     # negative testing
-                    { [DBOpsFile]::new($zipEntry, '1.sql', '0xf00') } | Should -Throw 'File cannot be loaded, hash mismatch'
-                    { [DBOpsFile]::new($zipEntry, '1.sql', '') } | Should -Throw 'File cannot be loaded, hash mismatch'
-                    { [DBOpsFile]::new($zipEntry, '1.sql', 'foo') } | Should -Throw 'File cannot be loaded, hash mismatch'
+                    { [DBOpsFile]::new($zipEntry, '1.sql', '0xf00') } | Should -Throw 'File cannot be loaded, hash mismatch*'
+                    { [DBOpsFile]::new($zipEntry, '1.sql', '') } | Should -Throw 'File cannot be loaded, hash mismatch*'
+                    { [DBOpsFile]::new($zipEntry, '1.sql', 'foo') } | Should -Throw 'File cannot be loaded, hash mismatch*'
                 }
                 catch {
                     throw $_
@@ -176,7 +156,7 @@ Describe "DBOpsFile class tests" -Tag $commandName, UnitTests, DBOpsFile {
         }
         It "should test ValidateHash method" {
             $hash = $file.Hash
-            { $file.ValidateHash('foo') } | Should -Throw 'File cannot be loaded, hash mismatch'
+            { $file.ValidateHash('foo') } | Should -Throw 'File cannot be loaded, hash mismatch*'
             { $file.ValidateHash($hash) } | Should -Not -Throw
         }
         It "should test GetDeploymentPath method" {

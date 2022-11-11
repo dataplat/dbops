@@ -54,7 +54,7 @@ jobs:
       - uses: actions/checkout@v1
       - name: Prepare
         shell: pwsh
-        run: tests/functional.prep.ps1
+        run: tests/functional.prep.ps1 -Type ${{ matrix.type }}
       - name: Run tests
         shell: pwsh
         run: tests/ci.pester.ps1 -Tag IntegrationTests -Type ${{ matrix.type }}

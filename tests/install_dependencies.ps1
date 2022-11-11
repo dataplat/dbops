@@ -3,8 +3,7 @@
     [switch]$Load
 )
 
-. "$PSScriptRoot\..\internal\functions\Get-ExternalLibrary.ps1"
-. "$PSScriptRoot\..\internal\functions\Install-NugetPackage.ps1"
+. "$PSScriptRoot\import.ps1" -Internal
 
 foreach ($t in $Type) {
     foreach ($lib in (Get-ExternalLibrary -Type $t)) {
