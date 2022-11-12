@@ -212,7 +212,7 @@ Describe "<type> Install-DBOPackage integration tests" -Tag FunctionalTests -For
             $testResults.Scripts.Name | Should -Be '1.0\delay.sql'
             $testResults.SourcePath | Should -Be (Join-PSFPath -Normalize "$workFolder\delay.zip")
             $testResults.Error | Should -BeNullOrEmpty
-            $testResults.Duration.TotalMilliseconds | Should -BeGreaterThan 3000
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterThan 2500
 
             $output = Get-Content "$workFolder\log.txt" -Raw
             $output | Should -Not -BeLike $timeoutError

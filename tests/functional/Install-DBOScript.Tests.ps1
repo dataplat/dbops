@@ -127,7 +127,7 @@ Describe "<type> Install-DBOScript integration tests" -Tag FunctionalTests -ForE
             $testResults.Scripts.Name | Should -Be (Get-Item $delayScript).Name
             $testResults.SourcePath | Should -Be (Resolve-Path $delayScript).Path
             $testResults.Error | Should -BeNullOrEmpty
-            $testResults.Duration.TotalMilliseconds | Should -BeGreaterThan 3000
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterThan 2500
             $output = Get-Content $outputFile -Raw
             $output | Should -Not -BeLike $timeoutError
             $output | Should -BeLike '*Successful!*'
@@ -138,7 +138,7 @@ Describe "<type> Install-DBOScript integration tests" -Tag FunctionalTests -ForE
             $testResults.Scripts.Name | Should -Be (Get-Item $delayScript).Name
             $testResults.SourcePath | Should -Be (Resolve-Path $delayScript).Path
             $testResults.Error | Should -BeNullOrEmpty
-            $testResults.Duration.TotalMilliseconds | Should -BeGreaterThan 3000
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterThan 2500
             $output = Get-Content $outputFile -Raw
             $output | Should -Not -BeLike $timeoutError
             $output | Should -BeLike '*Successful!*'

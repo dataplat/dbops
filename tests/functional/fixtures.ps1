@@ -159,6 +159,8 @@ CREATE TABLE "$logtable"
             GRANT CONNECT, RESOURCE, CREATE ANY TABLE TO $dbUserName/
             GRANT EXECUTE on dbms_lock to $dbUserName"
         $dropDatabaseScript = "
+            DECLARE
+                sescount int;
             BEGIN
                 FOR x IN ( SELECT count(*) cnt
                     FROM DUAL
@@ -170,6 +172,11 @@ CREATE TABLE "$logtable"
                         FOR ln_cur IN (SELECT sid, serial# FROM v`$session WHERE username = '$dbUserName')
                         LOOP
                             EXECUTE IMMEDIATE ('ALTER SYSTEM DISCONNECT SESSION ''' || ln_cur.sid || ',' || ln_cur.serial# || ''' IMMEDIATE');
+                        END LOOP;
+                        LOOP
+                            SELECT COUNT(*) INTO sescount FROM v`$session WHERE username = '$dbUserName';
+                            EXIT WHEN sescount = 0;
+                            DBMS_LOCK.sleep(0.1);
                         END LOOP;
                         EXECUTE IMMEDIATE 'DROP USER $dbUserName CASCADE';
                     END IF;
