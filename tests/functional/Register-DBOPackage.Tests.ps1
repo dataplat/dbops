@@ -2,7 +2,7 @@
     . "$PSScriptRoot\..\detect_types.ps1"
 }
 
-Describe "<type> Register-DBOPackage integration tests" -Tag FunctionalTests -ForEach $types {
+Describe "<type> Register-DBOPackage functional tests" -Tag FunctionalTests -ForEach $types {
     BeforeAll {
         $commandName = $PSCommandPath.Replace(".Tests.ps1", "").Replace($PSScriptRoot, "").Trim("/")
         . $PSScriptRoot\fixtures.ps1 -CommandName $commandName -Type $Type -Internal

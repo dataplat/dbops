@@ -2,7 +2,7 @@ BeforeDiscovery {
     . "$PSScriptRoot\..\detect_types.ps1"
 }
 
-Describe "<type> Invoke-DBOQuery integration tests" -Tag FunctionalTests -ForEach $types {
+Describe "<type> Invoke-DBOQuery functional tests" -Tag FunctionalTests -ForEach $types {
     BeforeAll {
         $commandName = $PSCommandPath.Replace(".Tests.ps1", "").Replace($PSScriptRoot, "").Trim("/")
         . $PSScriptRoot\fixtures.ps1 -CommandName $commandName -Type $Type
