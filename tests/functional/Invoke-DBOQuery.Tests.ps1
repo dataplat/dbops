@@ -324,7 +324,7 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag FunctionalTests -ForEac
             }
             { $null = Invoke-DBOQuery -Query $query @dbConnectionParams } | Should -Throw $unknownTableError
         }
-        It "Should -Throw a connection timeout error" {
+        It "should throw a connection timeout error" {
             { $null = Invoke-DBOQuery -Type $Type -Query "foobar" -SqlInstance foobark:6493 -Credential $credential -ConnectionTimeout 2 } | Should -Throw $connectionError
         }
         It "should fail when parameters are of a wrong type" {

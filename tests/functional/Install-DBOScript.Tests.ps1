@@ -33,7 +33,7 @@ Describe "<type> Install-DBOScript integration tests" -Tag FunctionalTests -ForE
         BeforeEach {
             Reset-TestDatabase
         }
-        It "Should -Throw an error and not create any objects" {
+        It "should throw an error and not create any objects" {
             if ($Type -in 'MySQL', 'Oracle') {
                 Set-ItResult -Skipped -Because "CREATE TABLE cannot be rolled back in $Type"
             }
@@ -48,7 +48,7 @@ Describe "<type> Install-DBOScript integration tests" -Tag FunctionalTests -ForE
         BeforeAll {
             $null = Invoke-DBOQuery @dbConnectionParams -InputFile $cleanupScript
         }
-        It "Should -Throw an error and create one object" {
+        It "should throw an error and create one object" {
             #Running package
             try {
                 $null = Install-DBOScript -Path $tranFailScripts @dbConnectionParams -SchemaVersionTable $logTable -DeploymentMethod NoTransaction
@@ -113,7 +113,7 @@ Describe "<type> Install-DBOScript integration tests" -Tag FunctionalTests -ForE
             }
             Reset-TestDatabase
         }
-        It "Should -Throw timeout error" {
+        It "should throw timeout error" {
             {
                 $null = Install-DBOScript -ScriptPath $delayScript @dbConnectionParams -SchemaVersionTable $logTable -OutputFile $outputFile -ExecutionTimeout 1
             } | Should -Throw $timeoutError
@@ -231,7 +231,7 @@ Describe "<type> Install-DBOScript integration tests" -Tag FunctionalTests -ForE
             Test-DeploymentState -Version 1 -Script -Legacy -HasJournal
         }
     }
-    Context "deployments with errors Should -Throw terminating errors" {
+    Context "deployments with errors should throw terminating errors" {
         BeforeAll {
             Reset-TestDatabase
             $null = Install-DBOScript -ScriptPath (Get-PackageScript -Version 1) @dbConnectionParams -SchemaVersionTable $null
