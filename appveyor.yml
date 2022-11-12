@@ -26,29 +26,25 @@ environment:
   PGPASSWORD: Password12!
   AssentNonInteractive: true
   IGNORE_NORMALISATION_GIT_HEAD_MOVE: 1
+  mssql_instance: localhost\SQL2017
+  scenario: windows
 
-for:
-  - matrix:
-      only:
-        - image: Visual Studio 2019
-    environment:
-        mssql_instance: localhost\SQL2017
-        scenario: windows
-    services:
-      - mssql2017
-      - mysql
-      - postgresql
-    before_build:
-      - ps: .\build\build_prep.ps1
-    build_script:
-      - ps: .\build\build.ps1 -Script .\build.cake
-    after_build:
-      - ps: .\build\copy_build_files.ps1
+services:
+  - mssql2017
+  - mysql
+  - postgresql
 
-    before_test:
-      - SET PATH=C:\Program Files\PostgreSQL\9.6\bin\;%PATH%
-      - psql -c "CREATE USER sa WITH SUPERUSER PASSWORD 'Password12!';" -U postgres
-      - ps: .\tests\pester.prep.ps1
+before_build:
+  - ps: .\build\build_prep.ps1
+build_script:
+  - ps: .\build\build.ps1 -Script .\build.cake
+after_build:
+  - ps: .\build\copy_build_files.ps1
+
+before_test:
+  - SET PATH=C:\Program Files\PostgreSQL\9.6\bin\;%PATH%
+  - psql -c "CREATE USER sa WITH SUPERUSER PASSWORD 'Password12!';" -U postgres
+  - ps: .\tests\pester.prep.ps1
 
 test_script:
   - ps: .\tests\ci.pester.ps1
