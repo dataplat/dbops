@@ -1,0 +1,10 @@
+Beginning database upgrade
+Checking whether journal table exists..
+Journal table does not exist
+Executing Database Server script '1.0\1.sql'
+Checking whether journal table exists..
+Creating the `testdeploymenthistory` table
+The `testdeploymenthistory` table has been created
+RecordsAffected: 0
+RecordsAffected: 0
+Upgrade successful

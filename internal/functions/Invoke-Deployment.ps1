@@ -154,7 +154,7 @@
             $package = Get-DBOPackage -InputObject $InputObject
         }
         # Merge package config into the current config
-        $config = Merge-Config -BoundParameters @{Configuration = $Configuration} -Package $package -ProcessVariables
+        $config = Merge-Config -BoundParameters @{Configuration = $Configuration } -Package $package -ProcessVariables
 
         # Initialize external libraries if needed
         Write-PSFMessage -Level Debug -Message "Initializing libraries for $Type"
@@ -215,7 +215,7 @@
         $status = [DBOpsDeploymentStatus]::new()
         $status.StartTime = [datetime]::Now
         $status.Configuration = $config
-        if (!$ConnectionString) {
+        if (!$config.ConnectionString) {
             $status.SqlInstance = $config.SqlInstance
             $status.Database = $config.Database
         }
@@ -241,7 +241,7 @@
 
         # Create database if necessary for supported platforms
         if ($config.CreateDatabase) {
-            if ($PSCmdlet.ShouldProcess("Ensuring the target database exists")) {
+            if ($PSCmdlet.ShouldProcess($config.SqlInstance, "Ensuring the target database exists")) {
                 Write-PSFMessage -Level Debug -Message "Creating database if not exists"
                 $null = Invoke-EnsureDatabase -ConnectionString $connString -Log $dbUpLog -Timeout $config.ExecutionTimeout -Type $Type
             }
@@ -249,7 +249,7 @@
         # Register only
         if ($RegisterOnly) {
             # Cycle through already registered files and register the ones that are missing
-            if ($PSCmdlet.ShouldProcess($package, "Registering the package")) {
+            if ($PSCmdlet.ShouldProcess($config.SqlInstance, "Registering scripts")) {
                 $registeredScripts = @()
                 $managedConnection = $dbUpConnection.OperationStarting($dbUpLog, $null)
                 $deployedScripts = $dbUpTableJournal.GetExecutedScripts()
@@ -300,7 +300,7 @@
                 if ($preScriptCollection) {
                     # create a new non-journalled connection
                     $dbUpPre = Initialize-DbUpBuilder -Script $preScriptCollection -Config $config -Type $Type -Connection $dbUpConnection -Log $dbUpLog -Status $status
-                    if ($PSCmdlet.ShouldProcess($package, "Deploying pre-scripts")) {
+                    if ($PSCmdlet.ShouldProcess($config.SqlInstance, "Deploying pre-scripts")) {
                         Write-PSFMessage -Level Debug -Message "Deploying pre-scripts"
                         Invoke-DbUpDeployment -DbUp $dbUpPre -Status $status
                     }
@@ -314,7 +314,7 @@
                     }
                 }
                 # Build and Upgrade
-                if ($PSCmdlet.ShouldProcess($package, "Deploying the package")) {
+                if ($PSCmdlet.ShouldProcess($config.SqlInstance, "Deploying the scripts")) {
                     Write-PSFMessage -Level Debug -Message "Performing deployment"
                     Invoke-DbUpDeployment -DbUp $dbUp -Status $status
                 }
@@ -337,7 +337,7 @@
                 if ($postScriptCollection) {
                     # create a new non-journalled connection
                     $dbUpPost = Initialize-DbUpBuilder -Script $postScriptCollection -Config $config -Type $Type -Connection $dbUpConnection -Log $dbUpLog -Status $status
-                    if ($PSCmdlet.ShouldProcess($package, "Deploying post-scripts")) {
+                    if ($PSCmdlet.ShouldProcess($config.SqlInstance, "Deploying post-scripts")) {
                         Write-PSFMessage -Level Debug -Message "Deploying post-scripts"
                         Invoke-DbUpDeployment -DbUp $dbUpPost -Status $status
                     }

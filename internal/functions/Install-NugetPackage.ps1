@@ -1,6 +1,6 @@
 function Install-NugetPackage {
     # This function acts similarly to Install-Package -SkipDependencies and downloads nuget packages from nuget.org
-    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
     Param (
         [string]$Name,
         [string]$MinimumVersion,
@@ -15,15 +15,13 @@ function Install-NugetPackage {
     $packageLowerName = $Name.ToLower()
     $Api = $Api.TrimEnd('/')
     # Get API endpoint URLs
-    $index = Invoke-WebRequest "$Api/index.json" -ErrorAction Stop
-    $indexObject = $index.Content | ConvertFrom-Json
+    $index = Invoke-RestMethod "$Api/index.json" -ErrorAction Stop
 
     # search for package
-    $searchUrl = $indexObject.resources | Where-Object { $_.'@type' -eq 'SearchQueryService' } | Select-Object -First 1
+    $searchUrl = $index.resources | Where-Object { $_.'@type' -eq 'SearchQueryService' } | Select-Object -First 1
     $query = "?q=PackageId:{0}&prerelease={1}" -f $Name, (-Not $SkipPreRelease).ToString().ToLower()
-    $packageInfoResponse = Invoke-WebRequest -Uri "$($searchUrl.'@id')$query" -ErrorAction Stop
-    $packageInfoObject = $packageInfoResponse.Content | ConvertFrom-Json
-    $packageInfo = $packageInfoObject.data | Select-Object -First 1
+    $packageInfoResponse = Invoke-RestMethod -Uri "$($searchUrl.'@id')$query" -ErrorAction Stop
+    $packageInfo = $packageInfoResponse.data | Select-Object -First 1
     if (-Not $packageInfo) {
         Stop-PSFFunction -Message "Package $Name was not found"
     }
@@ -61,7 +59,7 @@ function Install-NugetPackage {
 
     $selectedVersion = $versionList | Select-Object -Last 1
     if (-Not $selectedVersion) {
-        Stop-PSFFunction -Message "Version could not be found using current parameters" -EnableException $true
+        Stop-PSFFunction -Message "Required version could not be found among a total of $($versionList.Count) versions" -EnableException $true
     }
 
     # download and extract the files
@@ -95,7 +93,7 @@ function Install-NugetPackage {
         }
         $folder = New-Item -ItemType Directory -Path $path -Force
 
-        $baseAddressUrl = $indexObject.resources | Where-Object { $_.'@type' -eq 'PackageBaseAddress/3.0.0' } | Select-Object -First 1
+        $baseAddressUrl = $index.resources | Where-Object { $_.'@type' -eq 'PackageBaseAddress/3.0.0' } | Select-Object -First 1
         $downloadUrl = "$($baseAddressUrl.'@id')$packageLowerName/$selectedVersion/$fileName"
         Invoke-WebRequest -Uri $downloadUrl -OutFile $packagePath -ErrorAction Stop
         Write-PSFMessage -Level Verbose -Message "Extracting $fileName to $folder"

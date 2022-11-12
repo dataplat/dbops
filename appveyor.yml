@@ -17,7 +17,6 @@ only_commits:
 
 image:
   - Visual Studio 2019
-  - Ubuntu
 
 # Set build info
 environment:
@@ -27,59 +26,27 @@ environment:
   PGPASSWORD: Password12!
   AssentNonInteractive: true
   IGNORE_NORMALISATION_GIT_HEAD_MOVE: 1
+  mssql_instance: localhost\SQL2017
+  scenario: windows
 
-for:
-  - matrix:
-      only:
-        - image: Visual Studio 2019
-    environment:
-        mssql_instance: localhost\SQL2017
-        scenario: windows
-    services:
-      - mssql2017
-      - mysql
-      - postgresql
-    before_build:
-      - ps: .\build\build_prep.ps1
-    build_script:
-      - ps: .\build\build.ps1 -Script .\build.cake
-    after_build:
-      - ps: .\build\copy_build_files.ps1
+services:
+  - mssql2017
+  - mysql
+  - postgresql
 
-    before_test:
-      - SET PATH=C:\Program Files\PostgreSQL\9.6\bin\;%PATH%
-      - psql -c "CREATE USER sa WITH SUPERUSER PASSWORD 'Password12!';" -U postgres
-      - ps: .\tests\appveyor.prep.ps1
+before_build:
+  - ps: .\build\build_prep.ps1
+build_script:
+  - ps: .\build\build.ps1 -Script .\build.cake
+after_build:
+  - ps: .\build\copy_build_files.ps1
 
+before_test:
+  - SET PATH=C:\Program Files\PostgreSQL\9.6\bin\;%PATH%
+  - psql -c "CREATE USER sa WITH SUPERUSER PASSWORD 'Password12!';" -U postgres
+  - ps: .\tests\pester.prep.ps1
 
-  - matrix:
-      only:
-        - image: Ubuntu
-    environment:
-        mssql_instance: localhost
-        scenario: all
-        TZ: GMT
-    services:
-      - mssql
-      - mysql
-      - postgresql
-    before_test:
-      - sudo -u postgres psql -c "CREATE USER sa WITH SUPERUSER PASSWORD 'Password12!';"
-      - ps: .\tests\appveyor.prep.ps1
-      - docker run --name dbops-oracle -d -p 1521:1521 -e ORACLE_ALLOW_REMOTE=true wnameless/oracle-xe-11g-r2
-
-after_test:
-  - ps: .\tests\appveyor.post.ps1
 test_script:
-  - ps: .\tests\appveyor.pester.ps1
-  # Collecting results
-  - ps: .\tests\appveyor.pester.ps1 -Finalize
-
-
-# Set alternative clone folder
-#clone_folder: c:\github\dbops
-
-
-
-#on_finish:
-#  - ps:
+  - ps: .\tests\ci.pester.ps1 -Type SqlServer, Postgresql, MySQL -Tag UnitTests, IntegrationTests, ComplianceTests
+  - ps: .\tests\install_dependencies.ps1 -Load -Type SqlServer, Postgresql, MySQL
+  - ps: .\tests\ci.pester.ps1 -Type SqlServer, Postgresql, MySQL -Tag FunctionalTests

@@ -1,7 +1,7 @@
 ﻿@{
 
     # Script module or binary module file associated with this manifest
-    RootModule             = 'dbops.psm1'
+    RootModule             = '.\dbops.psm1'
 
     # Version number of this module.
     ModuleVersion          = '0.8.1'
@@ -53,10 +53,10 @@
     ScriptsToProcess       = @()
 
     # Type files (.ps1xml) to be loaded when importing this module
-    TypesToProcess         = @('internal\xml\dbops.types.ps1xml')
+    TypesToProcess         = @()
 
     # Format files (.ps1xml) to be loaded when importing this module
-    FormatsToProcess       = @('internal\xml\dbops.format.ps1xml')
+    FormatsToProcess       = @()
 
     # Modules to import as nested modules of the module specified in
     # ModuleToProcess

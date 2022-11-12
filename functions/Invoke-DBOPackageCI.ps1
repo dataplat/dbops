@@ -140,7 +140,7 @@ function Invoke-DBOPackageCI {
             Build      = $pkgVersion.ToString(3)
         }
         if ($pkg) {
-            if ($PSCmdlet.ShouldProcess($pkg, "Adding new build to existing package")) {
+            if ($PSCmdlet.ShouldProcess([string]$pkg, "Adding new build to existing package")) {
                 Add-DBOBuild @ciSplat -Package $pkg -Type $Type
             }
         }
