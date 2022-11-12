@@ -234,10 +234,8 @@ Describe "<type> Install-DBOScript functional tests" -Tag FunctionalTests -ForEa
     Context "deployments with errors should throw terminating errors" {
         BeforeEach {
             Reset-TestDatabase
-            $null = Install-DBOScript -ScriptPath (Get-PackageScript -Version 1) @dbConnectionParams -SchemaVersionTable $null
         }
         It "Should return terminating error when object exists" {
-            #Running package
             try {
                 $testResults = $null
                 $testResults = Install-DBOScript -Path $tranFailScripts -SchemaVersionTable $logTable -DeploymentMethod NoTransaction @dbConnectionParams
@@ -254,18 +252,19 @@ Describe "<type> Install-DBOScript functional tests" -Tag FunctionalTests -ForEa
             $testResults.Successful | Should -Be $false
             $testResults.SqlInstance | Should -Be $instance
             $testResults.Database | Should -Be $newDbName
-            $testResults.SourcePath | Should -Be ($tranFailScripts | Split-Path -Leaf)
+            $testResults.SourcePath | Should -Be (Get-ChildItem $tranFailScripts).FullName
             $testResults.ConnectionType | Should -Be $Type
             $testResults.Configuration.SchemaVersionTable | Should -Be $logTable
             $testResults.Error.Message | Should -BeLike (Get-TableExistsMessage "a")
-            $testResults.ErrorScript | Should -Be ($tranFailScripts[1] | Split-Path -Leaf)
-            $testResults.Scripts.Name | Should -Be ($tranFailScripts[0] | Split-Path -Leaf)
+            $testResults.ErrorScript | Should -Be (Join-Path (Split-Path $tranFailScripts -Leaf) (Get-ChildItem $tranFailScripts)[1].Name)
+            $testResults.Scripts.Name | Should -Be (Join-Path (Split-Path $tranFailScripts -Leaf) (Get-ChildItem $tranFailScripts)[0].Name)
             $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
             $testResults.StartTime | Should -Not -BeNullOrEmpty
             $testResults.EndTime | Should -Not -BeNullOrEmpty
             $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
         }
         It "should halt after throwing an error" {
+            $null = Install-DBOScript -ScriptPath (Get-PackageScript -Version 1) @dbConnectionParams -SchemaVersionTable $null
             #Running package
             try {
                 $testResults = $null
