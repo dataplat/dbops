@@ -117,10 +117,7 @@ create table $logTable (
             'DROP DATABASE IF EXISTS {0}' -f $newDbName
         )
         $createDatabaseScript = 'CREATE DATABASE {0}' -f $newDbName
-        $timeoutError = switch ($isWindows) {
-            $false { "*Unable to read data from the transport connection*" }
-            default { '*Exception while reading from stream*' }
-        }
+        $timeoutError = '*Exception while reading from stream*'
         $defaultSchema = 'public'
         $connectionString = "Host=$instance;Database=$newDbName;Username=$($credential.UserName);Password=$($credential.GetNetworkCredential().Password)"
         $varQuery = "SELECT '#{var1}'; SELECT '#{var2}'"
