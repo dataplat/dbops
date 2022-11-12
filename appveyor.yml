@@ -44,7 +44,8 @@ after_build:
 before_test:
   - SET PATH=C:\Program Files\PostgreSQL\9.6\bin\;%PATH%
   - psql -c "CREATE USER sa WITH SUPERUSER PASSWORD 'Password12!';" -U postgres
-  - ps: .\tests\functional.prep.ps1
 
 test_script:
-  - ps: .\tests\ci.pester.ps1 -Type SqlServer, Postgresql, MySQL
+  - ps: .\tests\ci.pester.ps1 -Type SqlServer, Postgresql, MySQL -Tag UnitTests, IntegrationTests, ComplianceTests
+  - ps: .\tests\install_dependencies.ps1 -Load -Type SqlServer, Postgresql, MySQL
+  - ps: .\tests\ci.pester.ps1 -Type SqlServer, Postgresql, MySQL -Tag FunctionalTests
