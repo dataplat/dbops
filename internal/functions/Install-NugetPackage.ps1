@@ -15,13 +15,13 @@ function Install-NugetPackage {
     $packageLowerName = $Name.ToLower()
     $Api = $Api.TrimEnd('/')
     # Get API endpoint URLs
-    $index = Invoke-WebRequest "$Api/index.json" -ErrorAction Stop -WhatIf:$false
+    $index = Invoke-WebRequest "$Api/index.json" -ErrorAction Stop
     $indexObject = $index.Content | ConvertFrom-Json
 
     # search for package
     $searchUrl = $indexObject.resources | Where-Object { $_.'@type' -eq 'SearchQueryService' } | Select-Object -First 1
     $query = "?q=PackageId:{0}&prerelease={1}" -f $Name, (-Not $SkipPreRelease).ToString().ToLower()
-    $packageInfoResponse = Invoke-WebRequest -Uri "$($searchUrl.'@id')$query" -ErrorAction Stop -WhatIf:$false
+    $packageInfoResponse = Invoke-WebRequest -Uri "$($searchUrl.'@id')$query" -ErrorAction Stop
     $packageInfoObject = $packageInfoResponse.Content | ConvertFrom-Json
     $packageInfo = $packageInfoObject.data | Select-Object -First 1
     if (-Not $packageInfo) {
@@ -84,7 +84,7 @@ function Install-NugetPackage {
     }
     $path = Join-PSFPath $scopePath "$packageName.$selectedVersion"
     $packagePath = Join-PSFPath $path $fileName
-    if ($PSCmdlet.ShouldProcess($fileName, "Download package")) {
+    if ($PSCmdlet.ShouldProcess([string]$fileName)) {
         if (Test-Path $path) {
             if ($Force) {
                 Remove-Item $path -Recurse -Force
