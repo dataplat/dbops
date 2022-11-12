@@ -84,7 +84,7 @@ function Install-NugetPackage {
     }
     $path = Join-PSFPath $scopePath "$packageName.$selectedVersion"
     $packagePath = Join-PSFPath $path $fileName
-    if ($PSCmdlet.ShouldProcess($fileName, "Download package")) {
+    if ($PSCmdlet.ShouldProcess([string]$fileName, "Download package")) {
         if (Test-Path $path) {
             if ($Force) {
                 Remove-Item $path -Recurse -Force
