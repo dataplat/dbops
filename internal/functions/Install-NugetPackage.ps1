@@ -1,6 +1,6 @@
 function Install-NugetPackage {
     # This function acts similarly to Install-Package -SkipDependencies and downloads nuget packages from nuget.org
-    [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'High')]
+    [CmdletBinding(SupportsShouldProcess, ConfirmImpact = 'High')]
     Param (
         [string]$Name,
         [string]$MinimumVersion,
@@ -61,7 +61,7 @@ function Install-NugetPackage {
 
     $selectedVersion = $versionList | Select-Object -Last 1
     if (-Not $selectedVersion) {
-        Stop-PSFFunction -Message "Version could not be found using current parameters" -EnableException $true
+        Stop-PSFFunction -Message "Required version could not be found among a total of $($versionList.Count) versions" -EnableException $true
     }
 
     # download and extract the files
@@ -84,7 +84,7 @@ function Install-NugetPackage {
     }
     $path = Join-PSFPath $scopePath "$packageName.$selectedVersion"
     $packagePath = Join-PSFPath $path $fileName
-    if ($PSCmdlet.ShouldProcess([string]$fileName, "Download package")) {
+    if ($PSCmdlet.ShouldProcess([string]$fileName)) {
         if (Test-Path $path) {
             if ($Force) {
                 Remove-Item $path -Recurse -Force
