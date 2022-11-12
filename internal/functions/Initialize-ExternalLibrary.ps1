@@ -1,5 +1,7 @@
 function Initialize-ExternalLibrary {
     #Load external libraries for a specific RDBMS
+    [CmdletBinding(SupportsShouldProcess)]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSShouldProcess", '')]
     Param (
         [Parameter(Mandatory)]
         [DBOps.ConnectionType]$Type
@@ -39,7 +41,7 @@ function Initialize-ExternalLibrary {
     if (-Not (Test-DBOSupportedSystem -Type $Type)) {
         Write-PSFMessage -Level Warning -Message "Installing dependent libraries for $Type connections"
         # Install dependencies into the current user scope
-        $null = Install-DBOSupportLibrary -Type $Type -Scope CurrentUser
+        $null = Install-DBOSupportLibrary -Type $Type -Scope CurrentUser -WhatIf:$WhatIfPreference
         # test again
         if (-Not (Test-DBOSupportedSystem -Type $Type)) {
             Write-PSFMessage -Level Warning -Message "Dependent libraries for $Type were not found. Run Install-DBOSupportLibrary -Type $Type"

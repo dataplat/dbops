@@ -93,7 +93,7 @@ function Install-NugetPackage {
         }
         $folder = New-Item -ItemType Directory -Path $path -Force
 
-        $baseAddressUrl = $indexObject.resources | Where-Object { $_.'@type' -eq 'PackageBaseAddress/3.0.0' } | Select-Object -First 1
+        $baseAddressUrl = $index.resources | Where-Object { $_.'@type' -eq 'PackageBaseAddress/3.0.0' } | Select-Object -First 1
         $downloadUrl = "$($baseAddressUrl.'@id')$packageLowerName/$selectedVersion/$fileName"
         Invoke-WebRequest -Uri $downloadUrl -OutFile $packagePath -ErrorAction Stop
         Write-PSFMessage -Level Verbose -Message "Extracting $fileName to $folder"
