@@ -36,7 +36,10 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag FunctionalTests -ForEac
             Oracle {
                 $separator = "`n/"
                 $loginError = '*logon denied*'
-                $connectionError = "*Connection request timed out*"
+                $connectionError = switch ($isWindows) {
+                    $false { "*TNS:could not resolve*" }
+                    default { "*Connection request timed out*" }
+                }
                 $unknownTableError = "*table or view does not exist*"
             }
         }

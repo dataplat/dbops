@@ -19,7 +19,9 @@ Describe "<type> Register-DBOPackage integration tests" -Tag FunctionalTests -Fo
         BeforeAll {
             $p1 = New-DBOPackage -ScriptPath (Get-PackageScript -Version 1) -Name "$workFolder\pv1" -Build 1.0 -Force
             $p1 = Add-DBOBuild -ScriptPath (Get-PackageScript -Version 2) -Package $p1 -Build 2.0
-            Remove-TestDatabase
+            if ($Type -ne 'Oracle') {
+                Remove-TestDatabase
+            }
         }
         It "should register version 1.0 in a new database using -CreateDatabase switch" {
             if ($Type -eq 'Oracle') {
