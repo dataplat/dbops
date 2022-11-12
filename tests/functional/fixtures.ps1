@@ -169,9 +169,8 @@ CREATE TABLE "$logtable"
                         EXECUTE IMMEDIATE 'ALTER USER $dbUserName ACCOUNT LOCK';
                         FOR ln_cur IN (SELECT sid, serial# FROM v`$session WHERE username = '$dbUserName')
                         LOOP
-                            EXECUTE IMMEDIATE ('ALTER SYSTEM KILL SESSION ''' || ln_cur.sid || ',' || ln_cur.serial# || ''' IMMEDIATE');
+                            EXECUTE IMMEDIATE ('ALTER SYSTEM DISCONNECT SESSION ''' || ln_cur.sid || ',' || ln_cur.serial# || ''' IMMEDIATE');
                         END LOOP;
-                        DBMS_LOCK.sleep(1);
                         EXECUTE IMMEDIATE 'DROP USER $dbUserName CASCADE';
                     END IF;
                 END LOOP;
