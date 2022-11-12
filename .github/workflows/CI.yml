@@ -50,6 +50,8 @@ jobs:
         ports:
           - ${{ matrix.port }}:${{ matrix.port }}
         env: ${{ matrix.env }}
+    env:
+      TZ: UTC
     steps:
       - uses: actions/checkout@v1
       - name: Prepare
