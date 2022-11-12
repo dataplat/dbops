@@ -17,7 +17,6 @@ only_commits:
 
 image:
   - Visual Studio 2019
-  - Ubuntu
 
 # Set build info
 environment:
@@ -51,30 +50,5 @@ for:
       - psql -c "CREATE USER sa WITH SUPERUSER PASSWORD 'Password12!';" -U postgres
       - ps: .\tests\pester.prep.ps1
 
-
-  - matrix:
-      only:
-        - image: Ubuntu
-    environment:
-        mssql_instance: localhost
-        scenario: all
-        TZ: GMT
-    services:
-      - mssql
-      - mysql
-      - postgresql
-    before_test:
-      - ps: .\tests\pester.prep.ps1
-      - docker run --name dbops-oracle -d -p 1521:1521 -e ORACLE_ALLOW_REMOTE=true wnameless/oracle-xe-11g-r2
-
 test_script:
   - ps: .\tests\ci.pester.ps1
-
-
-# Set alternative clone folder
-#clone_folder: c:\github\dbops
-
-
-
-#on_finish:
-#  - ps:
