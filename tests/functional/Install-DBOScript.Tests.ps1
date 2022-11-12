@@ -232,7 +232,7 @@ Describe "<type> Install-DBOScript functional tests" -Tag FunctionalTests -ForEa
         }
     }
     Context "deployments with errors should throw terminating errors" {
-        BeforeAll {
+        BeforeEach {
             Reset-TestDatabase
             $null = Install-DBOScript -ScriptPath (Get-PackageScript -Version 1) @dbConnectionParams -SchemaVersionTable $null
         }
@@ -248,6 +248,22 @@ Describe "<type> Install-DBOScript functional tests" -Tag FunctionalTests -ForEa
             $testResults | Should -Be $null
             $errorObject | Should -Not -BeNullOrEmpty
             $errorObject.Exception.Message | Should -BeLike (Get-TableExistsMessage "a")
+        }
+        It "Should return failure results with SilentlyContinue" {
+            $testResults = Install-DBOScript -Path $tranFailScripts -SchemaVersionTable $logTable -DeploymentMethod NoTransaction @dbConnectionParams -ErrorAction SilentlyContinue
+            $testResults.Successful | Should -Be $false
+            $testResults.SqlInstance | Should -Be $instance
+            $testResults.Database | Should -Be $newDbName
+            $testResults.SourcePath | Should -Be ($tranFailScripts | Split-Path -Leaf)
+            $testResults.ConnectionType | Should -Be $Type
+            $testResults.Configuration.SchemaVersionTable | Should -Be $logTable
+            $testResults.Error.Message | Should -BeLike (Get-TableExistsMessage "a")
+            $testResults.ErrorScript | Should -Be ($tranFailScripts[1] | Split-Path -Leaf)
+            $testResults.Scripts.Name | Should -Be ($tranFailScripts[0] | Split-Path -Leaf)
+            $testResults.Duration.TotalMilliseconds | Should -BeGreaterOrEqual 0
+            $testResults.StartTime | Should -Not -BeNullOrEmpty
+            $testResults.EndTime | Should -Not -BeNullOrEmpty
+            $testResults.EndTime | Should -BeGreaterOrEqual $testResults.StartTime
         }
         It "should halt after throwing an error" {
             #Running package

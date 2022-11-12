@@ -12,6 +12,7 @@ Describe "<type> Invoke-Deployment functional tests" -Tag FunctionalTests -ForEa
         $tmpPackage = New-DBOPackage -Path (Join-Path $workFolder 'tmp.zip') -ScriptPath $tranFailScripts -Build 1.0 -Force
         $null = Expand-Archive -Path $tmpPackage -DestinationPath $workFolder -Force
         $packageFileName = Join-PSFPath -Normalize $workFolder "dbops.package.json"
+        $ErrorActionPreference = 'Stop'  # Needed for non-public commands
     }
     AfterAll {
         Remove-TestDatabase

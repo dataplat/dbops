@@ -435,7 +435,7 @@ function Invoke-DBOQuery {
         }
         catch {
             # don't really need anything else here
-            throw $_
+            Write-Error $_
         }
         finally {
             # close the connection even when interrupted by Ctrl+C

@@ -134,6 +134,9 @@
             if (!$Status.Successful) {
                 # Throw output error if unsuccessful
                 if ($Status.Error) {
+                    if ($upgradeResult.errorScript) {
+                        $Status.ErrorScript = $upgradeResult.errorScript.Name
+                    }
                     throw $Status.Error
                 }
                 else {
@@ -349,12 +352,12 @@
                 }
             }
             catch {
-                throw $_
+                Write-Error $_
             }
             finally {
                 $status.EndTime = [datetime]::Now
-                $status
             }
+            return $status
         }
     }
     end { }

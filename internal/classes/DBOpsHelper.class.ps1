@@ -137,12 +137,12 @@ class DBOpsHelper {
             $encoding = [System.Text.Encoding]::UTF7
         }
         else {
-            $encoding = [System.Text.Encoding]::ASCII
+            $encoding = [System.Text.Encoding]::UTF8
         }
         return $encoding.GetString($Array, $skipBytes, $Array.Length - $skipBytes)
     }
     # scrubs nulls from the datatable
-    static [PSObject] DataRowToPSObject([DataRow] $row){
+    static [PSObject] DataRowToPSObject([DataRow] $row) {
         $psObject = [PSObject]::new()
         if ($null -ne $row -and $row.RowState -and $row.RowState -ne [DataRowState]::Detached) {
             foreach ($column in $row.Table.Columns) {

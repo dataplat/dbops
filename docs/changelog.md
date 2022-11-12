@@ -1,3 +1,9 @@
+# Release notes for v0.8.1:
+- ### Wrapper around dotnet call to filter output (#148) by @nvarscar
+# Release notes for v0.8.0:
+- ### Hotfix: Nuget downloads now use lowercase filename in the URL (#139) by @nvarscar
+- ### Feature: Allow ErrorAction to properly handle errors (#140) by @nvarscar
+- ### Setting default encoding to UTF8 (#142) by @nvarscar
 # Release notes for v0.7.1:
 - ### Adding support for underscore char in tokens (#130) by @nvarscar
 # Release notes for v0.7.0:

@@ -123,6 +123,25 @@ Register-PSFConfigValidation -Name "connectionType" -ScriptBlock {
     return $Result
 }
 
+Register-PSFConfigValidation -Name "errorAction" -ScriptBlock {
+    Param (
+        $Value
+    )
+    $Result = New-Object PSObject -Property @{
+        Success = $True
+        Value   = $null
+        Message = ""
+    }
+    try {
+        $Result.Value = [String][System.Management.Automation.ActionPreference]$Value
+    }
+    catch {
+        $Result.Message = $_.Exception.Message
+        $Result.Success = $False
+    }
+    return $Result
+}
+
 Register-PSFConfigValidation -Name "tokenRegex" -ScriptBlock {
     Param (
         $Value
@@ -180,8 +199,12 @@ Set-PSFConfig -FullName dbops.security.usecustomencryptionkey -Value ($PSVersion
 Set-PSFConfig -FullName dbops.rdbms.type -Value 'SqlServer' -Validation connectionType -Initialize -Description "Assumes a certain RDBMS as a default one for each command. SQLServer by default"
 Set-PSFConfig -FullName dbops.package.slim -Value $false -Validation bool -Initialize -Description "Decides whether to make the packages 'slim' and omit module files when creating the package. Default: `$false"
 Set-PSFConfig -FullName dbops.config.variabletoken -Value "\#\{(token)\}" -Validation tokenRegex -Initialize -Description "Variable replacement token. Regex string that will be replaced with values from -Variables parameters. Default: \#\{(token)\}"
-$dotNet = try { dotnet --version } catch { $null }
+$dotNet = try { & { dotnet --version } } catch { $null }
 Set-PSFConfig -FullName dbops.runtime.dotnetversion -Value ($dotNet -as [version]) -Description "Current dotnet runtime." -Hidden
+Set-PSFConfig -FullName dbops.ErrorActionPreference -Value Stop -Initialize -Description "Module ErrorAction default value" -Validation errorAction
+
+# Module-wide ErrorAction preference
+$ErrorActionPreference = Get-PSFConfigValue -FullName dbops.ErrorActionPreference
 
 # extensions for SMO
 $typeData = Get-TypeData -TypeName 'Microsoft.SqlServer.Management.Smo.Database'
