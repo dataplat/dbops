@@ -160,16 +160,17 @@ CREATE TABLE "$logtable"
             GRANT EXECUTE on dbms_lock to $dbUserName"
         $dropDatabaseScript = "
             BEGIN
-                FOR ln_cur IN (SELECT sid, serial# FROM v`$session WHERE username = '$dbUserName')
-                LOOP
-                    EXECUTE IMMEDIATE ('ALTER SYSTEM KILL SESSION ''' || ln_cur.sid || ',' || ln_cur.serial# || ''' IMMEDIATE');
-                END LOOP;
                 FOR x IN ( SELECT count(*) cnt
                     FROM DUAL
                     WHERE EXISTS (SELECT * FROM DBA_USERS WHERE USERNAME = '$dbUserName')
                 )
                 LOOP
                     IF ( x.cnt = 1 ) THEN
+                        EXECUTE IMMEDIATE 'ALTER USER $dbUserName ACCOUNT LOCK';
+                        FOR ln_cur IN (SELECT sid, serial# FROM v`$session WHERE username = '$dbUserName')
+                        LOOP
+                            EXECUTE IMMEDIATE ('ALTER SYSTEM KILL SESSION ''' || ln_cur.sid || ',' || ln_cur.serial# || ''' IMMEDIATE');
+                        END LOOP;
                         EXECUTE IMMEDIATE 'DROP USER $dbUserName CASCADE';
                     END IF;
                 END LOOP;

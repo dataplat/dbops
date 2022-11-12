@@ -85,7 +85,7 @@ Function Publish-DBOPackageArtifact {
             $package = Get-DBOPackage -InputObject $InputObject
         }
         $pkgName = Split-Path ($package.FullName -replace '\.zip$', '') -Leaf
-        if ($PsCmdlet.ShouldProcess("Publishing package to $repo", $package)) {
+        if ($PsCmdlet.ShouldProcess([string]$package, "Publishing package to $repo")) {
             if ((Test-Path (Join-Path $repo Current)) -and (Test-Path (Join-Path $repo Versions))) {
                 Write-PSFMessage -Level Verbose -Message "Valid folder structure found in $repo"
                 $repoFolder = $repo
@@ -96,7 +96,7 @@ Function Publish-DBOPackageArtifact {
                     $repoFolder = Get-Item (Join-Path $repo $pkgName) -ErrorAction Stop
                 }
                 else {
-                        $repoFolder = New-Item (Join-Path $repo $pkgName) -ItemType Directory -ErrorAction Stop
+                    $repoFolder = New-Item (Join-Path $repo $pkgName) -ItemType Directory -ErrorAction Stop
                 }
             }
             'Current', 'Versions' | ForEach-Object {

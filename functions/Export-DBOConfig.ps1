@@ -2,10 +2,10 @@
     <#
     .SYNOPSIS
     Exports configuration file from existing DBOps package or DBOps config
-    
+
     .DESCRIPTION
     Exports configuration file from existing DBOps package or DBOps config to a json file.
-    
+
     .PARAMETER Path
     Path to the target json file.
 
@@ -29,7 +29,7 @@
     .EXAMPLE
     # Export configuration from a package file to a json file
     Get-Item 'mypackage.zip'| Export-DBOConfig .\config.json
-    
+
     #>
     [CmdletBinding(SupportsShouldProcess)]
     Param (
@@ -44,7 +44,7 @@
     process {
         $config = Get-DBOConfig -InputObject $InputObject
 
-        if ($pscmdlet.ShouldProcess($config, "Saving the config file")) {
+        if ($pscmdlet.ShouldProcess($Path, "Saving the config file")) {
             $config.SaveToFile($Path)
         }
     }

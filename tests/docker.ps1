@@ -41,7 +41,7 @@ switch ($Type) {
     }
     MySQL {
         $argl = if ($PSVersionTable.OS -like "*ARM*") { @("--platform linux/amd64") } else { $null }
-        Start-Container -Name dbops-mysql -Port 3306 -Image mysql:5.7 -Environment @{
+        Start-Container -Name dbops-mysql -Port 3306 -Image mysql:8.0 -Environment @{
             MYSQL_ROOT_PASSWORD = $script:mysqlCredential.GetNetworkCredential().Password
         } -ArgumentList $argl
     }

@@ -354,13 +354,21 @@ function Invoke-DBOQuery {
                                     foreach ($column in $definition) {
                                         $name = $column.ColumnName
                                         $datatype = $column.DataType
-                                        for ($j = 1; -not $name; $j++) {
-                                            if ($table.Columns.ColumnName -notcontains "Column$j") { $name = "Column$j" }
-                                        }
                                         if ($ReturnAsText -or $datatype.FullName -eq 'System.DBNull' -or -not $datatype.FullName) {
                                             $datatype = [string]
                                         }
-                                        $null = $table.Columns.Add($name, $datatype)
+                                        while ($true) {
+                                            for ($j = 1; (-not $name) -or ($Type -eq 'Postgres' -and $name -eq '?column?'); $j++) {
+                                                if ($table.Columns.ColumnName -notcontains "Column$j") { $name = "Column$j" }
+                                            }
+                                            try {
+                                                $null = $table.Columns.Add($name, $datatype)
+                                                break
+                                            }
+                                            catch [System.Data.DuplicateNameException] {
+                                                $name = $null
+                                            }
+                                        }
                                     }
                                     # read rows async and assign values
                                     $rowCount = 0

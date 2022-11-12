@@ -2,17 +2,17 @@ Function Remove-DBOBuild {
     <#
     .SYNOPSIS
     Removes one or more builds from the DBOps package
-    
+
     .DESCRIPTION
     Remove specific list of builds from the existing DBOps package keeping all other parts of the package intact
-    
+
     .PARAMETER Path
     Path to the existing DBOpsPackage.
     Aliases: Name, FileName, Package
-    
+
     .PARAMETER Build
     One or more builds to remove from the package.
-    
+
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -27,9 +27,9 @@ Function Remove-DBOBuild {
     # Removes all 1.* builds from the package
     $builds = (Get-DBOPackage c:\temp\myPackage.zip).Builds
     $builds.Build | Where { $_ -like '1.*' } | Remove-DBOBuild -Path c:\temp\myPackage.zip
-    
+
     .NOTES
-    
+
     #>
     [CmdletBinding(SupportsShouldProcess)]
     Param(
@@ -43,7 +43,7 @@ Function Remove-DBOBuild {
         [string[]]$Build
     )
     begin {
-        
+
     }
     process {
         Write-PSFMessage -Level Verbose -Message "Loading package information from $Path"
@@ -54,17 +54,17 @@ Function Remove-DBOBuild {
                     Write-Warning "Build $currentBuild not found in the package, skipping."
                     continue
                 }
-            
+
                 Write-PSFMessage -Level Verbose -Message "Removing $currentBuild from the package object"
                 $package.RemoveBuild($currentBuild)
 
-                if ($pscmdlet.ShouldProcess($package, "Saving changes to the package")) {
+                if ($pscmdlet.ShouldProcess([string]$package, "Saving changes to the package")) {
                     $package.Alter()
                 }
             }
         }
     }
     end {
-        
+
     }
 }

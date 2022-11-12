@@ -78,8 +78,8 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag FunctionalTests -ForEac
             $result = Invoke-DBOQuery -Query $query @dbConnectionParams -As DataTable
 
             $query = switch ($Type) {
-                MySQL { $result.Column1 | Should -Be $null }
-                Oracle { $result.Column1 | Should -Be $null }
+                Oracle { $result.NULL | Should -Be ([DBNull]::Value) }
+                MySQL { $result.NULL | Should -Be ([DBNull]::Value) }
                 Default { $result.Column1 | Should -Be ([DBNull]::Value) }
             }
         }

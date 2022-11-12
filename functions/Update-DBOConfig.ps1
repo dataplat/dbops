@@ -103,7 +103,7 @@
             elseif ($PSCmdlet.ParameterSetName -eq 'File') {
                 $newConfig = Get-DBOConfig -Path $ConfigurationFile
             }
-            if ($pscmdlet.ShouldProcess($package, "Updating the package file/object")) {
+            if ($pscmdlet.ShouldProcess([string]$package, "Updating the package file/object")) {
                 if ($newConfig) {
                     $config.Merge($newConfig)
                 }
