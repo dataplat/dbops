@@ -47,4 +47,4 @@ before_test:
   - ps: .\tests\functional.prep.ps1
 
 test_script:
-  - ps: .\tests\ci.pester.ps1
+  - ps: .\tests\ci.pester.ps1 -Type SqlServer, Postgresql, MySQL
