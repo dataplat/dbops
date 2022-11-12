@@ -25,6 +25,6 @@ if ($Tag) {
 $config = New-PesterConfiguration -Hashtable $conf
 # set environment vars to limit DB types
 if ($Type.Count -gt 0) {
-    $env:DBOPS_TEST_DB_TYPE = $Type | Join-String -Separator " "
+    $env:DBOPS_TEST_DB_TYPE = $Type -join " "
 }
 Invoke-Pester -Configuration $config

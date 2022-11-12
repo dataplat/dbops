@@ -18,11 +18,12 @@ jobs:
 
   functional-tests:
     name: Functional tests
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         type: [sqlserver, postgresql, oracle, mysql]
+        os: [ubuntu-latest, windows-latest]
         include:
           - image: dbatools/sqlinstance
             port: 1433

@@ -342,9 +342,9 @@ Describe "<type> Invoke-DBOQuery integration tests" -Tag FunctionalTests -ForEac
                 Oracle { 'SELECT ''bar'' + @foo FROM DUAL' }
                 Default { 'SELECT ''bar'' + @foo' }
             }
-            { Invoke-DBOQuery -Query $query1 @dbConnectionParams -Parameter @{ foo = 'bar' } -Silent } | Should -Throw $conversionError
-            { Invoke-DBOQuery -Query $query2 @dbConnectionParams -Parameter @{ foo = 10 } -Silent } | Should -Throw $conversionError
-            { Invoke-DBOQuery -Query $query2 @dbConnectionParams -Parameter @{ foo = Get-Date } -Silent } | Should -Throw $conversionError
+            { Invoke-DBOQuery -Query $query1 @dbConnectionParams -Parameter @{ foo = 'bar' } } | Should -Throw $conversionError
+            { Invoke-DBOQuery -Query $query2 @dbConnectionParams -Parameter @{ foo = 10 } } | Should -Throw $conversionError
+            { Invoke-DBOQuery -Query $query2 @dbConnectionParams -Parameter @{ foo = Get-Date } } | Should -Throw $conversionError
         }
         It "should fail when credentials are wrong" {
             $query = switch ($Type) {
