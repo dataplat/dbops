@@ -44,7 +44,7 @@ after_build:
 before_test:
   - SET PATH=C:\Program Files\PostgreSQL\9.6\bin\;%PATH%
   - psql -c "CREATE USER sa WITH SUPERUSER PASSWORD 'Password12!';" -U postgres
-  - ps: .\tests\pester.prep.ps1
+  - ps: .\tests\functional.prep.ps1
 
 test_script:
   - ps: .\tests\ci.pester.ps1
