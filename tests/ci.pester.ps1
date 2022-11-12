@@ -12,6 +12,7 @@
 $conf = @{
     Run    = @{
         Path = $Path
+        Exit = $true
     }
     Output = @{
         Verbosity = "Detailed"
@@ -27,4 +28,4 @@ $config = New-PesterConfiguration -Hashtable $conf
 if ($Type.Count -gt 0) {
     $env:DBOPS_TEST_DB_TYPE = $Type -join " "
 }
-Invoke-Pester -Configuration $config -CI
+Invoke-Pester -Configuration $config
