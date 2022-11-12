@@ -82,6 +82,13 @@
                     "Path": [
                         "lib\\netstandard2.0\\Microsoft.Bcl.HashCode.dll"
                     ]
+                },
+                {
+                    "Name": "Microsoft.Bcl.AsyncInterfaces",
+                    "RequiredVersion": "6.0.0",
+                    "Path": [
+                        "lib\\netstandard2.0\\Microsoft.Bcl.AsyncInterfaces.dll"
+                    ]
                 }
             ]
         }

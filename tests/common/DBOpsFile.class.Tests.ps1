@@ -41,7 +41,7 @@ Describe "DBOpsFile class tests" -Tag UnitTests {
             $f.Hash | Should -BeNullOrEmpty
             $f.Parent | Should -BeNullOrEmpty
             #Negative tests
-            { [DBOpsFile]::new(([System.IO.FileInfo]$null), $script1, '1.sql') } | Should -Throw '*empty string*'
+            { [DBOpsFile]::new(([System.IO.FileInfo]$null), $script1, '1.sql') } | Should -Throw '*empty*'
             { [DBOpsFile]::new($fileObject1, '') } | Should -Throw 'Path inside the package cannot be empty'
         }
         It "Should create new hash-protected DBOpsFile" {
