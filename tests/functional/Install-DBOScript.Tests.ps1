@@ -251,7 +251,9 @@ Describe "<type> Install-DBOScript functional tests" -Tag FunctionalTests -ForEa
             $testResults = Install-DBOScript -Path $tranFailScripts -SchemaVersionTable $logTable -DeploymentMethod NoTransaction @dbConnectionParams -ErrorAction SilentlyContinue
             $testResults.Successful | Should -Be $false
             $testResults.SqlInstance | Should -Be $instance
-            $testResults.Database | Should -Be $newDbName
+            if ($Type -ne 'Oracle') {
+                $testResults.Database | Should -Be $newDbName
+            }
             $testResults.SourcePath | Should -Be (Get-ChildItem $tranFailScripts).FullName
             $testResults.ConnectionType | Should -Be $Type
             $testResults.Configuration.SchemaVersionTable | Should -Be $logTable
