@@ -26,6 +26,6 @@ jobs:
       filePath: .\build\bump_version.ps1
       arguments: .\dbops.psd1
     env:
-      git_user_email: $(gitUserEmail)
-      git_username: $(gitUsername)
+      GIT_USER_EMAIL: $(gitUserEmail)
+      GIT_USERNAME: $(gitUsername)
       MY_ACCESS_TOKEN: $(System.AccessToken)
