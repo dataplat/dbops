@@ -2,15 +2,15 @@ Function Copy-DBOPackageArtifact {
     <#
     .SYNOPSIS
     Copies a DBOps package file stored in the specific artifact repository to the specified location.
-    
+
     .DESCRIPTION
     Copies a DBOps package file from an artifact repository created by Publish-DBOPackageArtifact to the specified location.
-   
+
     .PARAMETER Name
     Name of the DBOps package
 
     Aliases: FileName, Package
-    
+
     .PARAMETER Repository
     Path to the artifact repository - a folder or a network share
 
@@ -24,7 +24,7 @@ Function Copy-DBOPackageArtifact {
 
     .PARAMETER Passthru
     Returns a filesystem object after excecution
-    
+
     .PARAMETER Confirm
         Prompts to confirm certain actions
 
@@ -34,13 +34,13 @@ Function Copy-DBOPackageArtifact {
     .EXAMPLE
     # Copies the latest version of the package myPackage.zip from the repository \\data\repo to the local folder .\
     Copy-DBOPackageArtifact -Name myPackage.zip -Repository \\data\repo -Destination .
-    
+
     .EXAMPLE
     # Copies a specific version of the package myPackage.zip from the repository \\data\repo to the folder c:\workspace
     Copy-DBOPackageArtifact -Name myPackage -Repository \\data\repo -Version 2.2.1 -Destination c:\workspace
-    
+
     .NOTES
-    
+
     #>
     [CmdletBinding(SupportsShouldProcess)]
     Param(
@@ -59,7 +59,7 @@ Function Copy-DBOPackageArtifact {
     }
     process {
         if ($src) {
-            if ($PSCmdlet.ShouldProcess($src, "Copying file to the destination $Destination")) {
+            if ($PSCmdlet.ShouldProcess([string]$src, "Copying file to the destination $Destination")) {
                 Copy-Item -Path $src -Destination $Destination -Passthru:$Passthru
             }
         }

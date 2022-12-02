@@ -174,7 +174,7 @@
             $package.SetPostScripts($postScriptCollection)
         }
 
-        if ($pscmdlet.ShouldProcess($package, "Generate a package file")) {
+        if ($pscmdlet.ShouldProcess([string]$package, "Generate a package file")) {
 
             #Save package file
             $package.SaveToFile($packagePath, $Force)

@@ -77,7 +77,7 @@ function Reset-DBODefaultSetting {
         }
         foreach ($config in $settings) {
             $sName = $config.fullName -replace '^dbops\.', ''
-            if ($PSCmdlet.ShouldProcess($config, "Resetting the setting $sName back to its default value")) {
+            if ($PSCmdlet.ShouldProcess($sName, "Resetting the setting back to its default value")) {
                 if ($config.Initialized) {
                     $config.ResetValue()
                 }

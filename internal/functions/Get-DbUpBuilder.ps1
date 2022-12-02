@@ -62,6 +62,9 @@ function Get-DbUpBuilder {
     elseif ($Config.DeploymentMethod -eq 'TransactionPerScript') {
         $dbUp = [StandardExtensions]::WithTransactionPerScript($dbUp)
     }
+    elseif ($Config.DeploymentMethod -eq 'AlwaysRollback') {
+        $dbUp = [StandardExtensions]::WithTransactionAlwaysRollback($dbUp)
+    }
     # Adding execution timeout - defaults to unlimited execution
     $dbUp = [StandardExtensions]::WithExecutionTimeout($dbUp, [timespan]::FromSeconds($config.ExecutionTimeout))
     return $dbUp

@@ -1,3 +1,6 @@
+# Release notes for v0.9.0:
+- ### Pester 5 and redesigned test structure (#152) by @nvarscar
+- ### Adding AlwaysRollback deployment method (#154) by @nvarscar
 # Release notes for v0.8.1:
 - ### Wrapper around dotnet call to filter output (#148) by @nvarscar
 # Release notes for v0.8.0:

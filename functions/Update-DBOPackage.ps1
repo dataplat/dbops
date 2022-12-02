@@ -55,7 +55,7 @@
     process {
         foreach ($p in $Path) {
             $package = Get-DBOPackage -Path $p
-            if ($pscmdlet.ShouldProcess($package, "Updating the package file/object")) {
+            if ($pscmdlet.ShouldProcess([string]$package, "Updating the package file/object")) {
                 if (Test-PSFParameterBinding -ParameterName Slim) {
                     Write-PSFMessage -Level Verbose -Message "Setting Slim to $Slim"
                     $package.Slim = $Slim

@@ -1,8 +1,8 @@
 name: CI
-on: [pull_request]
+on: [push]
 
 jobs:
-  build:
+  import:
     name: Module imports on all platforms
     runs-on: ${{ matrix.os }}
     strategy:
@@ -15,3 +15,68 @@ jobs:
     - name: Perform the import
       shell: pwsh
       run: Install-Module PSFramework -Force; Import-Module ./dbops.psd1 -ErrorAction Stop
+
+  functional-tests:
+    name: Functional tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        type: [sqlserver, postgresql, oracle, mysql]
+        include:
+          - image: dbatools/sqlinstance
+            port: 1433
+            type: sqlserver
+            env: {}
+          - image: postgres:14
+            port: 5432
+            type: postgresql
+            env:
+              POSTGRES_PASSWORD: Password12!
+              POSTGRES_HOST_AUTH_METHOD: md5
+          - image: mysql:8.0
+            port: 3306
+            type: mysql
+            env:
+              MYSQL_ROOT_PASSWORD: Password12!
+          - image: wnameless/oracle-xe-11g-r2
+            port: 1521
+            type: oracle
+            env:
+              ORACLE_ALLOW_REMOTE: true
+    services:
+      db:
+        image: ${{ matrix.image }}
+        ports:
+          - ${{ matrix.port }}:${{ matrix.port }}
+        env: ${{ matrix.env }}
+    env:
+      TZ: UTC
+    steps:
+      - uses: actions/checkout@v1
+      - name: Prepare
+        shell: pwsh
+        run: tests/functional.prep.ps1 -Type ${{ matrix.type }}
+      - name: Run tests
+        shell: pwsh
+        run: tests/ci.pester.ps1 -Tag FunctionalTests -Type ${{ matrix.type }}
+
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v1
+      - name: Prepare
+        shell: pwsh
+        run: tests/pester.prep.ps1
+      - name: Run unittests
+        shell: pwsh
+        run: tests/ci.pester.ps1 -Tag UnitTests
+      - name: Run integration tests
+        shell: pwsh
+        run: tests/ci.pester.ps1 -Tag IntegrationTests
+      - name: Run compliance tests
+        shell: pwsh
+        run: tests/ci.pester.ps1 -Tag ComplianceTests

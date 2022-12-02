@@ -149,7 +149,7 @@ function Add-DBOBuild {
                     Write-PSFMessage -Level Verbose -Message "Adding file '$($buildScript.FullName)' to $currentBuild as $($buildScript.GetPackagePath())"
                 }
 
-                if ($pscmdlet.ShouldProcess($package, "Writing new build $currentBuild into the original package")) {
+                if ($pscmdlet.ShouldProcess([string]$package, "Writing new build $currentBuild into the original package")) {
                     $currentBuild.Alter()
                 }
             }
