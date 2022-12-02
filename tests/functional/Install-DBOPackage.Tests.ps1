@@ -77,6 +77,24 @@ Describe "<type> Install-DBOPackage functional tests" -Tag FunctionalTests -ForE
             'd' | Should -Not -BeIn $after.(Get-ColumnName name)
         }
     }
+    Context "testing rollback deployment" {
+        BeforeAll {
+            if ($Type -in 'MySQL', 'Oracle') {
+                Set-ItResult -Skipped -Because "CREATE TABLE cannot be rolled back in $Type"
+            }
+            $p1 = New-DBOPackage -ScriptPath (Get-PackageScript -Version 1) -Name "$workFolder\pv1" -Build 1.0 -Force
+            Reset-TestDatabase
+        }
+        It "should rollback version 1.0" {
+            $testResults = Install-DBOPackage $p1 -Build '1.0' @dbConnectionParams -SchemaVersionTable $logTable -DeploymentMethod AlwaysRollback
+            $testResults | Test-DeploymentOutput -Version 1 -HasJournal
+            $testResults.SourcePath | Should -Be (Join-PSFPath -Normalize "$workFolder\pv1.zip")
+
+            "Beginning transaction" | Should -BeIn $testResults.DeploymentLog
+            "Success! No errors have occured when executing scripts, transaction will be rolled back" | Should -BeIn $testResults.DeploymentLog
+            Test-DeploymentState -Version 0
+        }
+    }
     Context "testing regular deployment" {
         BeforeAll {
             $p1 = New-DBOPackage -ScriptPath (Get-PackageScript -Version 1) -Name "$workFolder\pv1" -Build 1.0 -Force
