@@ -37,7 +37,6 @@ Describe "<type> Install-DBOScript functional tests" -Tag FunctionalTests -ForEa
             if ($Type -in 'MySQL', 'Oracle') {
                 Set-ItResult -Skipped -Because "CREATE TABLE cannot be rolled back in $Type"
             }
-            #Running package
             {
                 $null = Install-DBOScript -Path $tranFailScripts @dbConnectionParams -SchemaVersionTable $logTable -DeploymentMethod SingleTransaction
             } | Should -Throw (Get-TableExistsMessage "a")
@@ -49,7 +48,6 @@ Describe "<type> Install-DBOScript functional tests" -Tag FunctionalTests -ForEa
             $null = Invoke-DBOQuery @dbConnectionParams -InputFile $cleanupScript
         }
         It "should throw an error and create one object" {
-            #Running package
             try {
                 $null = Install-DBOScript -Path $tranFailScripts @dbConnectionParams -SchemaVersionTable $logTable -DeploymentMethod NoTransaction
             }
@@ -87,6 +85,23 @@ Describe "<type> Install-DBOScript functional tests" -Tag FunctionalTests -ForEa
             $testResults.SourcePath | Should -Be (Get-PackageScript -Version 2)
 
             Test-DeploymentState -Script -Version 2 -HasJournal
+        }
+    }
+    Context "testing rollback deployment" {
+        BeforeEach {
+            if ($Type -in 'MySQL', 'Oracle') {
+                Set-ItResult -Skipped -Because "CREATE TABLE cannot be rolled back in $Type"
+            }
+            Reset-TestDatabase
+        }
+        It "should rollback version 1.0" {
+            $testResults = Install-DBOScript -ScriptPath (Get-PackageScript -Version 1) @dbConnectionParams -SchemaVersionTable $logTable -DeploymentMethod AlwaysRollback
+            $testResults | Test-DeploymentOutput -Version 1 -HasJournal -Script
+            $testResults.SourcePath | Should -Be (Get-PackageScript -Version 1)
+
+            "Beginning transaction" | Should -BeIn $testResults.DeploymentLog
+            "Success! No errors have occured when executing scripts, transaction will be rolled back" | Should -BeIn $testResults.DeploymentLog
+            Test-DeploymentState -Script -Version 0
         }
     }
     Context "testing deployment order" {

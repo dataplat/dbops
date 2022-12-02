@@ -27,6 +27,7 @@
         - SingleTransaction: wrap all the deployment scripts into a single transaction and rollback whole deployment on error
         - TransactionPerScript: wrap each script into a separate transaction; rollback single script deployment in case of error
         - NoTransaction: deploy as is
+        - AlwaysRollback: deploy as a single transaction, but rollback changes after the deployment is done
 
         Default: NoTransaction
 
@@ -158,7 +159,7 @@
         [string]$SqlInstance,
         [Parameter(Position = 3)]
         [string]$Database,
-        [ValidateSet('SingleTransaction', 'TransactionPerScript', 'NoTransaction')]
+        [ValidateSet('SingleTransaction', 'TransactionPerScript', 'NoTransaction', 'AlwaysRollback')]
         [string]$DeploymentMethod = 'NoTransaction',
         [int]$ConnectionTimeout,
         [int]$ExecutionTimeout,
