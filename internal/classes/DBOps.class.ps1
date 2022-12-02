@@ -416,7 +416,7 @@ class DBOpsPackageBase : DBOps {
         return $exportObject | ConvertTo-Json -Depth 4
     }
     hidden [void] SavePackageFile([ZipArchive]$zipFile) {
-        $pkgFileContent = [Text.Encoding]::ASCII.GetBytes($this.ExportToJson())
+        $pkgFileContent = [Text.Encoding]::UTF8.GetBytes($this.ExportToJson())
         [DBOpsHelper]::WriteZipFile($zipFile, ([DBOpsConfig]::GetPackageFileName()), $pkgFileContent)
     }
     [void] Alter() {

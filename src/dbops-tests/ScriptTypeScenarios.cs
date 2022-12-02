@@ -2,8 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using DbUp.Builder;
-//using DbUp.Engine;
-using DBOps;
 using DbUp.Engine.Transactions;
 using DbUp.Support;
 using DBOps.Tests.TestInfrastructure;

@@ -33,6 +33,36 @@
   <ItemGroup>
     <EmbeddedResource Include="TestScripts\**\*.sql" Exclude="bin\**;obj\**;**\*.xproj;packages\**;@(EmbeddedResource)" />
   </ItemGroup>
+  <ItemGroup>
+    <None Remove="TestScripts\EncodingTests\1252.txt" />
+    <None Remove="TestScripts\EncodingTests\UTF16-BE.txt" />
+    <None Remove="TestScripts\EncodingTests\UTF16-LE.txt" />
+    <None Remove="TestScripts\EncodingTests\UTF16-NoBOM.txt" />
+    <None Remove="TestScripts\EncodingTests\UTF8-BOM.txt" />
+    <None Remove="TestScripts\EncodingTests\UTF8-NoBOM.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="TestScripts\EncodingTests\UTF16-BE.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestScripts\EncodingTests\UTF16-LE.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestScripts\EncodingTests\UTF16-NoBOM.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestScripts\EncodingTests\UTF8-BOM.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="TestScripts\EncodingTests\1252.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestScripts\EncodingTests\UTF8-NoBOM.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\dbops-mysql\dbops-mysql.csproj" />
@@ -40,5 +70,13 @@
     <ProjectReference Include="..\dbops-postgresql\dbops-postgresql.csproj" />
     <ProjectReference Include="..\dbops-sqlserver\dbops-sqlserver.csproj" />
     <ProjectReference Include="..\dbops-core\dbops-core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.IO.Compression" />
   </ItemGroup>
 </Project>

@@ -133,9 +133,9 @@ class DBOpsHelper {
             $encoding = [System.Text.Encoding]::Unicode
             $skipBytes = 2
         }
-        elseif ($Array.Length -ge 4 -and $Array[0] -eq 0x2b -and $Array[1] -eq 0x2f -and $Array[2] -eq 0x76 -and ($Array[3] -eq 0x38 -or $Array[3] -eq 0x39 -or $Array[3] -eq 0x2b -or $Array[3] -eq 0x2f)) {
-            $encoding = [System.Text.Encoding]::UTF7
-        }
+        # elseif ($Array.Length -ge 4 -and $Array[0] -eq 0x2b -and $Array[1] -eq 0x2f -and $Array[2] -eq 0x76 -and ($Array[3] -eq 0x38 -or $Array[3] -eq 0x39 -or $Array[3] -eq 0x2b -or $Array[3] -eq 0x2f)) {
+        #     $encoding = [System.Text.Encoding]::UTF7
+        # }
         else {
             $encoding = [System.Text.Encoding]::UTF8
         }

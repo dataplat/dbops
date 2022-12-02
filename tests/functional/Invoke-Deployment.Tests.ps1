@@ -218,26 +218,9 @@ Describe "<type> Invoke-Deployment functional tests" -Tag FunctionalTests -ForEa
             $scriptObject2 = Get-DbopsFile -Path $file2
             Reset-TestDatabase
         }
-        It "should deploy once" {
-            $testResults = Invoke-Deployment -ScriptFile $scriptObject1 -Configuration $deploymentConfig -ChecksumValidation $true
-            $testResults.Successful | Should -Be $true
-            $testResults.Scripts.Name | Should -Be "script.sql"
-            $testResults.Configuration.SchemaVersionTable | Should Be $logTable
-            $testResults.Error | Should -BeNullOrEmpty
-            'Upgrade successful' | Should -BeIn $testResults.DeploymentLog
 
-            #Verifying objects
-            $testResults = Invoke-DBOQuery @dbConnectionParams -InputFile $verificationScript
-            $testResults.(Get-ColumnName name) | Should -Be $logTable
-            'a' | Should -BeIn $testResults.(Get-ColumnName name)
-            'b' | Should -Not -BeIn $testResults.(Get-ColumnName name)
-
-            #Verifying SchemaVersions table
-            $fqn = Get-QuotedIdentifier ($logtable)
-            $svResults = Invoke-DBOQuery @dbConnectionParams -Query "SELECT ScriptName FROM $fqn"
-            $svResults.ScriptName | Should -Be "script.sql"
-        }
-        It "should deploy with changed content" {
+        It "should deploy script with changed content" {
+            $null = Invoke-Deployment -ScriptFile $scriptObject1 -Configuration $deploymentConfig -ChecksumValidation $true
             $testResults = Invoke-Deployment -ScriptFile $scriptObject2 -Configuration $deploymentConfig -ChecksumValidation $true
             $testResults.Successful | Should -Be $true
             $testResults.Scripts.Name | Should -Be "script.sql"
@@ -247,14 +230,14 @@ Describe "<type> Invoke-Deployment functional tests" -Tag FunctionalTests -ForEa
 
             #Verifying objects
             $testResults = Invoke-DBOQuery @dbConnectionParams -InputFile $verificationScript
-            $testResults.(Get-ColumnName name) | Should -Be $logTable
+            $logTable | Should -BeIn $testResults.(Get-ColumnName name)
             'a' | Should -BeIn $testResults.(Get-ColumnName name)
             'b' | Should -BeIn $testResults.(Get-ColumnName name)
 
             #Verifying SchemaVersions table
             $fqn = Get-QuotedIdentifier ($logtable)
             $svResults = Invoke-DBOQuery @dbConnectionParams -Query "SELECT ScriptName, Checksum FROM $fqn"
-            $svResults.ScriptName | Should -Be "script.sql"
+            $svResults.ScriptName | Should -Be (@("script.sql") * 2)
             $svResults[0].Checksum | Should -Not -Be $svResults[1].Checksum
         }
     }

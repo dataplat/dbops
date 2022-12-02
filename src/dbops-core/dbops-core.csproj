@@ -12,4 +12,8 @@
     <PackageReference Include="dbup-core" Version="4.5.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+
 </Project>
