@@ -78,7 +78,7 @@ Describe "<type> Install-DBOPackage functional tests" -Tag FunctionalTests -ForE
         }
     }
     Context "testing rollback deployment" {
-        BeforeAll {
+        BeforeEach {
             if ($Type -in 'MySQL', 'Oracle') {
                 Set-ItResult -Skipped -Because "CREATE TABLE cannot be rolled back in $Type"
             }
