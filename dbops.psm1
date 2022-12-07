@@ -34,11 +34,11 @@ Register-PSFConfigValidation -Name "transaction" -ScriptBlock {
         Message = ""
     }
     try {
-        if (([string]$Value) -in @('SingleTransaction', 'TransactionPerScript', 'NoTransaction')) {
+        if (([string]$Value) -in @('SingleTransaction', 'TransactionPerScript', 'NoTransaction', 'AlwaysRollback')) {
             $Result.Value = [string]$Value
         }
         else {
-            $Result.Message = "Allowed values: SingleTransaction, TransactionPerScript, NoTransaction"
+            $Result.Message = "Allowed values: SingleTransaction, TransactionPerScript, NoTransaction, AlwaysRollback"
             $Result.Success = $False
         }
     }
@@ -174,7 +174,7 @@ Set-PSFConfig -FullName dbops.ApplicationName -Value "dbops" -Initialize -Descri
 Set-PSFConfig -FullName dbops.SqlInstance -Value "localhost" -Initialize -Description "Server to connect to"
 Set-PSFConfig -FullName dbops.Database -Value $null -Initialize -Description "Name of the database for deployment"
 Set-PSFConfig -FullName dbops.DeploymentMethod -Value 'NoTransaction' -Initialize -Validation transaction `
-    -Description "Transactional behavior during deployment. Allowed values: SingleTransaction, TransactionPerScript, NoTransaction (default)"
+    -Description "Transactional behavior during deployment. Allowed values: SingleTransaction, TransactionPerScript, AlwaysRollback, NoTransaction (default)"
 Set-PSFConfig -FullName dbops.Username -Value $null -Initialize -Description "Connection username"
 Set-PSFConfig -FullName dbops.Password -Value $null -Initialize -Validation securestring `
     -Description "Connection password. Only available to the same OS user, as it will be encrypted"

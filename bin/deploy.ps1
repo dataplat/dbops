@@ -4,7 +4,7 @@ Param (
     [Alias('Server', 'SqlServer', 'DBServer', 'Instance')]
     [string]$SqlInstance,
     [string]$Database,
-    [ValidateSet('SingleTransaction', 'TransactionPerScript', 'NoTransaction')]
+    [ValidateSet('SingleTransaction', 'TransactionPerScript', 'NoTransaction', 'AlwaysRollback')]
     [string]$DeploymentMethod = 'NoTransaction',
     [int]$ConnectionTimeout,
     [int]$ExecutionTimeout,
