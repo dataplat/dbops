@@ -1,3 +1,6 @@
+# Release notes for v0.9.1:
+- ### Update README.md (#156) by @kevchant
+- ### adding AlwaysRollback to deploy.ps1 and module configuration (#157) by @nvarscar
 # Release notes for v0.9.0:
 - ### Pester 5 and redesigned test structure (#152) by @nvarscar
 - ### Adding AlwaysRollback deployment method (#154) by @nvarscar
