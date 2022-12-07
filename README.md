@@ -16,7 +16,7 @@ Currently supported RDBMS:
 * PostgreSQL
 * MySQL
 
-In addition it also supports Azure Synapse Analytics SQL Pools (both dedicated and serverless). Be aware that with you cannot create the schemaversion table for the serverless SQL Pool. As a workaround you can set the SchemaVersionTable to null to avoidcreating the table and use relevant logic in your SQL. For example, IF EXISTS statements.
+In addition it also supports Azure Synapse Analytics SQL Pools (both dedicated and serverless). Be aware that you cannot use the schemaversion table with the serverless SQL Pool - it needs to be explicitly disabled by setting SchemaVersionTable to `$null`. All scripts deployed in such scenario should be idempotent and re-runnable.
 
 ## Features
 
