@@ -16,6 +16,8 @@ Currently supported RDBMS:
 * PostgreSQL
 * MySQL
 
+In addition it also supports Azure Synapse Analytics SQL Pools (both dedicated and serverless). Be aware that with you cannot create the schemaversion table for the serverless SQL Pool. As a workaround you can set the SchemaVersionTable to null to avoidcreating the table and use relevant logic in your SQL. For example, IF EXISTS statements.
+
 ## Features
 
 The most notable features of the module:
