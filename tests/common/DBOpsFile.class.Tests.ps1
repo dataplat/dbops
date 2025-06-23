@@ -154,6 +154,10 @@ Describe "DBOpsFile class tests" -Tag UnitTests {
             $file.RebuildHash()
             $file.Hash | Should -Be $oldHash
         }
+        It "should test RebuildHash method with empty file" {
+            $emptyFile = New-Item $workFolder\emptyfile.sql -ItemType File
+            { [DBOpsFile]::new($emptyFile, 'emptyfile.sql', $true) } | Should -Throw
+        }
         It "should test ValidateHash method" {
             $hash = $file.Hash
             { $file.ValidateHash('foo') } | Should -Throw 'File cannot be loaded, hash mismatch*'
