@@ -3,7 +3,7 @@ BeforeDiscovery {
     $includedNames = (Get-ChildItem "$PSScriptRoot\..\..\functions" | Where-Object Name -like "*.ps1" ).BaseName
     $commands = Get-Command -Module (Get-Module dbops) -CommandType Cmdlet, Function | Where-Object Name -in $includedNames
     $commonParameters = 'Debug', 'ErrorAction', 'ErrorVariable', 'InformationAction', 'InformationVariable', 'OutBuffer', 'OutVariable',
-    'PipelineVariable', 'Verbose', 'WarningAction', 'WarningVariable'
+    'PipelineVariable', 'ProgressAction', 'Verbose', 'WarningAction', 'WarningVariable'
     $testCases = $commands | ForEach-Object {
         if ($global:FunctionHelpTestExceptions -contains $_.Name) { continue }
         @{ Command = $_; CommandName = $_.Name; Help = Get-Help $_.Name -ErrorAction SilentlyContinue; Common = $commonParameters }

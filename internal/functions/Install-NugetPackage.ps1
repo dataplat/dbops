@@ -95,7 +95,13 @@ function Install-NugetPackage {
 
         $baseAddressUrl = $index.resources | Where-Object { $_.'@type' -eq 'PackageBaseAddress/3.0.0' } | Select-Object -First 1
         $downloadUrl = "$($baseAddressUrl.'@id')$packageLowerName/$selectedVersion/$fileName"
-        Invoke-WebRequest -Uri $downloadUrl -OutFile $packagePath -ErrorAction Stop
+        try {
+            Invoke-WebRequest -Uri $downloadUrl -OutFile $packagePath -ErrorAction Stop
+        }
+        catch {
+            $originalError = $_.Exception.Message
+            Stop-PSFFunction -Message "Failed to download from $downloadUrl`: $originalError" -EnableException $true
+        }
         Write-PSFMessage -Level Verbose -Message "Extracting $fileName to $folder"
         if ($isCoreCLR) {
             [System.IO.Compression.ZipFile]::ExtractToDirectory($packagePath, $folder, $true)

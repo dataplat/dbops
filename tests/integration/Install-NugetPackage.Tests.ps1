@@ -40,7 +40,7 @@ Describe "Install-NugetPackage tests" -Tag IntegrationTests {
         It "should attempt to install $d libraries for a wrong version" {
             $dependencies = Get-ExternalLibrary -Type $Type
             foreach ($package in $dependencies) {
-                { Install-NugetPackage -Name $package.Name -RequiredVersion "0.somerandomversion" -Scope CurrentUser -Force -Confirm:$false } | Should -Throw '*Not Found*'
+                { Install-NugetPackage -Name $package.Name -RequiredVersion "0.somerandomversion" -Scope CurrentUser -Force -Confirm:$false } | Should -Throw 'Failed to download*'
                 { Install-NugetPackage -Name $package.Name -MinimumVersion "10.0" -MaximumVersion "1.0" -Scope CurrentUser -Force -Confirm:$false } | Should -Throw '*Version could not be found*'
             }
         }
