@@ -1,3 +1,5 @@
+# Release notes for v0.9.2:
+- ### Check for empty file when computing hash (#168) by @matthiaslueken
 # Release notes for v0.9.1:
 - ### Update README.md (#156) by @kevchant
 - ### adding AlwaysRollback to deploy.ps1 and module configuration (#157) by @nvarscar
