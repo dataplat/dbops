@@ -16,7 +16,7 @@ only_commits:
 #images
 
 image:
-  - Visual Studio 2019
+  - Visual Studio 2022
 
 # Set build info
 environment:
