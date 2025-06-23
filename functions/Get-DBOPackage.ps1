@@ -1,10 +1,10 @@
 Function Get-DBOPackage {
     <#
     .SYNOPSIS
-    Shows information about the existin DBOps package
+    Reads a DBOps package from disk and returns it as an object that can be interacted with.
     
     .DESCRIPTION
-    Reads DBOps package header and configuration files and returns an object with corresponding properties.
+    Reads the contents of the zip archive containing a DBOps package and returns an DBOpsPackage object.
     
     .PARAMETER Path
     Path to the DBOps package
@@ -18,14 +18,15 @@ Function Get-DBOPackage {
     Mostly intended for internal use. Gets package information from extracted package.
 
     .PARAMETER Confirm
-        Prompts to confirm certain actions
+    Prompts to confirm certain actions
 
     .PARAMETER WhatIf
-        Shows what would happen if the command would execute, but does not actually perform the command
+    Shows what would happen if the command would execute, but does not actually perform the command
 
     .EXAMPLE
     # Returns information about the package myPackage.zip, only including infomartion about builds 1.1 and 1.2
-    Get-DBOPackage -Path c:\temp\myPackage.zip -Build 1.1, 1.2
+    $pkg = Get-DBOPackage .\mypackage.zip
+    $pkg.GetBuild('1.0').Scripts.Name
     
     .NOTES
     
