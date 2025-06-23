@@ -1093,6 +1093,8 @@ class DBOpsFile : DBOps {
     [void] RebuildHash() {
         if ($this.Length -gt 0) {
             $this.Hash = [DBOpsHelper]::ToHexString([Security.Cryptography.HashAlgorithm]::Create("MD5").ComputeHash($this.ByteArray))
+        } else {
+            $this.ThrowException("Hash cannot be computed, file is empty: $($this.Name)", 'InvalidData')
         }
     }
     #Verify that hash is valid
